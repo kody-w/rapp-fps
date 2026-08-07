@@ -1,0 +1,20 @@
+{
+  "at": "2026-08-07T16:39:55.593Z",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "performance": {
+    "frameMsMedian": 11.9,
+    "frameMsP95": 14,
+    "frameMsWorst": 14.5,
+    "note": "headless rAF is unthrottled — these are GPU throughput times, not display fps",
+    "drawCallsPerFrame": 89,
+    "trianglesPerFrame": 84440,
+    "programs": 16,
+    "textures": 35,
+    "geometries": 8
+  },
+  "shots": [
+    "shots/evidence/render-budget-before/default.png"
+  ],
+  "consoleErrors": []
+}
