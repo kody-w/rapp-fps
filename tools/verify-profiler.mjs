@@ -129,6 +129,8 @@ const invalidControls = [
   ['--rafDelay=bad', 'rafDelay'],
   ['--forceNoGpuTimer=true', 'forceNoGpuTimer'],
   ['--width=0', 'width'],
+  ['--shots=,,,', 'shots'],
+  ['--shots=../escape', 'shot name'],
 ];
 for (const [flag, named] of invalidControls) {
   rmSync(`${ROOT}/${INVALID_CONTROL_OUT}`, { recursive: true, force: true });

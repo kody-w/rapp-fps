@@ -67,6 +67,10 @@ const CPU_THROTTLE = Number(args.cpuThrottle ?? 1);
 const RAF_DELAY = Number(args.rafDelay ?? 0);
 const FORCE_NO_GPU_TIMER = args.forceNoGpuTimer === '1';
 const FRAME_BUDGET_MS = Number(args.budgetMs ?? 16.7);
+const SHOT_NAMES = (args.shots ?? 'default')
+  .split(',')
+  .map((name) => name.trim())
+  .filter(Boolean);
 
 mkdirSync(OUT, { recursive: true });
 const REPORT_PATH = join(OUT, 'report.json');
@@ -103,6 +107,19 @@ if (
   controlErrors.push(
     `forceNoGpuTimer must be exactly 0 or 1, got "${args.forceNoGpuTimer}"`,
   );
+}
+if (SHOT_NAMES.length === 0) {
+  controlErrors.push('shots must contain at least one non-empty name');
+}
+for (const name of SHOT_NAMES) {
+  if (!/^[A-Za-z0-9._-]+$/.test(name)) {
+    controlErrors.push(
+      `shot name "${name}" may contain only letters, digits, dot, underscore and dash`,
+    );
+  }
+}
+if (new Set(SHOT_NAMES).size !== SHOT_NAMES.length) {
+  controlErrors.push('shots must not contain duplicate names');
 }
 try {
   const parsedUrl = new URL(URL_BASE);
@@ -236,9 +253,8 @@ const perf = await page.evaluate((measured) => {
   };
 }, timings);
 
-const shots = (args.shots ?? 'default').split(',').filter(Boolean);
 const written = [];
-for (const name of shots) {
+for (const name of SHOT_NAMES) {
   if (name !== 'default') {
     // A named shot may reposition the camera through a hook the level exposes.
     await page.evaluate((n) => window.__SHOT__?.(n), name);
