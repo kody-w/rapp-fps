@@ -30,6 +30,12 @@ export class MuzzleFlash {
     }
   }
 
+  reset() {
+    this.light.visible = false;
+    this.timeRemaining = 0;
+    this.framesPresented = 0;
+  }
+
   dispose() {
     this.scene.remove(this.light);
     this.light.dispose();

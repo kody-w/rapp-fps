@@ -58,7 +58,7 @@ export class DecalSystem {
           vec2 p = vUv * 2.0 - 1.0;
           float n = noise(p * 8.0) * 0.2 + noise(p * 16.0) * 0.1;
           float d = length(p) + n - 0.15;
-          float alpha = smoothstep(0.8, 0.6, d) * vAlpha;
+          float alpha = (1.0 - smoothstep(0.6, 0.8, d)) * vAlpha;
           vec3 color = mix(vec3(0.0), vec3(0.15), smoothstep(0.1, 0.5, d));
           if (alpha < 0.01) discard;
           gl_FragColor = vec4(color, alpha);

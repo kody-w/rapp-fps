@@ -42,6 +42,14 @@ export class CombatFX implements System {
     this.flash.update(u.dt);
   }
 
+  reset(): void {
+    this.particles.activeCount = 0;
+    this.particles.mesh.count = 0;
+    this.decals.activeCount = 0;
+    this.decals.mesh.count = 0;
+    this.flash.reset();
+  }
+
   dispose(): void {
     this.unsubs.forEach(fn => fn());
     this.particles.dispose();
