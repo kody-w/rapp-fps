@@ -1,5 +1,5 @@
 {
-  "formatVersion": 3,
+  "formatVersion": 4,
   "proceduralOnly": true,
   "sampleRate": 24000,
   "seed": 1918988400,
@@ -28,7 +28,8 @@
     "reload bookends and restrained damage cue render and clean up",
     "FFmpeg EBU R128 true peak is at or below -1.0 dBTP for every limiter-on WAV",
     "44.1/48 kHz stereo L/C/R matrix passes 18 sustained-burst cases at masterGain=1",
-    "limiter-off negative control exceeds -1.0 dBTP and fails the same assertion"
+    "limiter-off negative control metric exists, is finite, and exceeds -1.0 dBTP",
+    "missing-metric and silent-WAV negative-control mutations are rejected"
   ],
   "armPolicy": {
     "contextsBeforeGesture": 0,
@@ -87,7 +88,7 @@
         "latestScheduledEnd": 0.41500000000000004
       },
       "scheduleMilliseconds": 1,
-      "renderMilliseconds": 7.6
+      "renderMilliseconds": 8
     },
     "far": {
       "wavSha256": "b097794960c9a51f08d163114d3c10413af34ca6ba415444a07936cac08fc37a",
@@ -128,8 +129,8 @@
         "maximumTailSeconds": 0.38,
         "latestScheduledEnd": 0.495
       },
-      "scheduleMilliseconds": 0.5,
-      "renderMilliseconds": 0.6
+      "scheduleMilliseconds": 0.6,
+      "renderMilliseconds": 3.9
     },
     "alternateSeed": {
       "wavSha256": "f6f201711dfc7496e25d18df67be58cb31223e08d98ab10c2ab3c7a7b67f73d4",
@@ -211,8 +212,8 @@
         "maximumTailSeconds": 0.21,
         "latestScheduledEnd": 0.245
       },
-      "scheduleMilliseconds": 0.4,
-      "renderMilliseconds": 3.4
+      "scheduleMilliseconds": 0.5,
+      "renderMilliseconds": 0.4
     },
     "metal": {
       "wavSha256": "aeb17d8241780f6fa5b6a739a366205db78d6bc10892a9d17c8474c252581382",
@@ -253,8 +254,8 @@
         "maximumTailSeconds": 0.30999999999999994,
         "latestScheduledEnd": 0.345
       },
-      "scheduleMilliseconds": 0.2,
-      "renderMilliseconds": 0.6
+      "scheduleMilliseconds": 0.1,
+      "renderMilliseconds": 0.5
     },
     "wood": {
       "wavSha256": "e9c37d0c4c5da87ba60ec25013ac804cd668858c726248c3c39e6d09ff2a126e",
@@ -295,8 +296,8 @@
         "maximumTailSeconds": 0.15,
         "latestScheduledEnd": 0.185
       },
-      "scheduleMilliseconds": 0.2,
-      "renderMilliseconds": 0.4
+      "scheduleMilliseconds": 0.4,
+      "renderMilliseconds": 0.3
     },
     "sand": {
       "wavSha256": "fe4cbfaa3154da0086eaaf33d8dc26fd9a431b70bc063722eb92fe5fb4230cb5",
@@ -337,8 +338,8 @@
         "maximumTailSeconds": 0.2,
         "latestScheduledEnd": 0.23500000000000001
       },
-      "scheduleMilliseconds": 0.2,
-      "renderMilliseconds": 0.2
+      "scheduleMilliseconds": 0.1,
+      "renderMilliseconds": 0.4
     },
     "glass": {
       "wavSha256": "57f4b51eaa0a9c883c30fb2ef4cbff226686ee0354a9d7fbeff57ec6f7e5eb61",
@@ -379,8 +380,8 @@
         "maximumTailSeconds": 0.32999999999999996,
         "latestScheduledEnd": 0.365
       },
-      "scheduleMilliseconds": 0.1,
-      "renderMilliseconds": 0.5
+      "scheduleMilliseconds": 0.2,
+      "renderMilliseconds": 0.4
     },
     "flesh": {
       "wavSha256": "8e48a6c7f09689219c060c1e1b6e202f9a409e87865e5a170c33b65b9b3788b8",
@@ -422,7 +423,7 @@
         "latestScheduledEnd": 0.185
       },
       "scheduleMilliseconds": 0.2,
-      "renderMilliseconds": 0.3
+      "renderMilliseconds": 0.2
     },
     "foliage": {
       "wavSha256": "bfff9091cb375fd2b01afdc48a0325d3349f76899b08e746a20256c0149d4a09",
@@ -463,8 +464,8 @@
         "maximumTailSeconds": 0.2,
         "latestScheduledEnd": 0.23500000000000001
       },
-      "scheduleMilliseconds": 0.3,
-      "renderMilliseconds": 0.6
+      "scheduleMilliseconds": 0.2,
+      "renderMilliseconds": 0.4
     },
     "water": {
       "wavSha256": "f398096431562249d5a352bcc241c444aaaca72ce20cd86f5326b03126b7b45e",
@@ -506,7 +507,7 @@
         "latestScheduledEnd": 0.255
       },
       "scheduleMilliseconds": 0.3,
-      "renderMilliseconds": 0.6
+      "renderMilliseconds": 0.7
     },
     "dirt": {
       "wavSha256": "4a67b46d39363ec6953222ea958b445e986c147c4b4531cd19f981bfcf3dc78a",
@@ -548,7 +549,7 @@
         "latestScheduledEnd": 0.195
       },
       "scheduleMilliseconds": 0.3,
-      "renderMilliseconds": 0.3
+      "renderMilliseconds": 0.9
     },
     "fabric": {
       "wavSha256": "2ace8dec78b77455183c6ad72768b2c3adfeeeb8c4b104cf2e8659bdedf6afbb",
@@ -642,8 +643,8 @@
       "maximumTailSeconds": 0.16000000000000003,
       "latestScheduledEnd": 2.03
     },
-    "scheduleMilliseconds": 0.7,
-    "renderMilliseconds": 1.5,
+    "scheduleMilliseconds": 0.6,
+    "renderMilliseconds": 1.6,
     "segmentHashes": [
       "2f6d96859e7353f352688a76a03572ebbfe28ed867f645c486841f97adbfd83a",
       "94c1dc6a362eca2c42ecf97a7a164806a393324f7bbbae99464c6a0ff6e1d901",
@@ -692,8 +693,8 @@
       "maximumTailSeconds": 0.3800000000000001,
       "latestScheduledEnd": 2.3533333333333335
     },
-    "scheduleMilliseconds": 4.4,
-    "renderMilliseconds": 16.2,
+    "scheduleMilliseconds": 4.1,
+    "renderMilliseconds": 15.9,
     "rounds": 30,
     "roundsPerMinute": 900,
     "tailRms": 0,
@@ -738,7 +739,7 @@
       "maximumTailSeconds": 0.3800000000000001,
       "latestScheduledEnd": 2.3533333333333335
     },
-    "scheduleMilliseconds": 5.7,
+    "scheduleMilliseconds": 5.8,
     "renderMilliseconds": 30.7
   },
   "truePeakStressMatrix": {
@@ -860,24 +861,24 @@
           "maximumTailSeconds": 0.3800000000000001,
           "latestScheduledEnd": 2.3533333333333335
         },
-        "scheduleMilliseconds": 6.6,
-        "renderMilliseconds": 34
+        "scheduleMilliseconds": 5.7,
+        "renderMilliseconds": 32.1
       },
       {
         "wavName": "matrix-44100-left-seed-1918988402.wav",
         "sampleRate": 44100,
         "seed": 1918988402,
         "position": "left",
-        "wavSha256": "c4b309eba72ad329c17c5d7af7d55eb7cfc50ffae0a7522a0848bec6a9fa25f5",
+        "wavSha256": "6ff9eb2415d95fa59c7334fa4bd90a77c0119c62ba948ce3f961287faa3ea4e0",
         "channelCount": 2,
         "masterGain": 1,
         "analysis": {
           "rawFloatSamplePeak": 0.366885,
           "samplePeak": 0.367199,
           "rms": 0.126863,
-          "rmsDbfs": -17.933333,
-          "lufsApprox": -18.624333,
-          "crestFactorDb": 9.231356,
+          "rmsDbfs": -17.933334,
+          "lufsApprox": -18.624334,
+          "crestFactorDb": 9.231357,
           "durationSeconds": 2.9,
           "dcOffset": -0.002111,
           "spectralCentroidHz": 652.479139,
@@ -905,8 +906,8 @@
           "maximumTailSeconds": 0.3800000000000001,
           "latestScheduledEnd": 2.3533333333333335
         },
-        "scheduleMilliseconds": 9.4,
-        "renderMilliseconds": 33.2
+        "scheduleMilliseconds": 9.2,
+        "renderMilliseconds": 32.2
       },
       {
         "wavName": "matrix-44100-center-seed-1918988400.wav",
@@ -950,8 +951,8 @@
           "maximumTailSeconds": 0.3800000000000001,
           "latestScheduledEnd": 2.3533333333333335
         },
-        "scheduleMilliseconds": 6.5,
-        "renderMilliseconds": 32.9
+        "scheduleMilliseconds": 5.9,
+        "renderMilliseconds": 31.7
       },
       {
         "wavName": "matrix-44100-center-seed-1918988401.wav",
@@ -995,8 +996,8 @@
           "maximumTailSeconds": 0.3800000000000001,
           "latestScheduledEnd": 2.3533333333333335
         },
-        "scheduleMilliseconds": 7.2,
-        "renderMilliseconds": 32.9
+        "scheduleMilliseconds": 9,
+        "renderMilliseconds": 30.9
       },
       {
         "wavName": "matrix-44100-center-seed-1918988402.wav",
@@ -1040,8 +1041,8 @@
           "maximumTailSeconds": 0.3800000000000001,
           "latestScheduledEnd": 2.3533333333333335
         },
-        "scheduleMilliseconds": 5.8,
-        "renderMilliseconds": 32.7
+        "scheduleMilliseconds": 5.7,
+        "renderMilliseconds": 31.6
       },
       {
         "wavName": "matrix-44100-right-seed-1918988400.wav",
@@ -1085,8 +1086,8 @@
           "maximumTailSeconds": 0.3800000000000001,
           "latestScheduledEnd": 2.3533333333333335
         },
-        "scheduleMilliseconds": 9.1,
-        "renderMilliseconds": 32.3
+        "scheduleMilliseconds": 8.9,
+        "renderMilliseconds": 32.1
       },
       {
         "wavName": "matrix-44100-right-seed-1918988401.wav",
@@ -1130,8 +1131,8 @@
           "maximumTailSeconds": 0.3800000000000001,
           "latestScheduledEnd": 2.3533333333333335
         },
-        "scheduleMilliseconds": 5.7,
-        "renderMilliseconds": 33.3
+        "scheduleMilliseconds": 5.6,
+        "renderMilliseconds": 30.7
       },
       {
         "wavName": "matrix-44100-right-seed-1918988402.wav",
@@ -1175,8 +1176,8 @@
           "maximumTailSeconds": 0.3800000000000001,
           "latestScheduledEnd": 2.3533333333333335
         },
-        "scheduleMilliseconds": 6.8,
-        "renderMilliseconds": 33.4
+        "scheduleMilliseconds": 5.9,
+        "renderMilliseconds": 30.8
       },
       {
         "wavName": "matrix-48000-left-seed-1918988400.wav",
@@ -1220,8 +1221,8 @@
           "maximumTailSeconds": 0.3800000000000001,
           "latestScheduledEnd": 2.3533333333333335
         },
-        "scheduleMilliseconds": 6.9,
-        "renderMilliseconds": 32.5
+        "scheduleMilliseconds": 6.2,
+        "renderMilliseconds": 30.1
       },
       {
         "wavName": "matrix-48000-left-seed-1918988401.wav",
@@ -1265,8 +1266,8 @@
           "maximumTailSeconds": 0.3800000000000001,
           "latestScheduledEnd": 2.3533333333333335
         },
-        "scheduleMilliseconds": 6.2,
-        "renderMilliseconds": 31.7
+        "scheduleMilliseconds": 6,
+        "renderMilliseconds": 30
       },
       {
         "wavName": "matrix-48000-left-seed-1918988402.wav",
@@ -1310,8 +1311,8 @@
           "maximumTailSeconds": 0.3800000000000001,
           "latestScheduledEnd": 2.3533333333333335
         },
-        "scheduleMilliseconds": 6.4,
-        "renderMilliseconds": 33.3
+        "scheduleMilliseconds": 5.9,
+        "renderMilliseconds": 30.1
       },
       {
         "wavName": "matrix-48000-center-seed-1918988400.wav",
@@ -1355,8 +1356,8 @@
           "maximumTailSeconds": 0.3800000000000001,
           "latestScheduledEnd": 2.3533333333333335
         },
-        "scheduleMilliseconds": 6.6,
-        "renderMilliseconds": 32.7
+        "scheduleMilliseconds": 5.8,
+        "renderMilliseconds": 31.1
       },
       {
         "wavName": "matrix-48000-center-seed-1918988401.wav",
@@ -1400,8 +1401,8 @@
           "maximumTailSeconds": 0.3800000000000001,
           "latestScheduledEnd": 2.3533333333333335
         },
-        "scheduleMilliseconds": 6.4,
-        "renderMilliseconds": 31.6
+        "scheduleMilliseconds": 5.9,
+        "renderMilliseconds": 29.9
       },
       {
         "wavName": "matrix-48000-center-seed-1918988402.wav",
@@ -1445,7 +1446,7 @@
           "maximumTailSeconds": 0.3800000000000001,
           "latestScheduledEnd": 2.3533333333333335
         },
-        "scheduleMilliseconds": 6,
+        "scheduleMilliseconds": 5.8,
         "renderMilliseconds": 31
       },
       {
@@ -1490,8 +1491,8 @@
           "maximumTailSeconds": 0.3800000000000001,
           "latestScheduledEnd": 2.3533333333333335
         },
-        "scheduleMilliseconds": 6.4,
-        "renderMilliseconds": 31.7
+        "scheduleMilliseconds": 6.1,
+        "renderMilliseconds": 30.2
       },
       {
         "wavName": "matrix-48000-right-seed-1918988401.wav",
@@ -1536,7 +1537,7 @@
           "latestScheduledEnd": 2.3533333333333335
         },
         "scheduleMilliseconds": 5.9,
-        "renderMilliseconds": 32.1
+        "renderMilliseconds": 30
       },
       {
         "wavName": "matrix-48000-right-seed-1918988402.wav",
@@ -1580,8 +1581,8 @@
           "maximumTailSeconds": 0.3800000000000001,
           "latestScheduledEnd": 2.3533333333333335
         },
-        "scheduleMilliseconds": 6,
-        "renderMilliseconds": 32.5
+        "scheduleMilliseconds": 5.8,
+        "renderMilliseconds": 31.5
       }
     ],
     "ceilingDbtp": -1,
@@ -1640,10 +1641,10 @@
     "renderMilliseconds": 0.9
   },
   "cpu": {
-    "scheduleMillisecondsPerShot": 0.146667,
+    "scheduleMillisecondsPerShot": 0.136667,
     "listenerUpdateMicroseconds": 0.13,
-    "offlineRenderMilliseconds": 16.2,
-    "offlineRenderToRealtimeRatio": 0.005586
+    "offlineRenderMilliseconds": 15.9,
+    "offlineRenderToRealtimeRatio": 0.005483
   },
   "gpu": {
     "webglResourcesCreated": 0,
@@ -1901,6 +1902,24 @@
         "retained": true
       }
     }
+  },
+  "negativeControlValidation": {
+    "requirement": "metric must exist, be finite, and exceed -1.0 dBTP",
+    "actualDbtp": 5.6,
+    "mutationFixtures": [
+      {
+        "fixture": "missing metric",
+        "observed": "missing",
+        "rejected": true,
+        "reason": "true-peak metric is missing."
+      },
+      {
+        "fixture": "silent WAV",
+        "observed": "-Infinity",
+        "rejected": true,
+        "reason": "true-peak metric must be finite."
+      }
+    ]
   },
   "browser": {
     "engine": "Playwright Chromium",

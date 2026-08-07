@@ -83,18 +83,9 @@ try {
   for (const name of limitedNames) {
     assertTruePeak(name, peakMetrics[name].truePeakDbtp);
   }
-  let negativeControlFailed = false;
-  try {
-    assertTruePeak(
-      negativeControlName,
-      peakMetrics[negativeControlName].truePeakDbtp,
-    );
-  } catch {
-    negativeControlFailed = true;
-  }
-  if (!negativeControlFailed) {
-    throw new Error('Limiter-off negative control did not fail real dBTP.');
-  }
+  const negativeControlFixtures = await verifyNegativeControlFixtures();
+  const negativeControlDbtp = peakMetrics[negativeControlName]?.truePeakDbtp;
+  requireLimiterOffOverCeiling(negativeControlName, negativeControlDbtp);
   const matrixNames = evidence.matrixWavs;
   if (!Array.isArray(matrixNames) || matrixNames.length !== 18) {
     throw new Error(`Expected 18 true-peak matrix WAVs, received ${matrixNames?.length}.`);
@@ -108,7 +99,8 @@ try {
   report.assertions.push(
     `FFmpeg EBU R128 true peak is at or below ${truePeakCeilingDbtp.toFixed(1)} dBTP for every limiter-on WAV`,
     `44.1/48 kHz stereo L/C/R matrix passes ${matrixNames.length} sustained-burst cases at masterGain=1`,
-    `limiter-off negative control exceeds ${truePeakCeilingDbtp.toFixed(1)} dBTP and fails the same assertion`,
+    `limiter-off negative control metric exists, is finite, and exceeds ${truePeakCeilingDbtp.toFixed(1)} dBTP`,
+    'missing-metric and silent-WAV negative-control mutations are rejected',
   );
   const worstMatrixCase = report.truePeakStressMatrix.cases.find(
     (matrixCase) => matrixCase.wavName === worstMatrixName,
@@ -144,6 +136,12 @@ try {
       ]),
     ),
   };
+  report.negativeControlValidation = {
+    requirement:
+      `metric must exist, be finite, and exceed ${truePeakCeilingDbtp.toFixed(1)} dBTP`,
+    actualDbtp: negativeControlDbtp,
+    mutationFixtures: negativeControlFixtures,
+  };
   report.browser = {
     engine: 'Playwright Chromium',
     version: browser.version(),
@@ -169,6 +167,25 @@ try {
       + `${retainedNames.size}, worst matrix ${worstMatrixName} `
       + `${peakMetrics[worstMatrixName].truePeakDbtp.toFixed(1)} dBTP.\n`,
   );
+
+  async function verifyNegativeControlFixtures() {
+    const missing = expectNegativeControlRejected('missing metric', undefined);
+    const silentFixturePath = resolve(
+      candidate,
+      '.silent-negative-control-fixture.wav',
+    );
+    try {
+      await writeFile(
+        silentFixturePath,
+        createSilentWav(resolve(candidate, negativeControlName)),
+      );
+      const silentDbtp = measureTruePeak(silentFixturePath);
+      const silent = expectNegativeControlRejected('silent WAV', silentDbtp);
+      return [missing, silent];
+    } finally {
+      await rm(silentFixturePath, { force: true });
+    }
+  }
 } catch (error) {
   exitCode = 1;
   await rm(candidate, { recursive: true, force: true });
@@ -240,29 +257,32 @@ function measureTruePeak(path) {
 
 function measureWavSamplePeakDbfs(path) {
   const wav = readFileSync(path);
-  let offset = 12;
-  let dataStart = -1;
-  let dataLength = 0;
-  while (offset + 8 <= wav.length) {
-    const id = wav.toString('ascii', offset, offset + 4);
-    const length = wav.readUInt32LE(offset + 4);
-    if (id === 'data') {
-      dataStart = offset + 8;
-      dataLength = length;
-      break;
-    }
-    offset += 8 + length + (length % 2);
-  }
-  if (dataStart < 0) throw new Error(`WAV data chunk not found: ${path}`);
-
+  const { dataStart, dataLength } = findWavDataChunk(wav, path);
   let samplePeak = 0;
-  const end = Math.min(wav.length, dataStart + dataLength);
+  const end = dataStart + dataLength;
   for (let index = dataStart; index + 1 < end; index += 2) {
     samplePeak = Math.max(samplePeak, Math.abs(wav.readInt16LE(index)));
   }
   return samplePeak === 0
     ? Number.NEGATIVE_INFINITY
     : rounded(20 * Math.log10(samplePeak / 0x8000));
+}
+
+function findWavDataChunk(wav, path) {
+  let offset = 12;
+  while (offset + 8 <= wav.length) {
+    const id = wav.toString('ascii', offset, offset + 4);
+    const length = wav.readUInt32LE(offset + 4);
+    if (id === 'data') {
+      const dataStart = offset + 8;
+      return {
+        dataStart,
+        dataLength: Math.min(length, wav.length - dataStart),
+      };
+    }
+    offset += 8 + length + (length % 2);
+  }
+  throw new Error(`WAV data chunk not found: ${path}`);
 }
 
 function assertTruePeak(name, truePeakDbtp) {
@@ -272,6 +292,53 @@ function assertTruePeak(name, truePeakDbtp) {
         + `${truePeakCeilingDbtp.toFixed(1)} dBTP.`,
     );
   }
+}
+
+function requireLimiterOffOverCeiling(name, truePeakDbtp) {
+  const validation = validateLimiterOffOverCeiling(truePeakDbtp);
+  if (!validation.passes) {
+    throw new Error(`${name} ${validation.reason}`);
+  }
+}
+
+function validateLimiterOffOverCeiling(truePeakDbtp) {
+  if (typeof truePeakDbtp !== 'number') {
+    return { passes: false, reason: 'true-peak metric is missing.' };
+  }
+  if (!Number.isFinite(truePeakDbtp)) {
+    return { passes: false, reason: 'true-peak metric must be finite.' };
+  }
+  if (truePeakDbtp <= truePeakCeilingDbtp) {
+    return {
+      passes: false,
+      reason:
+        `true peak ${truePeakDbtp.toFixed(1)} dBTP does not exceed `
+          + `${truePeakCeilingDbtp.toFixed(1)} dBTP.`,
+    };
+  }
+  return { passes: true, reason: null };
+}
+
+function expectNegativeControlRejected(label, truePeakDbtp) {
+  const validation = validateLimiterOffOverCeiling(truePeakDbtp);
+  if (validation.passes) {
+    throw new Error(`Negative-control mutation "${label}" falsely passed.`);
+  }
+  return {
+    fixture: label,
+    observed: typeof truePeakDbtp === 'number'
+      ? (Number.isFinite(truePeakDbtp) ? truePeakDbtp : String(truePeakDbtp))
+      : 'missing',
+    rejected: true,
+    reason: validation.reason,
+  };
+}
+
+function createSilentWav(path) {
+  const wav = Buffer.from(readFileSync(path));
+  const { dataStart, dataLength } = findWavDataChunk(wav, path);
+  wav.fill(0, dataStart, dataStart + dataLength);
+  return wav;
 }
 
 function attachPeakMetrics(report, peakMetrics) {

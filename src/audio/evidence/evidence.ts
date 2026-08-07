@@ -439,7 +439,7 @@ async function buildEvidence(): Promise<SerializableEvidence> {
 
   const nodesPerShot = stress.result.diagnostics.nodesCreated / 30;
   const report: Record<string, unknown> = {
-    formatVersion: 3,
+    formatVersion: 4,
     proceduralOnly: true,
     sampleRate: SAMPLE_RATE,
     seed: DEFAULT_SEED,

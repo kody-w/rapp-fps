@@ -63,6 +63,8 @@ run without the Playwright-pinned Chromium or FFmpeg. FFmpeg
 **-1.0 dBTP** ceiling. It asserts:
 
 - every limiter-on WAV stays at or below -1.0 dBTP, while limiter-off fails;
+- limiter-off only passes as a negative control when its metric exists, is
+  finite, and exceeds -1.0 dBTP; missing and silent-WAV mutations are rejected;
 - 44.1/48 kHz stereo hard-left/center/right 30-round bursts pass at maximum
   supported `masterGain=1` across fixed seeds including `1918988402`;
 - RMS, approximate ungated LUFS, crest factor, duration, DC offset, spectral
