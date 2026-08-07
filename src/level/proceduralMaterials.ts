@@ -5,6 +5,7 @@ export interface PortMaterials {
   concrete: THREE.MeshStandardMaterial;
   concreteDark: THREE.MeshStandardMaterial;
   paintedMetal: THREE.MeshStandardMaterial;
+  galvanized: THREE.MeshStandardMaterial;
   darkMetal: THREE.MeshStandardMaterial;
   rustedMetal: THREE.MeshStandardMaterial;
   safetyYellow: THREE.MeshStandardMaterial;
@@ -28,6 +29,73 @@ interface GeneratedTexture {
   texture: THREE.CanvasTexture;
   bytes: number;
 }
+
+export interface PortMaterialResourceSnapshot {
+  materials: number;
+  textures: number;
+  canvasSources: number;
+  canvasBackingPixels: number;
+  canvasBackingBytes: number;
+}
+
+export const inspectPortMaterialResources = (
+  resources: PortMaterials | undefined,
+): PortMaterialResourceSnapshot => {
+  if (!resources) {
+    return {
+      materials: 0,
+      textures: 0,
+      canvasSources: 0,
+      canvasBackingPixels: 0,
+      canvasBackingBytes: 0,
+    };
+  }
+
+  let canvasSources = 0;
+  let canvasBackingPixels = 0;
+  for (const texture of resources.textures) {
+    const source = texture.source.data;
+    if (source instanceof HTMLCanvasElement) {
+      canvasSources++;
+      canvasBackingPixels += source.width * source.height;
+    }
+  }
+
+  return {
+    materials: resources.materials.length,
+    textures: resources.textures.length,
+    canvasSources,
+    canvasBackingPixels,
+    canvasBackingBytes: canvasBackingPixels * 4,
+  };
+};
+
+export const disposePortMaterials = (resources: PortMaterials): void => {
+  const textures = new Set(resources.textures);
+  const materials = new Set(resources.materials);
+
+  for (const material of materials) {
+    const record = material as unknown as Record<string, unknown>;
+    for (const key of Object.keys(record)) {
+      if (record[key] instanceof THREE.Texture) record[key] = null;
+    }
+    material.dispose();
+  }
+
+  for (const texture of textures) {
+    const source = texture.source.data;
+    texture.dispose();
+    if (source instanceof HTMLCanvasElement) {
+      source.width = 0;
+      source.height = 0;
+    }
+    texture.source.data = null;
+  }
+
+  resources.materials.length = 0;
+  resources.textures.length = 0;
+  resources.textureMemoryBytes = 0;
+};
 
 const hash = (x: number, y: number, seed: number): number => {
   let h = Math.imul(x ^ seed, 374761393) + Math.imul(y, 668265263);
@@ -144,9 +212,10 @@ const concreteDetail = (): GeneratedTexture => makeCanvasTexture(512, 512, (canv
   for (let y = 0; y < canvas.height; y++) {
     for (let x = 0; x < canvas.width; x++) {
       const i = (y * canvas.width + x) * 4;
-      const pin = hash(x, y, 719) * 42;
-      const broad = valueNoise(x, y, 19, 1201) * 22;
-      const value = 187 + pin + broad;
+      const pin = hash(x, y, 719) * 32;
+      const broad = valueNoise(x, y, 27, 1201) * 34;
+      const wet = valueNoise(x, y, 113, 404) * 78;
+      const value = 128 + pin + broad + wet;
       image.data[i] = value;
       image.data[i + 1] = value;
       image.data[i + 2] = value;
@@ -154,6 +223,20 @@ const concreteDetail = (): GeneratedTexture => makeCanvasTexture(512, 512, (canv
     }
   }
   context.putImageData(image, 0, 0);
+
+  const random = seeded(0x5eed);
+  context.globalCompositeOperation = 'multiply';
+  for (let i = 0; i < 18; i++) {
+    const gradient = context.createRadialGradient(0, 0, 2, 0, 0, 54 + random() * 70);
+    gradient.addColorStop(0, `rgba(42, 42, 42, ${0.24 + random() * 0.18})`);
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    context.save();
+    context.translate(random() * canvas.width, random() * canvas.height);
+    context.scale(1.8 + random() * 2.8, 0.28 + random() * 0.6);
+    context.fillStyle = gradient;
+    context.fillRect(-160, -160, 320, 320);
+    context.restore();
+  }
 }, false);
 
 const metalColor = (): GeneratedTexture => makeCanvasTexture(256, 256, (canvas, context) => {
@@ -203,6 +286,35 @@ const metalDetail = (): GeneratedTexture => makeCanvasTexture(256, 256, (canvas,
   context.putImageData(image, 0, 0);
 }, false);
 
+const woodColor = (): GeneratedTexture => makeCanvasTexture(256, 256, (canvas, context) => {
+  const image = context.createImageData(canvas.width, canvas.height);
+  for (let y = 0; y < canvas.height; y++) {
+    for (let x = 0; x < canvas.width; x++) {
+      const i = (y * canvas.width + x) * 4;
+      const warp = valueNoise(x, y, 42, 808) * 18;
+      const grain = Math.sin(y * 0.19 + warp) * 12;
+      const pores = hash(x, y, 1945) * 8 - 4;
+      image.data[i] = 126 + grain + pores;
+      image.data[i + 1] = 88 + grain * 0.62 + pores;
+      image.data[i + 2] = 51 + grain * 0.35 + pores;
+      image.data[i + 3] = 255;
+    }
+  }
+  context.putImageData(image, 0, 0);
+
+  const random = seeded(0x71be);
+  context.globalCompositeOperation = 'multiply';
+  for (let i = 0; i < 9; i++) {
+    context.strokeStyle = `rgba(46, 25, 12, ${0.16 + random() * 0.14})`;
+    context.lineWidth = 1 + random() * 2;
+    context.beginPath();
+    const y = random() * canvas.height;
+    context.moveTo(0, y);
+    context.bezierCurveTo(70, y - 8, 170, y + 10, canvas.width, y - 2);
+    context.stroke();
+  }
+}, true);
+
 const maintenanceSign = (): GeneratedTexture => makeCanvasTexture(512, 128, (canvas, context) => {
   context.fillStyle = '#e5ad2f';
   context.fillRect(0, 0, canvas.width, canvas.height);
@@ -245,6 +357,7 @@ export const createPortMaterials = (renderer: THREE.WebGLRenderer): PortMaterial
     concreteDetail(),
     metalColor(),
     metalDetail(),
+    woodColor(),
     maintenanceSign(),
     steamSprite(),
   ];
@@ -253,6 +366,7 @@ export const createPortMaterials = (renderer: THREE.WebGLRenderer): PortMaterial
     concreteRoughness,
     metalMap,
     metalRoughness,
+    woodMap,
     signMap,
     steamMap,
   ] = generated.map(({ texture }) => texture);
@@ -266,15 +380,16 @@ export const createPortMaterials = (renderer: THREE.WebGLRenderer): PortMaterial
     roughnessMap: concreteRoughness,
     bumpMap: concreteRoughness,
     bumpScale: 0.055,
-    roughness: 0.93,
+    roughness: 0.82,
     metalness: 0,
   });
   const concrete = ground.clone();
   concrete.color.setHex(0x7d898c);
   concrete.bumpScale = 0.035;
+  concrete.roughness = 0.92;
   const concreteDark = ground.clone();
   concreteDark.color.setHex(0x49565a);
-  concreteDark.roughness = 0.98;
+  concreteDark.roughness = 0.96;
 
   const paintedMetal = new THREE.MeshStandardMaterial({
     color: 0xffffff,
@@ -282,10 +397,16 @@ export const createPortMaterials = (renderer: THREE.WebGLRenderer): PortMaterial
     roughnessMap: metalRoughness,
     bumpMap: metalRoughness,
     bumpScale: 0.03,
-    roughness: 0.62,
-    metalness: 0.28,
+    roughness: 0.52,
+    metalness: 0.36,
     vertexColors: true,
   });
+  const galvanized = paintedMetal.clone();
+  galvanized.color.setHex(0xc8d3d2);
+  galvanized.roughness = 0.42;
+  galvanized.metalness = 0.72;
+  galvanized.bumpScale = 0.014;
+  galvanized.vertexColors = false;
   const darkMetal = paintedMetal.clone();
   darkMetal.color.setHex(0x344249);
   darkMetal.roughness = 0.71;
@@ -308,8 +429,9 @@ export const createPortMaterials = (renderer: THREE.WebGLRenderer): PortMaterial
     metalness: 0.04,
   });
   const wood = new THREE.MeshStandardMaterial({
-    color: 0x6d5037,
-    roughness: 0.88,
+    color: 0xd1aa7a,
+    map: woodMap,
+    roughness: 0.84,
     metalness: 0,
   });
   const rubber = new THREE.MeshStandardMaterial({
@@ -347,21 +469,21 @@ export const createPortMaterials = (renderer: THREE.WebGLRenderer): PortMaterial
   const emissiveOrange = new THREE.MeshStandardMaterial({
     color: 0xffb05a,
     emissive: 0xff7a21,
-    emissiveIntensity: 9,
+    emissiveIntensity: 7,
     roughness: 0.24,
     metalness: 0.05,
   });
   const emissiveCyan = new THREE.MeshStandardMaterial({
     color: 0x92f1ff,
     emissive: 0x43cfe5,
-    emissiveIntensity: 7,
+    emissiveIntensity: 4,
     roughness: 0.22,
     metalness: 0.05,
   });
   const emissiveRed = new THREE.MeshStandardMaterial({
     color: 0xff5e47,
     emissive: 0xff2415,
-    emissiveIntensity: 11,
+    emissiveIntensity: 8,
     roughness: 0.22,
     metalness: 0.05,
   });
@@ -389,6 +511,7 @@ export const createPortMaterials = (renderer: THREE.WebGLRenderer): PortMaterial
     concrete,
     concreteDark,
     paintedMetal,
+    galvanized,
     darkMetal,
     rustedMetal,
     safetyYellow,
@@ -410,6 +533,7 @@ export const createPortMaterials = (renderer: THREE.WebGLRenderer): PortMaterial
     concrete,
     concreteDark,
     paintedMetal,
+    galvanized,
     darkMetal,
     rustedMetal,
     safetyYellow,

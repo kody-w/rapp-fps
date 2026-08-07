@@ -7,7 +7,13 @@ import type {
   System,
   UpdateContext,
 } from '../core/contracts.js';
-import { createPortMaterials, type PortMaterials } from './proceduralMaterials.js';
+import {
+  createPortMaterials,
+  disposePortMaterials,
+  inspectPortMaterialResources,
+  type PortMaterialResourceSnapshot,
+  type PortMaterials,
+} from './proceduralMaterials.js';
 
 declare global {
   interface Window {
@@ -33,6 +39,22 @@ interface CargoInstance {
   position: [number, number, number];
   scale: [number, number, number];
   color: number;
+}
+
+export interface PortLevelResourceSnapshot {
+  initialized: boolean;
+  visualChildren: number;
+  collisionChildren: number;
+  instancedMeshes: number;
+  lights: number;
+  shadowCastingDirectionalLights: number;
+  geometries: number;
+  geometryCacheEntries: number;
+  colliders: number;
+  steamFields: number;
+  waterMarkers: number;
+  rainBaseValues: number;
+  materials: PortMaterialResourceSnapshot;
 }
 
 const SHOTS: Record<string, Shot> = {
@@ -69,6 +91,16 @@ const HARBOR_BLUE = 0x315a69;
 const FADED_TEAL = 0x3c6967;
 const WEATHERED_YELLOW = 0xb68c35;
 const COLD_GREY = 0x566369;
+export const PORT_LEVEL_LAYOUT = {
+  maintenanceFrontZ: -21.8,
+  maintenanceDoorCenterX: 7.15,
+  maintenanceDoorWidth: 2.25,
+  maintenanceDoorHeight: 3.15,
+  checkpointCenterX: -1.8,
+  checkpointZ: -45.8,
+  checkpointWidth: 7.5,
+  checkpointPostWidth: 0.16,
+} as const;
 const JERSEY_BARRIERS: Array<[number, number, number]> = [
   [4.5, 9.4, 0.5],
   [-3.5, 2.5, -0.3],
@@ -87,7 +119,7 @@ export class PortLevel implements System {
   private colliders: THREE.Mesh[] = [];
   private geometries = new Set<THREE.BufferGeometry>();
   private geometryCache = new Map<string, THREE.BufferGeometry>();
-  private materials!: PortMaterials;
+  private materialResources?: PortMaterials;
   private colliderMaterial?: THREE.MeshBasicMaterial;
   private steamFields: SteamField[] = [];
   private waterMarkers: THREE.Mesh[] = [];
@@ -95,9 +127,16 @@ export class PortLevel implements System {
   private rainBase?: Float32Array;
   private shotHook?: (name: string) => boolean;
   private camera?: THREE.PerspectiveCamera;
+  private initialized = false;
+
+  private get materials(): PortMaterials {
+    if (!this.materialResources) throw new Error('PortLevel materials are not initialized');
+    return this.materialResources;
+  }
 
   init(ctx: EngineContext): void {
-    this.materials = createPortMaterials(ctx.renderer);
+    if (this.initialized) throw new Error('PortLevel is already initialized');
+    this.materialResources = createPortMaterials(ctx.renderer);
     this.colliderMaterial = new THREE.MeshBasicMaterial({ visible: false });
     this.materials.materials.push(this.colliderMaterial);
     this.root.name = 'port-level-visuals';
@@ -123,10 +162,40 @@ export class PortLevel implements System {
     window.__LEVEL_COLLIDERS__ = this.colliders;
     window.__LEVEL_TEXTURE_MEMORY_BYTES__ = this.materials.textureMemoryBytes;
     this.applyShot('spawn');
+    this.initialized = true;
   }
 
   getCollisionMeshes(): readonly THREE.Mesh[] {
     return this.colliders;
+  }
+
+  getResourceSnapshot(): PortLevelResourceSnapshot {
+    let instancedMeshes = 0;
+    let lights = 0;
+    let shadowCastingDirectionalLights = 0;
+    this.root.traverse((object) => {
+      if (object instanceof THREE.InstancedMesh) instancedMeshes++;
+      if (object instanceof THREE.Light) lights++;
+      if (object instanceof THREE.DirectionalLight && object.castShadow) {
+        shadowCastingDirectionalLights++;
+      }
+    });
+
+    return {
+      initialized: this.initialized,
+      visualChildren: this.root.children.length,
+      collisionChildren: this.collisionRoot.children.length,
+      instancedMeshes,
+      lights,
+      shadowCastingDirectionalLights,
+      geometries: this.geometries.size,
+      geometryCacheEntries: this.geometryCache.size,
+      colliders: this.colliders.length,
+      steamFields: this.steamFields.length,
+      waterMarkers: this.waterMarkers.length,
+      rainBaseValues: this.rainBase?.length ?? 0,
+      materials: inspectPortMaterialResources(this.materialResources),
+    };
   }
 
   update(u: UpdateContext): void {
@@ -147,7 +216,7 @@ export class PortLevel implements System {
       const marker = this.waterMarkers[i];
       const pulse = 0.6 + Math.sin(u.elapsed * 2.2 + i) * 0.4;
       const material = marker.material as THREE.MeshStandardMaterial;
-      material.emissiveIntensity = 2.6 + pulse * 1.6;
+      material.emissiveIntensity = 1.7 + pulse;
     }
 
     if (this.rain && this.rainBase) {
@@ -161,8 +230,13 @@ export class PortLevel implements System {
         const x = this.rainBase[baseIndex] - drift * 0.16;
         const y = this.rainBase[baseIndex + 1] - fall;
         const z = this.rainBase[baseIndex + 2] + drift;
-        positions.setXYZ(vertexIndex, x, y, z);
-        positions.setXYZ(vertexIndex + 1, x + 0.09, y - 0.72, z + 0.22);
+        if (this.isRainOccluded(x, y, z)) {
+          positions.setXYZ(vertexIndex, x, -20, z);
+          positions.setXYZ(vertexIndex + 1, x, -20, z);
+        } else {
+          positions.setXYZ(vertexIndex, x, y, z);
+          positions.setXYZ(vertexIndex + 1, x + 0.09, y - 0.72, z + 0.22);
+        }
       }
       positions.needsUpdate = true;
     }
@@ -173,11 +247,33 @@ export class PortLevel implements System {
     if (window.__LEVEL_COLLIDERS__ === this.colliders) delete window.__LEVEL_COLLIDERS__;
     delete window.__LEVEL_TEXTURE_MEMORY_BYTES__;
 
+    const ownedResources = new Set<{ dispose(): void }>();
+    this.root.traverse((object) => {
+      if (object instanceof THREE.InstancedMesh || object instanceof THREE.Light) {
+        ownedResources.add(object);
+      }
+    });
+    for (const resource of ownedResources) resource.dispose();
+
     this.root.removeFromParent();
     this.collisionRoot.removeFromParent();
     for (const geometry of this.geometries) geometry.dispose();
-    for (const material of this.materials.materials) material.dispose();
-    for (const texture of this.materials.textures) texture.dispose();
+    this.root.clear();
+    this.collisionRoot.clear();
+    if (this.materialResources) disposePortMaterials(this.materialResources);
+
+    this.colliders.length = 0;
+    this.geometries.clear();
+    this.geometryCache.clear();
+    this.steamFields.length = 0;
+    this.waterMarkers.length = 0;
+    this.rain = undefined;
+    this.rainBase = undefined;
+    this.shotHook = undefined;
+    this.camera = undefined;
+    this.colliderMaterial = undefined;
+    this.materialResources = undefined;
+    this.initialized = false;
   }
 
   private applyShot(name: string): boolean {
@@ -222,10 +318,8 @@ export class PortLevel implements System {
     portBounce.target.position.set(4, 0, -22);
     this.root.add(portBounce, portBounce.target);
 
-    this.addLightPool(new THREE.Vector3(-6.2, 4.5, -18), 0xff9b45, 30, 18);
-    this.addLightPool(new THREE.Vector3(6.5, 3.2, -24.3), 0x54d6ec, 16, 12);
-    this.addLightPool(new THREE.Vector3(6.2, 2.8, -33.2), 0xffa74f, 20, 13);
-    this.addLightPool(new THREE.Vector3(-8.5, 2.6, -45), 0xff6f42, 17, 11);
+    this.addLightPool(new THREE.Vector3(-5, 4.15, -18), 0xff9b45, 22, 15);
+    this.addLightPool(new THREE.Vector3(-7.3, 4.15, -45), 0xff7f45, 18, 13);
     this.createRain();
   }
 
@@ -336,19 +430,27 @@ export class PortLevel implements System {
     rail.rotation.y = 0;
     this.root.add(rail);
 
-    const markerGeometry = this.sphere(0.105, 10, 7);
+    const markerGeometry = this.box(0.1, 0.14, 0.035);
     for (let z = 10; z >= -45; z -= 8.2) {
       const post = this.mesh(
         this.cylinder(0.05, 0.05, 0.75, 8),
-        this.materials.darkMetal,
+        this.materials.galvanized,
         [13.62, 0.67, z],
         { castShadow: true },
       );
-      const markerMaterial = this.materials.emissiveCyan.clone();
+      const housing = this.mesh(
+        this.box(0.19, 0.24, 0.12),
+        this.materials.darkMetal,
+        [13.62, 1.07, z],
+        { castShadow: true },
+      );
+      const markerMaterial = this.materials.emissiveOrange.clone();
+      markerMaterial.emissiveIntensity = 2.1;
       this.materials.materials.push(markerMaterial);
-      const marker = this.mesh(markerGeometry, markerMaterial, [13.62, 1.08, z]);
+      const marker = this.mesh(markerGeometry, markerMaterial, [13.55, 1.07, z]);
+      marker.rotation.y = Math.PI / 2;
       this.waterMarkers.push(marker);
-      this.root.add(post, marker);
+      this.root.add(post, housing, marker);
     }
 
     const bollardGeometry = this.cylinder(0.24, 0.33, 0.7, 12);
@@ -461,11 +563,10 @@ export class PortLevel implements System {
       { size: [0.35, 4.4, 16], position: [-4.2, 2.2, 0] },
       { size: [0.35, 4.4, 16], position: [4.2, 2.2, 0] },
       { size: [8.4, 4.4, 0.35], position: [0, 2.2, -8] },
-      { size: [8.4, 4.4, 0.35], position: [0, 2.2, 8] },
       { size: [8.8, 0.3, 16.4], position: [0, 4.55, 0], material: this.materials.darkMetal },
-      { size: [3.35, 4.4, 0.3], position: [-2.52, 2.2, 5.1] },
-      { size: [2.1, 1.1, 0.3], position: [2.9, 3.85, 5.1] },
-      { size: [0.8, 4.4, 0.3], position: [3.8, 2.2, 5.1] },
+      { size: [4.525, 4.4, 0.35], position: [-1.9375, 2.2, 8] },
+      { size: [1.625, 4.4, 0.35], position: [3.3875, 2.2, 8] },
+      { size: [2.25, 1.25, 0.35], position: [1.45, 3.775, 8] },
     ];
     for (const part of wallParts) {
       const wall = this.mesh(
@@ -480,7 +581,7 @@ export class PortLevel implements System {
     const window = this.mesh(
       this.box(1.9, 1.4, 0.08),
       this.materials.glass,
-      [2.75, 2.65, 5.3],
+      [-1.65, 2.65, 8.2],
       { receiveShadow: true },
     );
     building.add(window);
@@ -488,13 +589,28 @@ export class PortLevel implements System {
     const sign = this.mesh(
       this.plane(3.9, 0.98),
       this.materials.sign,
-      [-1.15, 4.15, 5.32],
+      [-1.15, 4.15, 8.22],
     );
     building.add(sign);
 
     const doorFrame = this.createDoorFrame(2.25, 3.15, 0.28);
-    doorFrame.position.set(1.45, 0, 5.28);
+    doorFrame.position.set(1.45, 0, 8.18);
     building.add(doorFrame);
+
+    const entranceHousing = this.mesh(
+      this.box(0.62, 0.24, 0.2),
+      this.materials.darkMetal,
+      [1.45, 3.55, 8.2],
+      { castShadow: true },
+    );
+    const entranceEmitter = this.mesh(
+      this.box(0.43, 0.1, 0.025),
+      this.materials.emissiveOrange,
+      [1.45, 3.53, 8.31],
+    );
+    const entranceLight = new THREE.PointLight(0xffa45c, 7, 9, 2);
+    entranceLight.position.set(1.45, 3.35, 8.45);
+    building.add(entranceHousing, entranceEmitter, entranceLight);
 
     const interiorStrip = this.mesh(
       this.box(3.6, 0.08, 0.14),
@@ -631,10 +747,23 @@ export class PortLevel implements System {
     }
     building.add(utilityCrates);
 
-    const innerLight = new THREE.PointLight(0x65e0ee, 7, 9, 2);
+    const taskHousing = this.mesh(
+      this.box(1.25, 0.18, 0.42),
+      this.materials.galvanized,
+      [-1.6, 2.72, -5.72],
+      { castShadow: true },
+    );
+    const taskEmitter = this.mesh(
+      this.box(0.92, 0.025, 0.26),
+      this.materials.emissiveOrange,
+      [-1.6, 2.61, -5.72],
+    );
+    building.add(taskHousing, taskEmitter);
+
+    const innerLight = new THREE.PointLight(0x76d6df, 3.2, 7, 2);
     innerLight.position.set(0.5, 3.5, -2.2);
-    const taskLight = new THREE.PointLight(0xff8c47, 4, 7, 2);
-    taskLight.position.set(-1.4, 2.7, -5.6);
+    const taskLight = new THREE.PointLight(0xff934f, 4.5, 6, 2);
+    taskLight.position.set(-1.6, 2.45, -5.72);
     building.add(innerLight, taskLight);
 
     building.position.set(5.7, 0, -29.8);
@@ -657,29 +786,101 @@ export class PortLevel implements System {
     const pipeRun = new THREE.Group();
     pipeRun.name = 'seaward flank';
 
-    const pipeGeometry = this.cylinder(0.22, 0.22, 20, 12);
-    for (let i = 0; i < 3; i++) {
+    const pipeGeometry = this.cylinder(0.24, 0.24, 20, 24);
+    const flangeGeometry = this.cylinder(0.32, 0.32, 0.14, 24);
+    const clampGeometry = this.torus(0.245, 0.035, 8, 24);
+    const elbowGeometry = this.torus(0.48, 0.24, 12, 28, Math.PI / 2);
+    const supportZ = [-2, -6, -10, -14, -18];
+    const pipes = [
+      { x: 9.1, y: 2.2, material: this.materials.galvanized },
+      { x: 9.68, y: 2.52, material: this.materials.rustedMetal },
+      { x: 10.26, y: 2.84, material: this.materials.galvanized },
+    ];
+
+    for (const spec of pipes) {
       const pipe = this.mesh(
         pipeGeometry,
-        i === 1 ? this.materials.rustedMetal : this.materials.darkMetal,
-        [9.1 + i * 0.58, 2.2 + i * 0.32, -10.8],
+        spec.material,
+        [spec.x, spec.y, -10.8],
         { castShadow: true, receiveShadow: true },
       );
       pipe.rotation.x = Math.PI / 2;
       pipeRun.add(pipe);
+
+      for (const z of [-0.8, -20.8]) {
+        const flange = this.mesh(
+          flangeGeometry,
+          this.materials.darkMetal,
+          [spec.x, spec.y, z],
+          { castShadow: true, receiveShadow: true },
+        );
+        flange.rotation.x = Math.PI / 2;
+        pipeRun.add(flange);
+      }
+
+      for (const z of supportZ) {
+        pipeRun.add(this.mesh(
+          clampGeometry,
+          this.materials.galvanized,
+          [spec.x, spec.y, z],
+          { castShadow: true },
+        ));
+      }
+
+      const elbow = this.mesh(
+        elbowGeometry,
+        spec.material,
+        [spec.x, spec.y - 0.48, -20.8],
+        { castShadow: true, receiveShadow: true },
+      );
+      elbow.rotation.y = Math.PI / 2;
+      pipeRun.add(elbow);
+
+      const dropHeight = spec.y - 0.78;
+      const drop = this.mesh(
+        this.cylinder(0.24, 0.24, dropHeight, 24),
+        spec.material,
+        [spec.x, 0.3 + dropHeight / 2, -21.28],
+        { castShadow: true, receiveShadow: true },
+      );
+      const baseFlange = this.mesh(
+        this.cylinder(0.33, 0.33, 0.14, 24),
+        this.materials.darkMetal,
+        [spec.x, 0.28, -21.28],
+        { castShadow: true, receiveShadow: true },
+      );
+      pipeRun.add(drop, baseFlange);
     }
 
-    for (let z = -2; z >= -20; z -= 4) {
+    for (const z of supportZ) {
       const support = this.createPipeSupport();
       support.position.set(9.68, 0, z);
       pipeRun.add(support);
     }
 
+    const manifold = this.mesh(
+      this.cylinder(0.2, 0.2, 2.35, 20),
+      this.materials.galvanized,
+      [9.68, 0.32, -21.28],
+      { castShadow: true, receiveShadow: true },
+    );
+    manifold.rotation.z = Math.PI / 2;
+    pipeRun.add(manifold);
+
+    const valveBranch = this.mesh(
+      this.cylinder(0.12, 0.12, 0.78, 16),
+      this.materials.galvanized,
+      [8.72, 2.2, -13],
+      { castShadow: true },
+    );
+    valveBranch.rotation.z = Math.PI / 2;
+    pipeRun.add(valveBranch);
+
     const valve = new THREE.Group();
     const wheel = this.mesh(
       this.torus(0.55, 0.075, 8, 22),
       this.materials.safetyYellow,
-      [8.9, 2.1, -13],
+      [8.34, 2.2, -13],
       { castShadow: true },
     );
     wheel.rotation.y = Math.PI / 2;
@@ -688,11 +889,19 @@ export class PortLevel implements System {
       const spoke = this.mesh(
         this.box(0.06, 1.05, 0.06),
         this.materials.safetyYellow,
-        [8.9, 2.1, -13],
+        [8.34, 2.2, -13],
       );
       spoke.rotation.z = i * Math.PI / 4;
       valve.add(spoke);
     }
+    const hub = this.mesh(
+      this.cylinder(0.13, 0.13, 0.22, 16),
+      this.materials.darkMetal,
+      [8.34, 2.2, -13],
+      { castShadow: true },
+    );
+    hub.rotation.z = Math.PI / 2;
+    valve.add(hub);
     pipeRun.add(valve);
     this.root.add(pipeRun);
 
@@ -773,7 +982,7 @@ export class PortLevel implements System {
       this.root.add(mesh);
     }
 
-    for (const [x, z] of [[2.6, 5.4], [1.4, -7], [3.2, -16.4], [-0.2, -24.8]]) {
+    for (const [x, z] of [[2.6, 5.4], [3.2, -16.4]]) {
       this.root.add(this.createPalletStack(x, z));
     }
 
@@ -859,27 +1068,112 @@ export class PortLevel implements System {
     );
     this.root.add(warehouse);
 
+    const tankDeck = this.mesh(
+      this.box(43, 0.6, 19),
+      this.materials.concreteDark,
+      [34, -0.08, -66],
+      { castShadow: true, receiveShadow: true },
+    );
+    const deckFace = this.mesh(
+      this.box(43, 1.4, 0.5),
+      this.materials.concrete,
+      [34, -0.48, -56.55],
+      { castShadow: true, receiveShadow: true },
+    );
+    const deckRail = this.createRailing(40, 1.15);
+    deckRail.position.set(34, 0.22, -56.8);
+    deckRail.rotation.y = Math.PI / 2;
+    this.root.add(tankDeck, deckFace, deckRail);
+
     const tanks = new THREE.Group();
-    for (const [x, z, radius, height] of [
+    const tankSpecs = [
       [24, -68, 5.4, 12],
       [35, -73, 6.3, 15],
       [48, -66, 4.8, 10],
-    ] as Array<[number, number, number, number]>) {
-      const tank = this.mesh(
-        this.cylinder(radius, radius, height, 20),
-        this.materials.darkMetal,
-        [x, height / 2 - 0.2, z],
+    ] as Array<[number, number, number, number]>;
+    for (const [x, z, radius, height] of tankSpecs) {
+      const base = this.mesh(
+        this.cylinder(radius + 0.48, radius + 0.48, 0.6, 32),
+        this.materials.concrete,
+        [x, 0.3, z],
         { castShadow: true, receiveShadow: true },
       );
-      tanks.add(tank);
+      const tank = this.mesh(
+        this.cylinder(radius, radius, height, 32),
+        this.materials.galvanized,
+        [x, 0.6 + height / 2, z],
+        { castShadow: true, receiveShadow: true },
+      );
       const cap = this.mesh(
-        this.sphere(radius, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2),
-        this.materials.darkMetal,
-        [x, height - 0.2, z],
+        this.sphere(radius, 32, 14, 0, Math.PI * 2, 0, Math.PI / 2),
+        this.materials.galvanized,
+        [x, height + 0.6, z],
         { castShadow: true },
       );
-      tanks.add(cap);
+      tanks.add(base, tank, cap);
+
+      for (const y of [1.15, 0.6 + height * 0.36, 0.6 + height * 0.72, height + 0.45]) {
+        const seam = this.mesh(
+          this.torus(radius + 0.035, 0.075, 8, 40),
+          this.materials.darkMetal,
+          [x, y, z],
+          { castShadow: true },
+        );
+        seam.rotation.x = Math.PI / 2;
+        tanks.add(seam);
+      }
+
+      const ladderHeight = height * 0.72;
+      const ladderZ = z + radius + 0.09;
+      for (const ladderX of [x - 0.3, x + 0.3]) {
+        tanks.add(this.mesh(
+          this.box(0.08, ladderHeight, 0.08),
+          this.materials.galvanized,
+          [ladderX, 0.65 + ladderHeight / 2, ladderZ],
+          { castShadow: true },
+        ));
+      }
+      for (let y = 1; y < ladderHeight + 0.6; y += 0.55) {
+        tanks.add(this.mesh(
+          this.box(0.68, 0.055, 0.07),
+          this.materials.galvanized,
+          [x, y, ladderZ],
+          { castShadow: true },
+        ));
+      }
+
+      const frontZ = z + radius;
+      const branchLength = Math.abs(frontZ + 56.3);
+      const branch = this.mesh(
+        this.cylinder(0.2, 0.2, branchLength, 18),
+        this.materials.galvanized,
+        [x, 1.15, (frontZ - 56.3) / 2],
+        { castShadow: true, receiveShadow: true },
+      );
+      branch.rotation.x = Math.PI / 2;
+      const tankFlange = this.mesh(
+        this.cylinder(0.31, 0.31, 0.14, 20),
+        this.materials.darkMetal,
+        [x, 1.15, frontZ],
+        { castShadow: true },
+      );
+      tankFlange.rotation.x = Math.PI / 2;
+      const valve = this.mesh(
+        this.torus(0.34, 0.055, 8, 20),
+        this.materials.safetyYellow,
+        [x, 1.15, -57.15],
+        { castShadow: true },
+      );
+      tanks.add(branch, tankFlange, valve);
     }
+    const manifold = this.mesh(
+      this.cylinder(0.24, 0.24, 35, 20),
+      this.materials.galvanized,
+      [34, 1.15, -56.3],
+      { castShadow: true, receiveShadow: true },
+    );
+    manifold.rotation.z = Math.PI / 2;
+    tanks.add(manifold);
     this.root.add(tanks);
 
     const skyline = new THREE.Group();
@@ -897,7 +1191,6 @@ export class PortLevel implements System {
   private buildSetDressing(): void {
     const lampPosts = [
       [-6.2, -18, 0],
-      [6.5, -24.3, Math.PI],
       [-8.5, -45, 0],
     ] as Array<[number, number, number]>;
     for (const [x, z, rotation] of lampPosts) {
@@ -914,15 +1207,25 @@ export class PortLevel implements System {
       this.root.add(barrier);
     }
 
-    const random = this.random(0xd3c0);
-    for (let i = 0; i < 18; i++) {
-      const drum = this.createDrum(i % 4 === 0);
-      drum.position.set(-4 + random() * 14, 0, 12 - random() * 57);
-      drum.rotation.y = random() * Math.PI;
+    const drumPlacements = [
+      [-5.8, 5.4, 0, false],
+      [-5.15, 5.2, 0.3, false],
+      [-5.45, 4.65, -0.2, true],
+      [4.4, -18.2, 0.1, true],
+      [5.05, -18.4, -0.2, false],
+      [4.7, -17.7, 0.35, false],
+      [-7.4, -43.7, -0.15, false],
+      [-6.8, -43.5, 0.25, true],
+      [-7.1, -44.2, 0, false],
+    ] as Array<[number, number, number, boolean]>;
+    for (const [x, z, rotation, hazard] of drumPlacements) {
+      const drum = this.createDrum(hazard);
+      drum.position.set(x, 0, z);
+      drum.rotation.y = rotation;
       this.root.add(drum);
     }
 
-    for (const [x, z] of [[-5, 10], [5.3, -6], [-3.6, -28], [7.8, -42]]) {
+    for (const [x, z] of [[5.35, -19.3], [-4.8, -27.5]]) {
       const coneCluster = new THREE.Group();
       for (let i = 0; i < 3; i++) {
         const cone = this.mesh(
@@ -938,7 +1241,7 @@ export class PortLevel implements System {
     }
 
     const cableGeometry = this.torus(0.74, 0.045, 6, 28);
-    for (const [x, z, angle] of [[4.4, 1.7, 0.2], [-1.2, -12, -0.2], [4.4, -38, 0.4]]) {
+    for (const [x, z, angle] of [[4.4, 1.7, 0.2], [4.4, -38, 0.4]]) {
       const coil = this.mesh(
         cableGeometry,
         this.materials.rubber,
@@ -1041,10 +1344,10 @@ export class PortLevel implements System {
       { name: 'maintenance-west-wall', size: [0.4, 4.6, 16], position: [1.5, 2.3, -29.8], surface: 'concrete' },
       { name: 'maintenance-east-wall', size: [0.4, 4.6, 16], position: [9.9, 2.3, -29.8], surface: 'concrete' },
       { name: 'maintenance-back-wall', size: [8.4, 4.6, 0.4], position: [5.7, 2.3, -37.8], surface: 'concrete' },
-      { name: 'maintenance-front-left', size: [3.4, 4.6, 0.35], position: [3.18, 2.3, -24.7], surface: 'concrete' },
-      { name: 'maintenance-front-right', size: [0.9, 4.6, 0.35], position: [9.5, 2.3, -24.7], surface: 'concrete' },
-      { name: 'maintenance-front-header', size: [2.2, 1.15, 0.35], position: [8.6, 4.03, -24.7], surface: 'concrete' },
-      { name: 'maintenance-window', size: [1.9, 1.4, 0.12], position: [8.45, 2.65, -24.5], surface: 'glass' },
+      { name: 'maintenance-front-left', size: [4.525, 4.6, 0.4], position: [3.7625, 2.3, PORT_LEVEL_LAYOUT.maintenanceFrontZ], surface: 'concrete' },
+      { name: 'maintenance-front-right', size: [1.625, 4.6, 0.4], position: [9.0875, 2.3, PORT_LEVEL_LAYOUT.maintenanceFrontZ], surface: 'concrete' },
+      { name: 'maintenance-front-header', size: [2.25, 1.25, 0.4], position: [PORT_LEVEL_LAYOUT.maintenanceDoorCenterX, 3.775, PORT_LEVEL_LAYOUT.maintenanceFrontZ], surface: 'concrete' },
+      { name: 'maintenance-window', size: [1.9, 1.4, 0.12], position: [4.05, 2.65, PORT_LEVEL_LAYOUT.maintenanceFrontZ + 0.2], surface: 'glass' },
       { name: 'maintenance-roof', size: [8.8, 0.35, 16.4], position: [5.7, 4.55, -29.8], surface: 'metal' },
     ];
     for (const part of buildingParts) {
@@ -1062,8 +1365,9 @@ export class PortLevel implements System {
       ['lane-cover-d', [3.2, 1.1, 0.74], [-2.1, 0.55, -38.3], 'concrete', -0.16],
       ['flank-pipe-bank', [2.7, 3.7, 20], [9.7, 2.1, -10.8], 'metal'],
       ['flank-canopy', [4.8, 0.25, 10], [9.3, 4.3, -15], 'metal'],
-      ['checkpoint-left', [5, 3.4, 0.5], [-5.4, 1.7, -45.8], 'metal'],
-      ['checkpoint-right', [5, 3.4, 0.5], [2, 1.7, -45.8], 'metal'],
+      ['checkpoint-left-post', [0.22, 3.7, 0.42], [-5.55, 1.85, PORT_LEVEL_LAYOUT.checkpointZ], 'metal'],
+      ['checkpoint-right-post', [0.22, 3.7, 0.42], [1.95, 1.85, PORT_LEVEL_LAYOUT.checkpointZ], 'metal'],
+      ['checkpoint-header', [7.72, 0.22, 0.42], [PORT_LEVEL_LAYOUT.checkpointCenterX, 3.7, PORT_LEVEL_LAYOUT.checkpointZ], 'metal'],
     ];
     for (const [name, size, position, surface, rotation] of cover) {
       this.addCollider(name, this.box(...size), position, surface, rotation);
@@ -1214,18 +1518,42 @@ export class PortLevel implements System {
     const group = new THREE.Group();
     for (const x of [-1.1, 1.1]) {
       group.add(this.mesh(
-        this.box(0.13, 3.6, 0.13),
-        this.materials.darkMetal,
-        [x, 1.8, 0],
+        this.box(0.46, 0.16, 0.58),
+        this.materials.concrete,
+        [x, 0.08, 0],
+        { castShadow: true, receiveShadow: true },
+      ));
+      group.add(this.mesh(
+        this.box(0.16, 2.5, 0.16),
+        this.materials.galvanized,
+        [x, 1.25, 0],
         { castShadow: true },
       ));
     }
     group.add(this.mesh(
-      this.box(2.35, 0.14, 0.14),
-      this.materials.darkMetal,
-      [0, 3.55, 0],
+      this.box(2.45, 0.16, 0.3),
+      this.materials.galvanized,
+      [0, 1.68, 0],
       { castShadow: true },
     ));
+    for (const x of [-0.78, 0.78]) {
+      const brace = this.mesh(
+        this.box(0.12, 1.35, 0.12),
+        this.materials.galvanized,
+        [x, 1.18, 0],
+        { castShadow: true },
+      );
+      brace.rotation.z = x < 0 ? -0.52 : 0.52;
+      group.add(brace);
+    }
+    for (const [x, height] of [[-0.58, 0.2], [0, 0.52], [0.58, 0.84]]) {
+      group.add(this.mesh(
+        this.box(0.13, height, 0.2),
+        this.materials.galvanized,
+        [x, 1.76 + height / 2, 0],
+        { castShadow: true },
+      ));
+    }
     return group;
   }
 
@@ -1287,14 +1615,14 @@ export class PortLevel implements System {
     for (const y of [height * 0.55, height]) {
       group.add(this.mesh(
         railGeometry,
-        this.materials.darkMetal,
+        this.materials.galvanized,
         [0, y, 0],
         { castShadow: true },
       ));
     }
     const postGeometry = this.box(0.11, height, 0.11);
     const count = Math.floor(length / 3.4);
-    const posts = new THREE.InstancedMesh(postGeometry, this.materials.darkMetal, count);
+    const posts = new THREE.InstancedMesh(postGeometry, this.materials.galvanized, count);
     const matrix = new THREE.Matrix4();
     for (let i = 0; i < count; i++) {
       matrix.makeTranslation(0, height / 2, -length / 2 + i * 3.4);
@@ -1380,7 +1708,7 @@ export class PortLevel implements System {
       let x = -14 + random() * 28;
       const y = 2 + random() * 14;
       let z = 18 - random() * 78;
-      while (x > 1.2 && x < 10.2 && z < -24.2 && z > -38.2) {
+      while (x > 0.5 && x < 10.8 && z < -17.8 && z > -38.5) {
         x = -14 + random() * 28;
         z = 18 - random() * 78;
       }
@@ -1404,6 +1732,16 @@ export class PortLevel implements System {
     this.rain.renderOrder = 3;
     this.rainBase = base;
     this.root.add(this.rain);
+  }
+
+  private isRainOccluded(x: number, y: number, z: number): boolean {
+    return (
+      y < 5
+      && x > 1.25
+      && x < 10.15
+      && z < PORT_LEVEL_LAYOUT.maintenanceFrontZ + 0.2
+      && z > -38
+    );
   }
 
   private addLightPool(
