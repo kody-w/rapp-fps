@@ -18,6 +18,7 @@ import { spawn } from 'node:child_process';
 const ROOT = new URL('..', import.meta.url).pathname;
 const TARGET_URL = process.env.FPS_URL ?? 'http://127.0.0.1:5273/';
 const OUT = 'shots/profiler-verification';
+const INVALID_OUT = `${OUT}-invalid-budget`;
 
 function run(args) {
   return new Promise((resolve) => {
@@ -39,6 +40,7 @@ function assert(condition, message) {
 
 rmSync(`${ROOT}/${OUT}`, { recursive: true, force: true });
 rmSync(`${ROOT}/${OUT}-unsupported`, { recursive: true, force: true });
+rmSync(`${ROOT}/${INVALID_OUT}`, { recursive: true, force: true });
 
 const measured = await run([`--url=${TARGET_URL}`, `--out=${OUT}`, '--budgetMs=1000']);
 assert(measured.code === 0, `normal capture failed (${measured.code}): ${measured.stderr}`);
@@ -74,6 +76,23 @@ assert(
   'unsupported refusal did not name the claim as UNVERIFIED',
 );
 
+mkdirSync(`${ROOT}/${INVALID_OUT}`, { recursive: true });
+writeFileSync(`${ROOT}/${INVALID_OUT}/report.json`, '{"stale":"green"}');
+const invalidBudget = await run([
+  `--url=${TARGET_URL}`,
+  `--out=${INVALID_OUT}`,
+  '--budgetMs=16.7ms',
+]);
+assert(invalidBudget.code === 8, `invalid budget exited ${invalidBudget.code}, expected 8`);
+assert(
+  !existsSync(`${ROOT}/${INVALID_OUT}/report.json`),
+  'invalid budget left the pre-existing success-shaped report',
+);
+assert(
+  invalidBudget.stderr.includes('invalid frame budget'),
+  'invalid-budget refusal did not name the invalid input',
+);
+
 console.log(JSON.stringify({
   passed: true,
   gpuMedianMs: perf.gpuFrameMs.median,
@@ -81,4 +100,5 @@ console.log(JSON.stringify({
   rafMedianMs: perf.rafIntervalMs.median,
   gpuSamples: perf.gpuFrameMs.samples,
   unsupportedExit: unsupported.code,
+  invalidBudgetExit: invalidBudget.code,
 }, null, 2));

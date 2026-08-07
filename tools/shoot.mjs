@@ -42,6 +42,11 @@ const REPORT_PATH = join(OUT, 'report.json');
 // Refusal must not leave yesterday's green report behind in a reused output
 // directory. Remove it before any capability check can exit.
 rmSync(REPORT_PATH, { force: true });
+if (!Number.isFinite(FRAME_BUDGET_MS) || FRAME_BUDGET_MS <= 0) {
+  console.error(`REFUSING: invalid frame budget "${args.budgetMs ?? ''}". `
+    + 'Expected a finite positive number of milliseconds.');
+  process.exit(8);
+}
 
 const browser = await chromium.launch({
   args: [
