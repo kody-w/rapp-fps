@@ -95,13 +95,37 @@ try {
   if (!negativeControlFailed) {
     throw new Error('Limiter-off negative control did not fail real dBTP.');
   }
+  const matrixNames = evidence.matrixWavs;
+  if (!Array.isArray(matrixNames) || matrixNames.length !== 18) {
+    throw new Error(`Expected 18 true-peak matrix WAVs, received ${matrixNames?.length}.`);
+  }
+  const worstMatrixName = [...matrixNames].sort((a, b) =>
+    peakMetrics[b].truePeakDbtp - peakMetrics[a].truePeakDbtp
+      || a.localeCompare(b))[0];
 
   const report = evidence.report;
   attachPeakMetrics(report, peakMetrics);
   report.assertions.push(
     `FFmpeg EBU R128 true peak is at or below ${truePeakCeilingDbtp.toFixed(1)} dBTP for every limiter-on WAV`,
+    `44.1/48 kHz stereo L/C/R matrix passes ${matrixNames.length} sustained-burst cases at masterGain=1`,
     `limiter-off negative control exceeds ${truePeakCeilingDbtp.toFixed(1)} dBTP and fails the same assertion`,
   );
+  const worstMatrixCase = report.truePeakStressMatrix.cases.find(
+    (matrixCase) => matrixCase.wavName === worstMatrixName,
+  );
+  report.truePeakStressMatrix.ceilingDbtp = truePeakCeilingDbtp;
+  report.truePeakStressMatrix.worstCase = {
+    wavName: worstMatrixName,
+    sampleRate: worstMatrixCase.sampleRate,
+    seed: worstMatrixCase.seed,
+    position: worstMatrixCase.position,
+    ...peakMetrics[worstMatrixName],
+  };
+  const retainedNames = new Set(
+    Object.keys(evidence.wavs)
+      .filter((name) => !matrixNames.includes(name)),
+  );
+  retainedNames.add(worstMatrixName);
   report.truePeakAnalysis = {
     standard: 'ITU-R BS.1770 true peak via FFmpeg ebur128=peak=true',
     ceilingDbtp: truePeakCeilingDbtp,
@@ -115,6 +139,7 @@ try {
           passes: name === negativeControlName
             ? false
             : metrics.truePeakDbtp <= truePeakCeilingDbtp,
+          retained: retainedNames.has(name),
         },
       ]),
     ),
@@ -127,6 +152,11 @@ try {
   };
   report.consoleErrors = consoleErrors;
 
+  for (const name of matrixNames) {
+    if (name !== worstMatrixName) {
+      await rm(resolve(candidate, name), { force: true });
+    }
+  }
   await writeFile(
     resolve(candidate, 'report.json'),
     `${JSON.stringify(report, null, 2)}\n`,
@@ -135,8 +165,9 @@ try {
   await rename(candidate, generated);
 
   process.stdout.write(
-    `Generated ${Object.keys(evidence.wavs).length} WAV renders; `
-      + `all limiter-on files <= ${truePeakCeilingDbtp.toFixed(1)} dBTP.\n`,
+    `Analyzed ${Object.keys(evidence.wavs).length} WAV renders; retained `
+      + `${retainedNames.size}, worst matrix ${worstMatrixName} `
+      + `${peakMetrics[worstMatrixName].truePeakDbtp.toFixed(1)} dBTP.\n`,
   );
 } catch (error) {
   exitCode = 1;
@@ -253,6 +284,9 @@ function attachPeakMetrics(report, peakMetrics) {
   };
   for (const surface of Object.keys(report.impacts)) {
     targets[`impact-${surface}.wav`] = report.impacts[surface];
+  }
+  for (const matrixCase of report.truePeakStressMatrix.cases) {
+    targets[matrixCase.wavName] = matrixCase;
   }
 
   for (const [name, target] of Object.entries(targets)) {

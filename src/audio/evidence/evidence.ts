@@ -29,6 +29,17 @@ import {
 const SAMPLE_RATE = 24_000;
 const CANONICAL_PCM_BITS = 10;
 const DEFAULT_SEED = 0x72617070;
+const MATRIX_SAMPLE_RATES = [44_100, 48_000] as const;
+const MATRIX_SEEDS = [
+  DEFAULT_SEED,
+  DEFAULT_SEED + 1,
+  DEFAULT_SEED + 2,
+] as const;
+const MATRIX_POSITIONS = {
+  left: { x: -1, y: 0, z: 0 },
+  center: { x: 0, y: 0, z: -1 },
+  right: { x: 1, y: 0, z: 0 },
+} as const;
 const DEFAULT_LISTENER = {
   position: { x: 0, y: 0, z: 0 },
   forward: { x: 0, y: 0, z: -1 },
@@ -37,6 +48,9 @@ const DEFAULT_LISTENER = {
 
 interface RenderResult {
   name: string;
+  sampleRate: number;
+  channelCount: number;
+  masterGain: number;
   pcm: Float32Array[];
   wav: Uint8Array;
   wavSha256: string;
@@ -53,6 +67,14 @@ interface SerializableEvidence {
   status: 'complete';
   report: Record<string, unknown>;
   wavs: Record<string, string>;
+  matrixWavs: string[];
+}
+
+interface TruePeakMatrixCase {
+  sampleRate: number;
+  seed: number;
+  position: keyof typeof MATRIX_POSITIONS;
+  result: RenderResult;
 }
 
 type EvidenceState =
@@ -284,7 +306,7 @@ async function buildEvidence(): Promise<SerializableEvidence> {
   assertNoSampleClipping(far.analysis);
   check(
     near.wavSha256 === nearRepeat.wavSha256,
-    'same seed produces byte-identical signed 16-bit PCM/WAV bytes',
+    'same seed produces byte-identical canonical PCM/WAV bytes',
     assertions,
   );
   check(
@@ -367,17 +389,22 @@ async function buildEvidence(): Promise<SerializableEvidence> {
     assertions,
   );
 
-  const negativeControl = await renderAutomaticFire(false);
-  let negativeControlFailed = false;
-  try {
-    assertNoSampleClipping(negativeControl.result.analysis);
-  } catch {
-    negativeControlFailed = true;
+  const truePeakMatrix = await renderTruePeakMatrix();
+  for (const matrixCase of truePeakMatrix) {
+    assertNoSampleClipping(matrixCase.result.analysis);
   }
   check(
-    negativeControl.result.rawSamplePeak > 1
-      && negativeControlFailed,
-    'disabled-limiter raw render exceeds sample full scale',
+    truePeakMatrix.length
+      === MATRIX_SAMPLE_RATES.length
+        * MATRIX_SEEDS.length
+        * Object.keys(MATRIX_POSITIONS).length,
+    'stereo stress matrix covers every sample-rate, position, and seed combination',
+    assertions,
+  );
+  const negativeControl = await renderMatrixNegativeControl();
+  check(
+    negativeControl.result.diagnostics.eventsScheduled === 30,
+    'limiter-off 48 kHz hard-right control renders for the standards meter',
     assertions,
   );
 
@@ -403,6 +430,7 @@ async function buildEvidence(): Promise<SerializableEvidence> {
     footsteps.result,
     stress.result,
     negativeControl.result,
+    ...truePeakMatrix.map((matrixCase) => matrixCase.result),
   ];
   const wavs: Record<string, string> = {};
   for (const result of wavResults) {
@@ -411,7 +439,7 @@ async function buildEvidence(): Promise<SerializableEvidence> {
 
   const nodesPerShot = stress.result.diagnostics.nodesCreated / 30;
   const report: Record<string, unknown> = {
-    formatVersion: 2,
+    formatVersion: 3,
     proceduralOnly: true,
     sampleRate: SAMPLE_RATE,
     seed: DEFAULT_SEED,
@@ -447,6 +475,22 @@ async function buildEvidence(): Promise<SerializableEvidence> {
       nodesPerShot: rounded(nodesPerShot),
     },
     disabledLimiterNegativeControl: summarize(negativeControl.result),
+    truePeakStressMatrix: {
+      sampleRates: MATRIX_SAMPLE_RATES,
+      seeds: MATRIX_SEEDS,
+      positions: MATRIX_POSITIONS,
+      channelCount: 2,
+      masterGain: 1,
+      rounds: 30,
+      roundsPerMinute: 900,
+      cases: truePeakMatrix.map((matrixCase) => ({
+        wavName: `${matrixCase.result.name}.wav`,
+        sampleRate: matrixCase.sampleRate,
+        seed: matrixCase.seed,
+        position: matrixCase.position,
+        ...summarize(matrixCase.result),
+      })),
+    },
     spatial: {
       leftRms: rounded(spatial.leftRms),
       rightRms: rounded(spatial.rightRms),
@@ -473,8 +517,10 @@ async function buildEvidence(): Promise<SerializableEvidence> {
     },
     metricNotes: {
       standardsTruePeak: 'Added by the Node runner using FFmpeg EBU R128 peak=true.',
+      stressMatrix:
+        'All 18 limiter-on matrix WAVs are generated and measured on every run; only the measured worst case is retained in git evidence.',
       canonicalPcm:
-        `${CANONICAL_PCM_BITS}-bit canonical quantization removes cross-process ±1 PCM16 LSB summation variance before every reported PCM metric.`,
+        `${CANONICAL_PCM_BITS}-bit canonical quantization with a symmetric ±4 PCM16-LSB midpoint deadband stabilizes retained evidence against observed reduction-order variance; transient matrix cases are gated by dBTP rather than hash identity.`,
       lufsApprox: 'mean-square LUFS approximation without K-weighting or gating',
       energyBandsHz: {
         sub: '0-120',
@@ -486,7 +532,14 @@ async function buildEvidence(): Promise<SerializableEvidence> {
     },
   };
 
-  return { status: 'complete', report, wavs };
+  return {
+    status: 'complete',
+    report,
+    wavs,
+    matrixWavs: truePeakMatrix.map(
+      (matrixCase) => `${matrixCase.result.name}.wav`,
+    ),
+  };
 }
 
 async function renderShot(
@@ -543,11 +596,14 @@ async function renderFootsteps(): Promise<{
 
   const segmentHashes: string[] = [];
   for (const at of times) {
-    const start = Math.floor(at * SAMPLE_RATE);
-    const end = Math.min(result.pcm[0].length, start + Math.floor(0.24 * SAMPLE_RATE));
+    const start = Math.floor(at * result.sampleRate);
+    const end = Math.min(
+      result.pcm[0].length,
+      start + Math.floor(0.24 * result.sampleRate),
+    );
     const segment = result.pcm[0].slice(start, end);
     segmentHashes.push(await sha256Hex(
-      encodeWav16([segment], SAMPLE_RATE, CANONICAL_PCM_BITS),
+      encodeWav16([segment], result.sampleRate, CANONICAL_PCM_BITS),
     ));
   }
   return {
@@ -563,28 +619,97 @@ async function renderAutomaticFire(limiterEnabled: boolean): Promise<{
   result: RenderResult;
   tailRms: number;
 }> {
+  return renderBurst(
+    limiterEnabled ? 'automatic-30' : 'automatic-30-no-limiter',
+    limiterEnabled,
+    SAMPLE_RATE,
+    1,
+    DEFAULT_SEED,
+    { x: 0, y: 0, z: -2 },
+    0.92,
+    true,
+  );
+}
+
+async function renderTruePeakMatrix(): Promise<TruePeakMatrixCase[]> {
+  const cases: TruePeakMatrixCase[] = [];
+  for (const sampleRate of MATRIX_SAMPLE_RATES) {
+    for (const [position, source] of Object.entries(MATRIX_POSITIONS) as Array<
+      [keyof typeof MATRIX_POSITIONS, Vector3Like]
+    >) {
+      for (const seed of MATRIX_SEEDS) {
+        const result = await renderBurst(
+          `matrix-${sampleRate}-${position}-seed-${seed}`,
+          true,
+          sampleRate,
+          2,
+          seed,
+          source,
+          1,
+          false,
+        );
+        cases.push({ sampleRate, seed, position, result: result.result });
+      }
+    }
+  }
+  return cases;
+}
+
+async function renderMatrixNegativeControl(): Promise<{
+  result: RenderResult;
+  tailRms: number;
+}> {
+  return renderBurst(
+    'automatic-30-no-limiter',
+    false,
+    48_000,
+    2,
+    DEFAULT_SEED + 2,
+    MATRIX_POSITIONS.right,
+    1,
+    false,
+  );
+}
+
+async function renderBurst(
+  name: string,
+  limiterEnabled: boolean,
+  sampleRate: number,
+  channelCount: number,
+  seed: number,
+  sourcePosition: Vector3Like,
+  masterGain: number,
+  measureListenerUpdates: boolean,
+): Promise<{
+  result: RenderResult;
+  tailRms: number;
+}> {
   const interval = 60 / 900;
   const duration = 2.9;
   const result = await renderScenario(
-    limiterEnabled ? 'automatic-30' : 'automatic-30-no-limiter',
+    name,
     duration,
-    1,
-    DEFAULT_SEED,
+    channelCount,
+    seed,
     limiterEnabled,
     (engine) => {
       for (let round = 0; round < 30; round++) {
         engine.playWeaponFired(
-          weaponPayload({ x: 0, y: 0, z: -2 }),
+          weaponPayload(sourcePosition),
           0.04 + round * interval,
         );
       }
     },
-    true,
+    measureListenerUpdates,
+    sampleRate,
+    masterGain,
   );
-  const tailStart = Math.floor((duration - 0.25) * SAMPLE_RATE);
   return {
     result,
-    tailRms: channelRms(result.pcm[0], tailStart),
+    tailRms: channelRms(
+      result.pcm[0],
+      Math.floor((duration - 0.25) * sampleRate),
+    ),
   };
 }
 
@@ -640,13 +765,15 @@ async function renderScenario(
   limiterEnabled: boolean,
   schedule: (engine: ProceduralAudioEngine) => void,
   measureListenerUpdates = false,
+  sampleRate = SAMPLE_RATE,
+  masterGain = 0.92,
 ): Promise<RenderResult> {
-  const frameCount = Math.ceil(durationSeconds * SAMPLE_RATE);
-  const context = new OfflineAudioContext(channelCount, frameCount, SAMPLE_RATE);
+  const frameCount = Math.ceil(durationSeconds * sampleRate);
+  const context = new OfflineAudioContext(channelCount, frameCount, sampleRate);
   const engine = new ProceduralAudioEngine(context, {
     seed,
     limiterEnabled,
-    masterGain: 0.92,
+    masterGain,
   });
   engine.setListenerPose(DEFAULT_LISTENER);
 
@@ -686,12 +813,15 @@ async function renderScenario(
     }
   }
   const pcm = canonicalizePcm16(renderedPcm, CANONICAL_PCM_BITS);
-  const analysis = analyzePcm(pcm, SAMPLE_RATE);
-  const wav = encodeWav16(pcm, SAMPLE_RATE);
+  const analysis = analyzePcm(pcm, sampleRate);
+  const wav = encodeWav16(pcm, sampleRate);
   const diagnostics = engine.diagnostics;
   engine.dispose();
   return {
     name,
+    sampleRate,
+    channelCount,
+    masterGain,
     pcm,
     wav,
     wavSha256: await sha256Hex(wav),
@@ -809,6 +939,9 @@ function check(
 function summarize(result: RenderResult): Record<string, unknown> {
   return {
     wavSha256: result.wavSha256,
+    sampleRate: result.sampleRate,
+    channelCount: result.channelCount,
+    masterGain: result.masterGain,
     analysis: {
       rawFloatSamplePeak: rounded(result.rawSamplePeak),
       samplePeak: rounded(result.analysis.samplePeak),

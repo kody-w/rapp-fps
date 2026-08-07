@@ -63,12 +63,14 @@ run without the Playwright-pinned Chromium or FFmpeg. FFmpeg
 **-1.0 dBTP** ceiling. It asserts:
 
 - every limiter-on WAV stays at or below -1.0 dBTP, while limiter-off fails;
+- 44.1/48 kHz stereo hard-left/center/right 30-round bursts pass at maximum
+  supported `masterGain=1` across fixed seeds including `1918988402`;
 - RMS, approximate ungated LUFS, crest factor, duration, DC offset, spectral
   centroid, and five energy bands are reported for shots and every surface;
 - a 30-round burst has bounded source concurrency, a stable silent tail, and
   no live sources after rendering;
-- identical seeds produce byte-identical canonical 10-bit PCM in 16-bit WAV
-  containers (removing cross-process ±1 PCM16 LSB summation variance);
+- the dedicated same-seed probe produces byte-identical canonical 10-bit PCM
+  in 16-bit WAV containers;
 - another seed changes the render without an unbounded loudness change;
 - all surface comparisons use the same seed, render duration, event time, and
   position; seed variation is tested separately;
@@ -79,5 +81,7 @@ run without the Playwright-pinned Chromium or FFmpeg. FFmpeg
 
 `report.json` also records scheduling cost, offline render cost, listener-update
 cost, nodes created per shot, FFmpeg version, Playwright package version, and
-the pinned Chromium version. Audio creates no WebGL resources and does not enter
-the renderer, so GPU work is unchanged.
+the pinned Chromium version. All matrix cases are generated and measured on
+every run; only the measured worst-case matrix WAV is retained to keep branch
+evidence small. Audio creates no WebGL resources and does not enter the renderer,
+so GPU work is unchanged.

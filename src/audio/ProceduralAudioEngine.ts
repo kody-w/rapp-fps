@@ -18,7 +18,7 @@ export interface ProceduralAudioEngineOptions {
   masterGain?: number;
 }
 
-export const LIMITER_OUTPUT_CEILING = 0.55;
+export const LIMITER_OUTPUT_CEILING = 0.42;
 
 interface Voice {
   nodes: AudioNode[];

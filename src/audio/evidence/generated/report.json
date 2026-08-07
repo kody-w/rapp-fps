@@ -1,15 +1,15 @@
 {
-  "formatVersion": 2,
+  "formatVersion": 3,
   "proceduralOnly": true,
   "sampleRate": 24000,
   "seed": 1918988400,
   "deterministicPcmFormat": "10-bit canonical quantization in signed 16-bit little-endian PCM",
-  "limiterOutputCeilingLinear": 0.55,
+  "limiterOutputCeilingLinear": 0.42,
   "assertions": [
     "autoplay gate creates no context before arm and drops pre-arm events",
     "iOS interrupted state remains resumable and arm retry succeeds",
     "dispose wins a pending resume race without obsolete arm state mutation",
-    "same seed produces byte-identical signed 16-bit PCM/WAV bytes",
+    "same seed produces byte-identical canonical PCM/WAV bytes",
     "different seed changes the rendered PCM",
     "different-seed loudness variation remains within 2.5 dB",
     "distance attenuation reduces far-shot RMS by more than 6.8 dB",
@@ -22,10 +22,12 @@
     "30-round source concurrency remains bounded",
     "30-round render reaches a stable silent tail",
     "listener updates allocate no Web Audio nodes",
-    "disabled-limiter raw render exceeds sample full scale",
+    "stereo stress matrix covers every sample-rate, position, and seed combination",
+    "limiter-off 48 kHz hard-right control renders for the standards meter",
     "positive listener-right position pans measurably to the right channel",
     "reload bookends and restrained damage cue render and clean up",
     "FFmpeg EBU R128 true peak is at or below -1.0 dBTP for every limiter-on WAV",
+    "44.1/48 kHz stereo L/C/R matrix passes 18 sustained-burst cases at masterGain=1",
     "limiter-off negative control exceeds -1.0 dBTP and fails the same assertion"
   ],
   "armPolicy": {
@@ -46,27 +48,30 @@
   },
   "shots": {
     "near": {
-      "wavSha256": "bac1eb30574ad74a3e99b2f4d9cb4ff6e67d2cd79808b08c51420920c50ce99f",
+      "wavSha256": "de85c604aec31e17e569b53d1e3383266b2785382714ff6fd528ca643fdfa25c",
+      "sampleRate": 24000,
+      "channelCount": 1,
+      "masterGain": 0.92,
       "analysis": {
-        "rawFloatSamplePeak": 0.442009,
-        "samplePeak": 0.441406,
-        "rms": 0.065382,
-        "rmsDbfs": -23.690887,
-        "lufsApprox": -24.381887,
-        "crestFactorDb": 16.587656,
+        "rawFloatSamplePeak": 0.337534,
+        "samplePeak": 0.337891,
+        "rms": 0.049887,
+        "rmsDbfs": -26.040235,
+        "lufsApprox": -26.731235,
+        "crestFactorDb": 16.615758,
         "durationSeconds": 0.72,
-        "dcOffset": 0.001341,
-        "spectralCentroidHz": 560.745847,
+        "dcOffset": 0.001018,
+        "spectralCentroidHz": 561.577628,
         "energyBands": {
-          "sub": 0.715744,
-          "body": 0.060579,
-          "mid": 0.092612,
-          "presence": 0.130939,
-          "air": 0.000126
+          "sub": 0.715334,
+          "body": 0.060738,
+          "mid": 0.092515,
+          "presence": 0.131284,
+          "air": 0.000129
         },
-        "wavSamplePeakDbfs": -7.10323,
-        "truePeakDbtp": -3.8,
-        "intersampleOvershootDb": 3.30323
+        "wavSamplePeakDbfs": -9.424477,
+        "truePeakDbtp": -6.2,
+        "intersampleOvershootDb": 3.224477
       },
       "diagnostics": {
         "eventsScheduled": 1,
@@ -82,30 +87,33 @@
         "latestScheduledEnd": 0.41500000000000004
       },
       "scheduleMilliseconds": 1,
-      "renderMilliseconds": 8.8
+      "renderMilliseconds": 7.6
     },
     "far": {
-      "wavSha256": "6708ab27845d04290c6c3a21c4d30833f8cf401f609bd4d9777b7c0fe6958923",
+      "wavSha256": "b097794960c9a51f08d163114d3c10413af34ca6ba415444a07936cac08fc37a",
+      "sampleRate": 24000,
+      "channelCount": 1,
+      "masterGain": 0.92,
       "analysis": {
-        "rawFloatSamplePeak": 0.20023,
-        "samplePeak": 0.201172,
-        "rms": 0.013589,
-        "rmsDbfs": -37.336334,
-        "lufsApprox": -38.027334,
-        "crestFactorDb": 23.407679,
+        "rawFloatSamplePeak": 0.152903,
+        "samplePeak": 0.152344,
+        "rms": 0.010345,
+        "rmsDbfs": -39.705341,
+        "lufsApprox": -40.396341,
+        "crestFactorDb": 23.361834,
         "durationSeconds": 1,
-        "dcOffset": 0.000146,
-        "spectralCentroidHz": 417.609238,
+        "dcOffset": 0.00011,
+        "spectralCentroidHz": 423.166209,
         "energyBands": {
-          "sub": 0.73316,
-          "body": 0.081901,
-          "mid": 0.11038,
-          "presence": 0.074203,
-          "air": 0.000356
+          "sub": 0.731622,
+          "body": 0.081889,
+          "mid": 0.111025,
+          "presence": 0.074914,
+          "air": 0.00055
         },
-        "wavSamplePeakDbfs": -13.928655,
-        "truePeakDbtp": -13.6,
-        "intersampleOvershootDb": 0.328655
+        "wavSamplePeakDbfs": -16.343507,
+        "truePeakDbtp": -16,
+        "intersampleOvershootDb": 0.343507
       },
       "diagnostics": {
         "eventsScheduled": 1,
@@ -120,27 +128,30 @@
         "maximumTailSeconds": 0.38,
         "latestScheduledEnd": 0.495
       },
-      "scheduleMilliseconds": 0.7,
-      "renderMilliseconds": 0.5
+      "scheduleMilliseconds": 0.5,
+      "renderMilliseconds": 0.6
     },
     "alternateSeed": {
-      "wavSha256": "09d7ab468ff64fe04b9675a3b81069ebbf0ad3317ef0e22cbee243a7c4fb410e",
+      "wavSha256": "f6f201711dfc7496e25d18df67be58cb31223e08d98ab10c2ab3c7a7b67f73d4",
+      "sampleRate": 24000,
+      "channelCount": 1,
+      "masterGain": 0.92,
       "analysis": {
-        "rawFloatSamplePeak": 0.442009,
-        "samplePeak": 0.44142,
-        "rms": 0.065785,
-        "rmsDbfs": -23.63745,
-        "lufsApprox": -24.32845,
-        "crestFactorDb": 16.534484,
+        "rawFloatSamplePeak": 0.337534,
+        "samplePeak": 0.337901,
+        "rms": 0.050193,
+        "rmsDbfs": -25.987077,
+        "lufsApprox": -26.678077,
+        "crestFactorDb": 16.562865,
         "durationSeconds": 0.72,
-        "dcOffset": 0.001432,
-        "spectralCentroidHz": 479.571388,
+        "dcOffset": 0.001093,
+        "spectralCentroidHz": 480.298925,
         "energyBands": {
-          "sub": 0.755259,
-          "body": 0.047555,
-          "mid": 0.100215,
-          "presence": 0.096893,
-          "air": 0.000079
+          "sub": 0.754831,
+          "body": 0.047665,
+          "mid": 0.100373,
+          "presence": 0.097036,
+          "air": 0.000095
         }
       },
       "diagnostics": {
@@ -156,33 +167,36 @@
         "maximumTailSeconds": 0.38,
         "latestScheduledEnd": 0.41500000000000004
       },
-      "scheduleMilliseconds": 0.3,
+      "scheduleMilliseconds": 0.4,
       "renderMilliseconds": 0.5
     }
   },
   "impacts": {
     "concrete": {
-      "wavSha256": "834e3a6f72a8fc0400c717d02ae3bd82b0141e1fd5660d941484096e66924064",
+      "wavSha256": "3a39137da9da00d79f9286f603309cb461b18cc7fc6c3da1faf286c80dbb22d1",
+      "sampleRate": 24000,
+      "channelCount": 1,
+      "masterGain": 0.92,
       "analysis": {
-        "rawFloatSamplePeak": 0.364341,
-        "samplePeak": 0.365234,
-        "rms": 0.021911,
-        "rmsDbfs": -33.186836,
-        "lufsApprox": -33.877836,
-        "crestFactorDb": 24.438269,
+        "rawFloatSamplePeak": 0.278224,
+        "samplePeak": 0.277344,
+        "rms": 0.016705,
+        "rmsDbfs": -35.543191,
+        "lufsApprox": -36.234191,
+        "crestFactorDb": 24.403559,
         "durationSeconds": 0.6,
-        "dcOffset": 0.000053,
-        "spectralCentroidHz": 635.530093,
+        "dcOffset": 0.000039,
+        "spectralCentroidHz": 652.608553,
         "energyBands": {
-          "sub": 0.074632,
-          "body": 0.494491,
-          "mid": 0.385591,
-          "presence": 0.042246,
-          "air": 0.00304
+          "sub": 0.072479,
+          "body": 0.492287,
+          "mid": 0.386713,
+          "presence": 0.045031,
+          "air": 0.003489
         },
-        "wavSamplePeakDbfs": -8.748567,
-        "truePeakDbtp": -8,
-        "intersampleOvershootDb": 0.748567
+        "wavSamplePeakDbfs": -11.139632,
+        "truePeakDbtp": -10.3,
+        "intersampleOvershootDb": 0.839632
       },
       "diagnostics": {
         "eventsScheduled": 1,
@@ -198,30 +212,33 @@
         "latestScheduledEnd": 0.245
       },
       "scheduleMilliseconds": 0.4,
-      "renderMilliseconds": 3.5
+      "renderMilliseconds": 3.4
     },
     "metal": {
-      "wavSha256": "6dbd44e37f4be590083f6e1aaff4f6c4a7f1e1fc9349b3fbc9847c67656d9619",
+      "wavSha256": "aeb17d8241780f6fa5b6a739a366205db78d6bc10892a9d17c8474c252581382",
+      "sampleRate": 24000,
+      "channelCount": 1,
+      "masterGain": 0.92,
       "analysis": {
-        "rawFloatSamplePeak": 0.38014,
-        "samplePeak": 0.380859,
-        "rms": 0.048655,
-        "rmsDbfs": -26.257475,
-        "lufsApprox": -26.948475,
-        "crestFactorDb": 17.872768,
+        "rawFloatSamplePeak": 0.290289,
+        "samplePeak": 0.291016,
+        "rms": 0.037113,
+        "rmsDbfs": -28.609367,
+        "lufsApprox": -29.300367,
+        "crestFactorDb": 17.887693,
         "durationSeconds": 0.6,
-        "dcOffset": -0.000052,
-        "spectralCentroidHz": 1973.272626,
+        "dcOffset": -0.000042,
+        "spectralCentroidHz": 1974.054731,
         "energyBands": {
-          "sub": 0.000003,
-          "body": 0.00001,
-          "mid": 0.868244,
-          "presence": 0.131645,
-          "air": 0.000097
+          "sub": 0.000004,
+          "body": 0.000015,
+          "mid": 0.86788,
+          "presence": 0.131973,
+          "air": 0.000129
         },
-        "wavSamplePeakDbfs": -8.384707,
-        "truePeakDbtp": -6.5,
-        "intersampleOvershootDb": 1.884707
+        "wavSamplePeakDbfs": -10.721674,
+        "truePeakDbtp": -8.9,
+        "intersampleOvershootDb": 1.821674
       },
       "diagnostics": {
         "eventsScheduled": 1,
@@ -236,31 +253,34 @@
         "maximumTailSeconds": 0.30999999999999994,
         "latestScheduledEnd": 0.345
       },
-      "scheduleMilliseconds": 0.3,
+      "scheduleMilliseconds": 0.2,
       "renderMilliseconds": 0.6
     },
     "wood": {
-      "wavSha256": "9fe21fa18943ca4b15623505e672b4aecc29daf1e72469e40376266668685077",
+      "wavSha256": "e9c37d0c4c5da87ba60ec25013ac804cd668858c726248c3c39e6d09ff2a126e",
+      "sampleRate": 24000,
+      "channelCount": 1,
+      "masterGain": 0.92,
       "analysis": {
-        "rawFloatSamplePeak": 0.394628,
-        "samplePeak": 0.394531,
-        "rms": 0.037927,
-        "rmsDbfs": -28.420953,
-        "lufsApprox": -29.111953,
-        "crestFactorDb": 20.342582,
+        "rawFloatSamplePeak": 0.301353,
+        "samplePeak": 0.300781,
+        "rms": 0.028935,
+        "rmsDbfs": -30.771547,
+        "lufsApprox": -31.462547,
+        "crestFactorDb": 20.336562,
         "durationSeconds": 0.6,
-        "dcOffset": -0.000408,
-        "spectralCentroidHz": 274.225749,
+        "dcOffset": -0.00031,
+        "spectralCentroidHz": 276.980952,
         "energyBands": {
-          "sub": 0.166394,
-          "body": 0.821146,
-          "mid": 0.011147,
-          "presence": 0.001103,
-          "air": 0.000209
+          "sub": 0.166795,
+          "body": 0.819756,
+          "mid": 0.011715,
+          "presence": 0.001421,
+          "air": 0.000313
         },
-        "wavSamplePeakDbfs": -8.078372,
-        "truePeakDbtp": -8.1,
-        "intersampleOvershootDb": -0.021628
+        "wavSamplePeakDbfs": -10.434985,
+        "truePeakDbtp": -10.4,
+        "intersampleOvershootDb": 0.034985
       },
       "diagnostics": {
         "eventsScheduled": 1,
@@ -276,30 +296,33 @@
         "latestScheduledEnd": 0.185
       },
       "scheduleMilliseconds": 0.2,
-      "renderMilliseconds": 0.3
+      "renderMilliseconds": 0.4
     },
     "sand": {
-      "wavSha256": "84cb1c0237cf284802cf66222251c25806d5e12bba27be6e8ae470593ed23f50",
+      "wavSha256": "fe4cbfaa3154da0086eaaf33d8dc26fd9a431b70bc063722eb92fe5fb4230cb5",
+      "sampleRate": 24000,
+      "channelCount": 1,
+      "masterGain": 0.92,
       "analysis": {
-        "rawFloatSamplePeak": 0.249977,
-        "samplePeak": 0.250008,
-        "rms": 0.018427,
-        "rmsDbfs": -34.691093,
-        "lufsApprox": -35.382093,
-        "crestFactorDb": 22.650158,
+        "rawFloatSamplePeak": 0.190891,
+        "samplePeak": 0.191412,
+        "rms": 0.014033,
+        "rmsDbfs": -37.056783,
+        "lufsApprox": -37.747783,
+        "crestFactorDb": 22.696171,
         "durationSeconds": 0.6,
-        "dcOffset": -0.000255,
-        "spectralCentroidHz": 870.138596,
+        "dcOffset": -0.000195,
+        "spectralCentroidHz": 873.074303,
         "energyBands": {
-          "sub": 0.042841,
-          "body": 0.371513,
-          "mid": 0.515189,
-          "presence": 0.06924,
-          "air": 0.001217
+          "sub": 0.043169,
+          "body": 0.372821,
+          "mid": 0.513011,
+          "presence": 0.069436,
+          "air": 0.001563
         },
-        "wavSamplePeakDbfs": -12.0412,
-        "truePeakDbtp": -12,
-        "intersampleOvershootDb": 0.0412
+        "wavSamplePeakDbfs": -14.360878,
+        "truePeakDbtp": -14.4,
+        "intersampleOvershootDb": -0.039122
       },
       "diagnostics": {
         "eventsScheduled": 1,
@@ -314,31 +337,34 @@
         "maximumTailSeconds": 0.2,
         "latestScheduledEnd": 0.23500000000000001
       },
-      "scheduleMilliseconds": 0.1,
-      "renderMilliseconds": 0.4
+      "scheduleMilliseconds": 0.2,
+      "renderMilliseconds": 0.2
     },
     "glass": {
-      "wavSha256": "6a6d8270d9502ca91dc791ffec6246eb9cf8988a29f597c097bd1a46b72544a8",
+      "wavSha256": "57f4b51eaa0a9c883c30fb2ef4cbff226686ee0354a9d7fbeff57ec6f7e5eb61",
+      "sampleRate": 24000,
+      "channelCount": 1,
+      "masterGain": 0.92,
       "analysis": {
-        "rawFloatSamplePeak": 0.347468,
-        "samplePeak": 0.347656,
-        "rms": 0.038297,
-        "rmsDbfs": -28.336701,
-        "lufsApprox": -29.027701,
-        "crestFactorDb": 19.159701,
+        "rawFloatSamplePeak": 0.265339,
+        "samplePeak": 0.265625,
+        "rms": 0.029201,
+        "rmsDbfs": -30.691897,
+        "lufsApprox": -31.382897,
+        "crestFactorDb": 19.177276,
         "durationSeconds": 0.6,
-        "dcOffset": -0.000208,
-        "spectralCentroidHz": 3911.994096,
+        "dcOffset": -0.000169,
+        "spectralCentroidHz": 3915.577537,
         "energyBands": {
-          "sub": 0.000631,
-          "body": 0.002624,
-          "mid": 0.00195,
-          "presence": 0.994381,
-          "air": 0.000413
+          "sub": 0.000626,
+          "body": 0.00264,
+          "mid": 0.001956,
+          "presence": 0.994327,
+          "air": 0.000452
         },
-        "wavSamplePeakDbfs": -9.176999,
-        "truePeakDbtp": -7.5,
-        "intersampleOvershootDb": 1.676999
+        "wavSamplePeakDbfs": -11.514621,
+        "truePeakDbtp": -9.8,
+        "intersampleOvershootDb": 1.714621
       },
       "diagnostics": {
         "eventsScheduled": 1,
@@ -357,27 +383,30 @@
       "renderMilliseconds": 0.5
     },
     "flesh": {
-      "wavSha256": "f912f9db66d1aec060713a3b3ada8863ac87af465a4907184ac82764d3ad6f6f",
+      "wavSha256": "8e48a6c7f09689219c060c1e1b6e202f9a409e87865e5a170c33b65b9b3788b8",
+      "sampleRate": 24000,
+      "channelCount": 1,
+      "masterGain": 0.92,
       "analysis": {
-        "rawFloatSamplePeak": 0.310108,
-        "samplePeak": 0.310556,
-        "rms": 0.024172,
-        "rmsDbfs": -32.333827,
-        "lufsApprox": -33.024827,
-        "crestFactorDb": 22.176636,
+        "rawFloatSamplePeak": 0.236809,
+        "samplePeak": 0.236335,
+        "rms": 0.018422,
+        "rmsDbfs": -34.693353,
+        "lufsApprox": -35.384353,
+        "crestFactorDb": 22.163926,
         "durationSeconds": 0.6,
-        "dcOffset": 0.000518,
-        "spectralCentroidHz": 102.433969,
+        "dcOffset": 0.000397,
+        "spectralCentroidHz": 105.656644,
         "energyBands": {
-          "sub": 0.978176,
-          "body": 0.01171,
-          "mid": 0.009076,
-          "presence": 0.000868,
-          "air": 0.000171
+          "sub": 0.976289,
+          "body": 0.012541,
+          "mid": 0.009669,
+          "presence": 0.001252,
+          "air": 0.000249
         },
-        "wavSamplePeakDbfs": -10.157457,
-        "truePeakDbtp": -10.2,
-        "intersampleOvershootDb": -0.042543
+        "wavSamplePeakDbfs": -12.529692,
+        "truePeakDbtp": -12.5,
+        "intersampleOvershootDb": 0.029692
       },
       "diagnostics": {
         "eventsScheduled": 1,
@@ -392,31 +421,34 @@
         "maximumTailSeconds": 0.15,
         "latestScheduledEnd": 0.185
       },
-      "scheduleMilliseconds": 0.3,
-      "renderMilliseconds": 0.8
+      "scheduleMilliseconds": 0.2,
+      "renderMilliseconds": 0.3
     },
     "foliage": {
-      "wavSha256": "f5a94fd34b812923a3aecde77eb4068e50ea8f2eeb00d811898d9b2ec4e3a706",
+      "wavSha256": "bfff9091cb375fd2b01afdc48a0325d3349f76899b08e746a20256c0149d4a09",
+      "sampleRate": 24000,
+      "channelCount": 1,
+      "masterGain": 0.92,
       "analysis": {
-        "rawFloatSamplePeak": 0.334162,
-        "samplePeak": 0.333995,
-        "rms": 0.028379,
-        "rmsDbfs": -30.940187,
-        "lufsApprox": -31.631187,
-        "crestFactorDb": 21.414975,
+        "rawFloatSamplePeak": 0.255179,
+        "samplePeak": 0.255867,
+        "rms": 0.021633,
+        "rmsDbfs": -33.297479,
+        "lufsApprox": -33.988479,
+        "crestFactorDb": 21.457771,
         "durationSeconds": 0.6,
-        "dcOffset": -0.00002,
-        "spectralCentroidHz": 7079.417074,
+        "dcOffset": -0.000019,
+        "spectralCentroidHz": 7080.195384,
         "energyBands": {
-          "sub": 0.000054,
-          "body": 0.000954,
-          "mid": 0.02298,
-          "presence": 0.60836,
-          "air": 0.367652
+          "sub": 0.000055,
+          "body": 0.000936,
+          "mid": 0.022771,
+          "presence": 0.60886,
+          "air": 0.367377
         },
-        "wavSamplePeakDbfs": -9.525477,
-        "truePeakDbtp": -9.5,
-        "intersampleOvershootDb": 0.025477
+        "wavSamplePeakDbfs": -11.839973,
+        "truePeakDbtp": -11.8,
+        "intersampleOvershootDb": 0.039973
       },
       "diagnostics": {
         "eventsScheduled": 1,
@@ -431,31 +463,34 @@
         "maximumTailSeconds": 0.2,
         "latestScheduledEnd": 0.23500000000000001
       },
-      "scheduleMilliseconds": 0.2,
-      "renderMilliseconds": 0.3
+      "scheduleMilliseconds": 0.3,
+      "renderMilliseconds": 0.6
     },
     "water": {
-      "wavSha256": "7fefdfcf245ed5a383253fd98592898242073bdfbee56b22869a6ba4fc33f709",
+      "wavSha256": "f398096431562249d5a352bcc241c444aaaca72ce20cd86f5326b03126b7b45e",
+      "sampleRate": 24000,
+      "channelCount": 1,
+      "masterGain": 0.92,
       "analysis": {
-        "rawFloatSamplePeak": 0.419776,
-        "samplePeak": 0.419922,
-        "rms": 0.039589,
-        "rmsDbfs": -28.048503,
-        "lufsApprox": -28.739503,
-        "crestFactorDb": 20.511873,
+        "rawFloatSamplePeak": 0.320556,
+        "samplePeak": 0.320313,
+        "rms": 0.030193,
+        "rmsDbfs": -30.401795,
+        "lufsApprox": -31.092795,
+        "crestFactorDb": 20.513273,
         "durationSeconds": 0.6,
-        "dcOffset": 0.000033,
-        "spectralCentroidHz": 1525.23254,
+        "dcOffset": 0.000024,
+        "spectralCentroidHz": 1527.014167,
         "energyBands": {
-          "sub": 0.004668,
-          "body": 0.019125,
-          "mid": 0.835802,
-          "presence": 0.089867,
-          "air": 0.050537
+          "sub": 0.004734,
+          "body": 0.019071,
+          "mid": 0.835457,
+          "presence": 0.090072,
+          "air": 0.050666
         },
-        "wavSamplePeakDbfs": -7.53663,
-        "truePeakDbtp": -4.7,
-        "intersampleOvershootDb": 2.83663
+        "wavSamplePeakDbfs": -9.888522,
+        "truePeakDbtp": -7,
+        "intersampleOvershootDb": 2.888522
       },
       "diagnostics": {
         "eventsScheduled": 1,
@@ -470,31 +505,34 @@
         "maximumTailSeconds": 0.22,
         "latestScheduledEnd": 0.255
       },
-      "scheduleMilliseconds": 0.2,
-      "renderMilliseconds": 0.4
+      "scheduleMilliseconds": 0.3,
+      "renderMilliseconds": 0.6
     },
     "dirt": {
-      "wavSha256": "57d5bf42217a5b22787e153c464d0fb9a7e24e72550997526f0fc2fd39836f00",
+      "wavSha256": "4a67b46d39363ec6953222ea958b445e986c147c4b4531cd19f981bfcf3dc78a",
+      "sampleRate": 24000,
+      "channelCount": 1,
+      "masterGain": 0.92,
       "analysis": {
-        "rawFloatSamplePeak": 0.296095,
-        "samplePeak": 0.296875,
-        "rms": 0.018625,
-        "rmsDbfs": -34.598193,
-        "lufsApprox": -35.289193,
-        "crestFactorDb": 24.049665,
+        "rawFloatSamplePeak": 0.226109,
+        "samplePeak": 0.226563,
+        "rms": 0.014194,
+        "rmsDbfs": -36.957916,
+        "lufsApprox": -37.648916,
+        "crestFactorDb": 24.061676,
         "durationSeconds": 0.6,
-        "dcOffset": -0.000142,
-        "spectralCentroidHz": 1030.141872,
+        "dcOffset": -0.000111,
+        "spectralCentroidHz": 1038.60666,
         "energyBands": {
-          "sub": 0.078089,
-          "body": 0.274302,
-          "mid": 0.53097,
-          "presence": 0.114976,
-          "air": 0.001664
+          "sub": 0.078588,
+          "body": 0.275961,
+          "mid": 0.526911,
+          "presence": 0.116359,
+          "air": 0.002181
         },
-        "wavSamplePeakDbfs": -10.548527,
-        "truePeakDbtp": -10.5,
-        "intersampleOvershootDb": 0.048527
+        "wavSamplePeakDbfs": -12.896239,
+        "truePeakDbtp": -12.9,
+        "intersampleOvershootDb": -0.003761
       },
       "diagnostics": {
         "eventsScheduled": 1,
@@ -510,30 +548,33 @@
         "latestScheduledEnd": 0.195
       },
       "scheduleMilliseconds": 0.3,
-      "renderMilliseconds": 0.2
+      "renderMilliseconds": 0.3
     },
     "fabric": {
-      "wavSha256": "6c68a2dea6aae5f2bb6c88a3f4acca98a7045dd262912bda1022eeff9206c157",
+      "wavSha256": "2ace8dec78b77455183c6ad72768b2c3adfeeeb8c4b104cf2e8659bdedf6afbb",
+      "sampleRate": 24000,
+      "channelCount": 1,
+      "masterGain": 0.92,
       "analysis": {
-        "rawFloatSamplePeak": 0.285104,
-        "samplePeak": 0.285156,
-        "rms": 0.013335,
-        "rmsDbfs": -37.499972,
-        "lufsApprox": -38.190972,
-        "crestFactorDb": 26.60163,
+        "rawFloatSamplePeak": 0.217716,
+        "samplePeak": 0.216797,
+        "rms": 0.010151,
+        "rmsDbfs": -39.869449,
+        "lufsApprox": -40.560449,
+        "crestFactorDb": 26.59051,
         "durationSeconds": 0.6,
-        "dcOffset": -0.000179,
-        "spectralCentroidHz": 1877.122806,
+        "dcOffset": -0.000137,
+        "spectralCentroidHz": 1907.066599,
         "energyBands": {
-          "sub": 0.014567,
-          "body": 0.134123,
-          "mid": 0.445957,
-          "presence": 0.399947,
-          "air": 0.005407
+          "sub": 0.014188,
+          "body": 0.132311,
+          "mid": 0.443708,
+          "presence": 0.402527,
+          "air": 0.007266
         },
-        "wavSamplePeakDbfs": -10.898342,
-        "truePeakDbtp": -10.9,
-        "intersampleOvershootDb": -0.001658
+        "wavSamplePeakDbfs": -13.27894,
+        "truePeakDbtp": -13.3,
+        "intersampleOvershootDb": -0.02106
       },
       "diagnostics": {
         "eventsScheduled": 1,
@@ -548,8 +589,8 @@
         "maximumTailSeconds": 0.12,
         "latestScheduledEnd": 0.155
       },
-      "scheduleMilliseconds": 0.2,
-      "renderMilliseconds": 0.1
+      "scheduleMilliseconds": 0.1,
+      "renderMilliseconds": 0.2
     }
   },
   "surfaceComparison": {
@@ -563,27 +604,30 @@
     }
   },
   "footsteps": {
-    "wavSha256": "90c2098a13520d8521be324ff556aa06adc5046976a55179fc6f096bd2428fa5",
+    "wavSha256": "da5db0942fd296fc48ff98a0a87697ddade4e1eaa287bd98a4fa2f0647e58230",
+    "sampleRate": 24000,
+    "channelCount": 1,
+    "masterGain": 0.92,
     "analysis": {
-      "rawFloatSamplePeak": 0.330892,
-      "samplePeak": 0.330078,
-      "rms": 0.022492,
-      "rmsDbfs": -32.95959,
-      "lufsApprox": -33.65059,
-      "crestFactorDb": 23.331925,
+      "rawFloatSamplePeak": 0.252681,
+      "samplePeak": 0.251953,
+      "rms": 0.017146,
+      "rmsDbfs": -35.316498,
+      "lufsApprox": -36.007498,
+      "crestFactorDb": 23.342893,
       "durationSeconds": 2.35,
-      "dcOffset": -0.0004,
-      "spectralCentroidHz": 1138.589117,
+      "dcOffset": -0.000307,
+      "spectralCentroidHz": 1140.70964,
       "energyBands": {
-        "sub": 0.206529,
-        "body": 0.433445,
-        "mid": 0.126256,
-        "presence": 0.226324,
-        "air": 0.007446
+        "sub": 0.200136,
+        "body": 0.439766,
+        "mid": 0.12763,
+        "presence": 0.224571,
+        "air": 0.007897
       },
-      "wavSamplePeakDbfs": -9.627665,
-      "truePeakDbtp": -9.6,
-      "intersampleOvershootDb": 0.027665
+      "wavSamplePeakDbfs": -11.973605,
+      "truePeakDbtp": -11.9,
+      "intersampleOvershootDb": 0.073605
     },
     "diagnostics": {
       "eventsScheduled": 6,
@@ -598,39 +642,42 @@
       "maximumTailSeconds": 0.16000000000000003,
       "latestScheduledEnd": 2.03
     },
-    "scheduleMilliseconds": 0.6,
+    "scheduleMilliseconds": 0.7,
     "renderMilliseconds": 1.5,
     "segmentHashes": [
-      "41275d8e997f4ec94fb1c6a8212b5798ff1f20bde2a225ba1258c635e593a03e",
-      "4f88ecf1d930f63dfb7cdc14d62d91ae4ac25715feabc968a4c72ebcd903e836",
-      "ea24374862f4dde8d0445835a641478d43e4b3712d13c766140e466a513aaa51",
-      "eb51a4955d150a094bd28939953159832a23bae6e644eb690c09b69a3d9e6333",
-      "06713994b49d08111faf3cb8deef02442295766bb96c8f583869b0896db81e38",
-      "4de28afabbdacac4912669a5a5ab78b0fe7afde55c7afc591ae8e5adc9a13911"
+      "2f6d96859e7353f352688a76a03572ebbfe28ed867f645c486841f97adbfd83a",
+      "94c1dc6a362eca2c42ecf97a7a164806a393324f7bbbae99464c6a0ff6e1d901",
+      "7f4dd669e641c52f9c475b8b92ea302c3c4ccd3d5097b57720995a20792d11b3",
+      "83573c7e732bfb376a74ebbedcc4aea91820d81d938b9f515c21cf46da655def",
+      "5f86850b6d13569c82df362fbf7ac8bed3bff05d318740e73a9858fba7597aa5",
+      "c52f7f16cfb65442f0cbdfe4d01d4b8abf8be417b9e13a1b11adb7eb48de8e67"
     ]
   },
   "automaticFire30": {
-    "wavSha256": "94b0d6c459a5be0912c573e28cc639a3f15e533904a2901e22d8dbe934e571c9",
+    "wavSha256": "49dc95c7cfa0e2e26b2c4a02fe05e4d1542a6a13c220ac7c23d71d12b367a149",
+    "sampleRate": 24000,
+    "channelCount": 1,
+    "masterGain": 0.92,
     "analysis": {
-      "rawFloatSamplePeak": 0.442009,
-      "samplePeak": 0.44142,
-      "rms": 0.178156,
-      "rmsDbfs": -14.984007,
-      "lufsApprox": -15.675007,
-      "crestFactorDb": 7.881041,
+      "rawFloatSamplePeak": 0.337534,
+      "samplePeak": 0.337901,
+      "rms": 0.135954,
+      "rmsDbfs": -17.332163,
+      "lufsApprox": -18.023163,
+      "crestFactorDb": 7.907951,
       "durationSeconds": 2.9,
-      "dcOffset": -0.00322,
-      "spectralCentroidHz": 460.146211,
+      "dcOffset": -0.002463,
+      "spectralCentroidHz": 460.211791,
       "energyBands": {
-        "sub": 0.562074,
-        "body": 0.340339,
+        "sub": 0.561946,
+        "body": 0.340488,
         "mid": 0.032781,
-        "presence": 0.051809,
-        "air": 0.012997
+        "presence": 0.051772,
+        "air": 0.013012
       },
-      "wavSamplePeakDbfs": -7.10323,
-      "truePeakDbtp": -2.2,
-      "intersampleOvershootDb": 4.90323
+      "wavSamplePeakDbfs": -9.424477,
+      "truePeakDbtp": -4.5,
+      "intersampleOvershootDb": 4.924477
     },
     "diagnostics": {
       "eventsScheduled": 30,
@@ -645,35 +692,38 @@
       "maximumTailSeconds": 0.3800000000000001,
       "latestScheduledEnd": 2.3533333333333335
     },
-    "scheduleMilliseconds": 4.3,
-    "renderMilliseconds": 16.4,
+    "scheduleMilliseconds": 4.4,
+    "renderMilliseconds": 16.2,
     "rounds": 30,
     "roundsPerMinute": 900,
     "tailRms": 0,
     "nodesPerShot": 12.166667
   },
   "disabledLimiterNegativeControl": {
-    "wavSha256": "582d9322c737a85f370cd2de7790980719ca1b41ffd2728bcbd0911223726f26",
+    "wavSha256": "571210a8c507e13ab4bf8df232865b8f348555bdb0cf643020f222b0a7b5d2c6",
+    "sampleRate": 48000,
+    "channelCount": 2,
+    "masterGain": 1,
     "analysis": {
-      "rawFloatSamplePeak": 1.40678,
+      "rawFloatSamplePeak": 2.985601,
       "samplePeak": 1,
-      "rms": 0.205403,
-      "rmsDbfs": -13.747868,
-      "lufsApprox": -14.438868,
-      "crestFactorDb": 13.747868,
+      "rms": 0.232651,
+      "rmsDbfs": -12.665916,
+      "lufsApprox": -13.356916,
+      "crestFactorDb": 12.665916,
       "durationSeconds": 2.9,
-      "dcOffset": -0.00025,
-      "spectralCentroidHz": 593.767896,
+      "dcOffset": -0.000146,
+      "spectralCentroidHz": 608.474771,
       "energyBands": {
-        "sub": 0.49916,
-        "body": 0.396345,
-        "mid": 0.029713,
-        "presence": 0.048735,
-        "air": 0.026046
+        "sub": 0.754055,
+        "body": 0.141828,
+        "mid": 0.035575,
+        "presence": 0.048945,
+        "air": 0.019598
       },
       "wavSamplePeakDbfs": 0,
-      "truePeakDbtp": 2.6,
-      "intersampleOvershootDb": 2.6
+      "truePeakDbtp": 5.6,
+      "intersampleOvershootDb": 5.6
     },
     "diagnostics": {
       "eventsScheduled": 30,
@@ -688,32 +738,889 @@
       "maximumTailSeconds": 0.3800000000000001,
       "latestScheduledEnd": 2.3533333333333335
     },
-    "scheduleMilliseconds": 4,
-    "renderMilliseconds": 15.6
+    "scheduleMilliseconds": 5.7,
+    "renderMilliseconds": 30.7
+  },
+  "truePeakStressMatrix": {
+    "sampleRates": [
+      44100,
+      48000
+    ],
+    "seeds": [
+      1918988400,
+      1918988401,
+      1918988402
+    ],
+    "positions": {
+      "left": {
+        "x": -1,
+        "y": 0,
+        "z": 0
+      },
+      "center": {
+        "x": 0,
+        "y": 0,
+        "z": -1
+      },
+      "right": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "channelCount": 2,
+    "masterGain": 1,
+    "rounds": 30,
+    "roundsPerMinute": 900,
+    "cases": [
+      {
+        "wavName": "matrix-44100-left-seed-1918988400.wav",
+        "sampleRate": 44100,
+        "seed": 1918988400,
+        "position": "left",
+        "wavSha256": "eee10ade69ae67b02d5d0148a928f0cef2c14354548e7280c6d5002e926dcdeb",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.128417,
+          "rmsDbfs": -17.827562,
+          "lufsApprox": -18.518562,
+          "crestFactorDb": 9.125584,
+          "durationSeconds": 2.9,
+          "dcOffset": -0.00197,
+          "spectralCentroidHz": 657.70483,
+          "energyBands": {
+            "sub": 0.751385,
+            "body": 0.128531,
+            "mid": 0.044695,
+            "presence": 0.053605,
+            "air": 0.021784
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -3,
+          "intersampleOvershootDb": 5.702242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 6.2,
+        "renderMilliseconds": 32.3
+      },
+      {
+        "wavName": "matrix-44100-left-seed-1918988401.wav",
+        "sampleRate": 44100,
+        "seed": 1918988401,
+        "position": "left",
+        "wavSha256": "e4770563b93ef17d58d3d966acbd2d634185ed6264177c7c47a350cd8af36ec4",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.129242,
+          "rmsDbfs": -17.771903,
+          "lufsApprox": -18.462903,
+          "crestFactorDb": 9.069926,
+          "durationSeconds": 2.9,
+          "dcOffset": -0.001919,
+          "spectralCentroidHz": 649.724254,
+          "energyBands": {
+            "sub": 0.760802,
+            "body": 0.118104,
+            "mid": 0.04623,
+            "presence": 0.05234,
+            "air": 0.022525
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -3,
+          "intersampleOvershootDb": 5.702242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 6.6,
+        "renderMilliseconds": 34
+      },
+      {
+        "wavName": "matrix-44100-left-seed-1918988402.wav",
+        "sampleRate": 44100,
+        "seed": 1918988402,
+        "position": "left",
+        "wavSha256": "c4b309eba72ad329c17c5d7af7d55eb7cfc50ffae0a7522a0848bec6a9fa25f5",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.126863,
+          "rmsDbfs": -17.933333,
+          "lufsApprox": -18.624333,
+          "crestFactorDb": 9.231356,
+          "durationSeconds": 2.9,
+          "dcOffset": -0.002111,
+          "spectralCentroidHz": 652.479139,
+          "energyBands": {
+            "sub": 0.765769,
+            "body": 0.119142,
+            "mid": 0.035084,
+            "presence": 0.059905,
+            "air": 0.0201
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -1.8,
+          "intersampleOvershootDb": 6.902242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 9.4,
+        "renderMilliseconds": 33.2
+      },
+      {
+        "wavName": "matrix-44100-center-seed-1918988400.wav",
+        "sampleRate": 44100,
+        "seed": 1918988400,
+        "position": "center",
+        "wavSha256": "22424238c781afca43543e883f7083b39701043222ae9a97fcc051d4c12b9d46",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.151843,
+          "rmsDbfs": -16.372113,
+          "lufsApprox": -17.063113,
+          "crestFactorDb": 7.670135,
+          "durationSeconds": 2.9,
+          "dcOffset": -0.004253,
+          "spectralCentroidHz": 785.280662,
+          "energyBands": {
+            "sub": 0.725578,
+            "body": 0.146337,
+            "mid": 0.043386,
+            "presence": 0.055368,
+            "air": 0.029331
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -3.4,
+          "intersampleOvershootDb": 5.302242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 6.5,
+        "renderMilliseconds": 32.9
+      },
+      {
+        "wavName": "matrix-44100-center-seed-1918988401.wav",
+        "sampleRate": 44100,
+        "seed": 1918988401,
+        "position": "center",
+        "wavSha256": "3b6c20afef2f3ceb0d7c80257612f7ec3ef89871754197cf7a85578c8ff09405",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.152764,
+          "rmsDbfs": -16.319597,
+          "lufsApprox": -17.010597,
+          "crestFactorDb": 7.61762,
+          "durationSeconds": 2.9,
+          "dcOffset": -0.004171,
+          "spectralCentroidHz": 781.863518,
+          "energyBands": {
+            "sub": 0.733092,
+            "body": 0.136618,
+            "mid": 0.045022,
+            "presence": 0.054662,
+            "air": 0.030607
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -3.3,
+          "intersampleOvershootDb": 5.402242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 7.2,
+        "renderMilliseconds": 32.9
+      },
+      {
+        "wavName": "matrix-44100-center-seed-1918988402.wav",
+        "sampleRate": 44100,
+        "seed": 1918988402,
+        "position": "center",
+        "wavSha256": "be40b46933df0f305b21373e716b65cb3da98e922be3f019ec38b49276b6456e",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.149845,
+          "rmsDbfs": -16.487132,
+          "lufsApprox": -17.178132,
+          "crestFactorDb": 7.785155,
+          "durationSeconds": 2.9,
+          "dcOffset": -0.00441,
+          "spectralCentroidHz": 736.672664,
+          "energyBands": {
+            "sub": 0.73793,
+            "body": 0.141946,
+            "mid": 0.0343,
+            "presence": 0.061414,
+            "air": 0.02441
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -2.2,
+          "intersampleOvershootDb": 6.502242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 5.8,
+        "renderMilliseconds": 32.7
+      },
+      {
+        "wavName": "matrix-44100-right-seed-1918988400.wav",
+        "sampleRate": 44100,
+        "seed": 1918988400,
+        "position": "right",
+        "wavSha256": "23bc1257fc3da134ab048836ccc660c06feaeff3f9c9572634b097dcf610c4ed",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.128417,
+          "rmsDbfs": -17.827562,
+          "lufsApprox": -18.518562,
+          "crestFactorDb": 9.125584,
+          "durationSeconds": 2.9,
+          "dcOffset": -0.00197,
+          "spectralCentroidHz": 657.70483,
+          "energyBands": {
+            "sub": 0.751385,
+            "body": 0.128531,
+            "mid": 0.044695,
+            "presence": 0.053605,
+            "air": 0.021784
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -3,
+          "intersampleOvershootDb": 5.702242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 9.1,
+        "renderMilliseconds": 32.3
+      },
+      {
+        "wavName": "matrix-44100-right-seed-1918988401.wav",
+        "sampleRate": 44100,
+        "seed": 1918988401,
+        "position": "right",
+        "wavSha256": "b833e129748985a0d81a3c1b3338c033b7d3bce05ed21e579f39c5f8754161c7",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.129242,
+          "rmsDbfs": -17.771903,
+          "lufsApprox": -18.462903,
+          "crestFactorDb": 9.069926,
+          "durationSeconds": 2.9,
+          "dcOffset": -0.001919,
+          "spectralCentroidHz": 649.724254,
+          "energyBands": {
+            "sub": 0.760802,
+            "body": 0.118104,
+            "mid": 0.04623,
+            "presence": 0.05234,
+            "air": 0.022525
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -3,
+          "intersampleOvershootDb": 5.702242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 5.7,
+        "renderMilliseconds": 33.3
+      },
+      {
+        "wavName": "matrix-44100-right-seed-1918988402.wav",
+        "sampleRate": 44100,
+        "seed": 1918988402,
+        "position": "right",
+        "wavSha256": "40fa7aaa23adbc00e91fd072a5bc5249b13026979a92f5673a6cf9fab0952394",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.126863,
+          "rmsDbfs": -17.933333,
+          "lufsApprox": -18.624333,
+          "crestFactorDb": 9.231356,
+          "durationSeconds": 2.9,
+          "dcOffset": -0.002111,
+          "spectralCentroidHz": 652.479139,
+          "energyBands": {
+            "sub": 0.765769,
+            "body": 0.119142,
+            "mid": 0.035084,
+            "presence": 0.059905,
+            "air": 0.0201
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -1.8,
+          "intersampleOvershootDb": 6.902242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 6.8,
+        "renderMilliseconds": 33.4
+      },
+      {
+        "wavName": "matrix-48000-left-seed-1918988400.wav",
+        "sampleRate": 48000,
+        "seed": 1918988400,
+        "position": "left",
+        "wavSha256": "c020354e67f497883160458b6515fc1c37999fbcbb5eefd941c703e984cca89b",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.127794,
+          "rmsDbfs": -17.86979,
+          "lufsApprox": -18.56079,
+          "crestFactorDb": 9.167812,
+          "durationSeconds": 2.9,
+          "dcOffset": -0.0002,
+          "spectralCentroidHz": 437.849558,
+          "energyBands": {
+            "sub": 0.808741,
+            "body": 0.090146,
+            "mid": 0.045413,
+            "presence": 0.04658,
+            "air": 0.009121
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -2.5,
+          "intersampleOvershootDb": 6.202242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 6.9,
+        "renderMilliseconds": 32.5
+      },
+      {
+        "wavName": "matrix-48000-left-seed-1918988401.wav",
+        "sampleRate": 48000,
+        "seed": 1918988401,
+        "position": "left",
+        "wavSha256": "3d41c0ead954b13631b7e04bd59616732f4f299c415363edda069585aa231191",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.129065,
+          "rmsDbfs": -17.783812,
+          "lufsApprox": -18.474812,
+          "crestFactorDb": 9.081834,
+          "durationSeconds": 2.9,
+          "dcOffset": 0.000436,
+          "spectralCentroidHz": 405.891743,
+          "energyBands": {
+            "sub": 0.806152,
+            "body": 0.095175,
+            "mid": 0.04943,
+            "presence": 0.041533,
+            "air": 0.00771
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -2.6,
+          "intersampleOvershootDb": 6.102242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 6.2,
+        "renderMilliseconds": 31.7
+      },
+      {
+        "wavName": "matrix-48000-left-seed-1918988402.wav",
+        "sampleRate": 48000,
+        "seed": 1918988402,
+        "position": "left",
+        "wavSha256": "ce0dc8cb538d87bdc644dbae8bd0b5dae4f264c3b6f369d3e088bed85ee920e7",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.128842,
+          "rmsDbfs": -17.798817,
+          "lufsApprox": -18.489817,
+          "crestFactorDb": 9.09684,
+          "durationSeconds": 2.9,
+          "dcOffset": 0.000074,
+          "spectralCentroidHz": 420.25648,
+          "energyBands": {
+            "sub": 0.813431,
+            "body": 0.091667,
+            "mid": 0.036506,
+            "presence": 0.049801,
+            "air": 0.008595
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -2.2,
+          "intersampleOvershootDb": 6.502242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 6.4,
+        "renderMilliseconds": 33.3
+      },
+      {
+        "wavName": "matrix-48000-center-seed-1918988400.wav",
+        "sampleRate": 48000,
+        "seed": 1918988400,
+        "position": "center",
+        "wavSha256": "6c1f5a738eca962be0ed6da1a4cb09d4f9686104feded45209987d256b828618",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.15247,
+          "rmsDbfs": -16.336338,
+          "lufsApprox": -17.027338,
+          "crestFactorDb": 7.634361,
+          "durationSeconds": 2.9,
+          "dcOffset": -0.000377,
+          "spectralCentroidHz": 477.75967,
+          "energyBands": {
+            "sub": 0.791696,
+            "body": 0.106137,
+            "mid": 0.044403,
+            "presence": 0.046305,
+            "air": 0.011458
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -3.2,
+          "intersampleOvershootDb": 5.502242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 6.6,
+        "renderMilliseconds": 32.7
+      },
+      {
+        "wavName": "matrix-48000-center-seed-1918988401.wav",
+        "sampleRate": 48000,
+        "seed": 1918988401,
+        "position": "center",
+        "wavSha256": "af450e4b136a9cc46bb9840ce123fe56a079bb9f5cf2b0360d09a127bb3bb8f3",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.154657,
+          "rmsDbfs": -16.212592,
+          "lufsApprox": -16.903592,
+          "crestFactorDb": 7.510615,
+          "durationSeconds": 2.9,
+          "dcOffset": 0.000325,
+          "spectralCentroidHz": 446.008384,
+          "energyBands": {
+            "sub": 0.787433,
+            "body": 0.113029,
+            "mid": 0.047941,
+            "presence": 0.041489,
+            "air": 0.010108
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -3.3,
+          "intersampleOvershootDb": 5.402242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 6.4,
+        "renderMilliseconds": 31.6
+      },
+      {
+        "wavName": "matrix-48000-center-seed-1918988402.wav",
+        "sampleRate": 48000,
+        "seed": 1918988402,
+        "position": "center",
+        "wavSha256": "d44d9681a02d29b17b99edc333fbf2a612d26e747768907eac11558f2d9603f8",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.153688,
+          "rmsDbfs": -16.267181,
+          "lufsApprox": -16.958181,
+          "crestFactorDb": 7.565204,
+          "durationSeconds": 2.9,
+          "dcOffset": 0.000046,
+          "spectralCentroidHz": 462.227369,
+          "energyBands": {
+            "sub": 0.797201,
+            "body": 0.106724,
+            "mid": 0.035892,
+            "presence": 0.048978,
+            "air": 0.011205
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -2.6,
+          "intersampleOvershootDb": 6.102242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 6,
+        "renderMilliseconds": 31
+      },
+      {
+        "wavName": "matrix-48000-right-seed-1918988400.wav",
+        "sampleRate": 48000,
+        "seed": 1918988400,
+        "position": "right",
+        "wavSha256": "245b3e00dc4a1f8c31341d03ee37877c1756e21f6bd4b3f64b174ddff179b385",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.127794,
+          "rmsDbfs": -17.86979,
+          "lufsApprox": -18.56079,
+          "crestFactorDb": 9.167812,
+          "durationSeconds": 2.9,
+          "dcOffset": -0.0002,
+          "spectralCentroidHz": 437.849558,
+          "energyBands": {
+            "sub": 0.808741,
+            "body": 0.090146,
+            "mid": 0.045413,
+            "presence": 0.04658,
+            "air": 0.009121
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -2.5,
+          "intersampleOvershootDb": 6.202242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 6.4,
+        "renderMilliseconds": 31.7
+      },
+      {
+        "wavName": "matrix-48000-right-seed-1918988401.wav",
+        "sampleRate": 48000,
+        "seed": 1918988401,
+        "position": "right",
+        "wavSha256": "602eb1c8b5413cc482a45cbbf60cdf0942b855f2e09357ad4957840a16d0dc3e",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.129065,
+          "rmsDbfs": -17.783812,
+          "lufsApprox": -18.474812,
+          "crestFactorDb": 9.081834,
+          "durationSeconds": 2.9,
+          "dcOffset": 0.000436,
+          "spectralCentroidHz": 405.891743,
+          "energyBands": {
+            "sub": 0.806152,
+            "body": 0.095175,
+            "mid": 0.04943,
+            "presence": 0.041533,
+            "air": 0.00771
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -2.6,
+          "intersampleOvershootDb": 6.102242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 5.9,
+        "renderMilliseconds": 32.1
+      },
+      {
+        "wavName": "matrix-48000-right-seed-1918988402.wav",
+        "sampleRate": 48000,
+        "seed": 1918988402,
+        "position": "right",
+        "wavSha256": "c69e04757fd94ecb4eaa8e1a37cfbe9c37526932604c958248602a87b350fd80",
+        "channelCount": 2,
+        "masterGain": 1,
+        "analysis": {
+          "rawFloatSamplePeak": 0.366885,
+          "samplePeak": 0.367199,
+          "rms": 0.128842,
+          "rmsDbfs": -17.798817,
+          "lufsApprox": -18.489817,
+          "crestFactorDb": 9.09684,
+          "durationSeconds": 2.9,
+          "dcOffset": 0.000074,
+          "spectralCentroidHz": 420.25648,
+          "energyBands": {
+            "sub": 0.813431,
+            "body": 0.091667,
+            "mid": 0.036506,
+            "presence": 0.049801,
+            "air": 0.008595
+          },
+          "wavSamplePeakDbfs": -8.702242,
+          "truePeakDbtp": -2.2,
+          "intersampleOvershootDb": 6.502242
+        },
+        "diagnostics": {
+          "eventsScheduled": 30,
+          "voicesCreated": 30,
+          "activeVoices": 0,
+          "peakActiveVoices": 30,
+          "sourcesCreated": 120,
+          "activeSources": 0,
+          "peakActiveSources": 120,
+          "peakConcurrentSources": 13,
+          "nodesCreated": 365,
+          "maximumTailSeconds": 0.3800000000000001,
+          "latestScheduledEnd": 2.3533333333333335
+        },
+        "scheduleMilliseconds": 6,
+        "renderMilliseconds": 32.5
+      }
+    ],
+    "ceilingDbtp": -1,
+    "worstCase": {
+      "wavName": "matrix-44100-left-seed-1918988402.wav",
+      "sampleRate": 44100,
+      "seed": 1918988402,
+      "position": "left",
+      "wavSamplePeakDbfs": -8.702242,
+      "truePeakDbtp": -1.8,
+      "intersampleOvershootDb": 6.902242
+    }
   },
   "spatial": {
-    "leftRms": 0.006123,
-    "rightRms": 0.059538,
-    "rightToLeftRatio": 9.723642
+    "leftRms": 0.004646,
+    "rightRms": 0.045428,
+    "rightToLeftRatio": 9.778162
   },
   "reloadAndDamageCoverage": {
-    "wavSha256": "01c742f3c0588637ffe079457ad7a854d671045377488a6c86b3db725cc5b640",
+    "wavSha256": "386541adc379359192c5f6801ecf927278fd1d8598dedc04cb93ba2e16f53f2e",
+    "sampleRate": 24000,
+    "channelCount": 1,
+    "masterGain": 0.92,
     "analysis": {
-      "rawFloatSamplePeak": 0.351573,
-      "samplePeak": 0.351573,
-      "rms": 0.027324,
-      "rmsDbfs": -31.269105,
-      "lufsApprox": -31.960105,
-      "crestFactorDb": 22.189421,
+      "rawFloatSamplePeak": 0.268474,
+      "samplePeak": 0.267586,
+      "rms": 0.020828,
+      "rmsDbfs": -33.627214,
+      "lufsApprox": -34.318214,
+      "crestFactorDb": 22.176491,
       "durationSeconds": 1,
-      "dcOffset": 0.000074,
-      "spectralCentroidHz": 2149.707011,
+      "dcOffset": 0.000058,
+      "spectralCentroidHz": 2153.087981,
       "energyBands": {
-        "sub": 0.003456,
-        "body": 0.126928,
-        "mid": 0.489283,
-        "presence": 0.371204,
-        "air": 0.009129
+        "sub": 0.003039,
+        "body": 0.127233,
+        "mid": 0.486922,
+        "presence": 0.373006,
+        "air": 0.0098
       }
     },
     "diagnostics": {
@@ -730,13 +1637,13 @@
       "latestScheduledEnd": 0.85
     },
     "scheduleMilliseconds": 0.6,
-    "renderMilliseconds": 0.6
+    "renderMilliseconds": 0.9
   },
   "cpu": {
-    "scheduleMillisecondsPerShot": 0.143333,
+    "scheduleMillisecondsPerShot": 0.146667,
     "listenerUpdateMicroseconds": 0.13,
-    "offlineRenderMilliseconds": 16.4,
-    "offlineRenderToRealtimeRatio": 0.005655
+    "offlineRenderMilliseconds": 16.2,
+    "offlineRenderToRealtimeRatio": 0.005586
   },
   "gpu": {
     "webglResourcesCreated": 0,
@@ -745,7 +1652,8 @@
   },
   "metricNotes": {
     "standardsTruePeak": "Added by the Node runner using FFmpeg EBU R128 peak=true.",
-    "canonicalPcm": "10-bit canonical quantization removes cross-process ±1 PCM16 LSB summation variance before every reported PCM metric.",
+    "stressMatrix": "All 18 limiter-on matrix WAVs are generated and measured on every run; only the measured worst case is retained in git evidence.",
+    "canonicalPcm": "10-bit canonical quantization with a symmetric ±4 PCM16-LSB midpoint deadband stabilizes retained evidence against observed reduction-order variance; transient matrix cases are gated by dBTP rather than hash identity.",
     "lufsApprox": "mean-square LUFS approximation without K-weighting or gating",
     "energyBandsHz": {
       "sub": "0-120",
@@ -763,93 +1671,234 @@
     "files": {
       "automatic-30-no-limiter.wav": {
         "wavSamplePeakDbfs": 0,
-        "truePeakDbtp": 2.6,
-        "intersampleOvershootDb": 2.6,
-        "passes": false
+        "truePeakDbtp": 5.6,
+        "intersampleOvershootDb": 5.6,
+        "passes": false,
+        "retained": true
       },
       "automatic-30.wav": {
-        "wavSamplePeakDbfs": -7.10323,
-        "truePeakDbtp": -2.2,
-        "intersampleOvershootDb": 4.90323,
-        "passes": true
+        "wavSamplePeakDbfs": -9.424477,
+        "truePeakDbtp": -4.5,
+        "intersampleOvershootDb": 4.924477,
+        "passes": true,
+        "retained": true
       },
       "footsteps-concrete.wav": {
-        "wavSamplePeakDbfs": -9.627665,
-        "truePeakDbtp": -9.6,
-        "intersampleOvershootDb": 0.027665,
-        "passes": true
+        "wavSamplePeakDbfs": -11.973605,
+        "truePeakDbtp": -11.9,
+        "intersampleOvershootDb": 0.073605,
+        "passes": true,
+        "retained": true
       },
       "impact-concrete.wav": {
-        "wavSamplePeakDbfs": -8.748567,
-        "truePeakDbtp": -8,
-        "intersampleOvershootDb": 0.748567,
-        "passes": true
+        "wavSamplePeakDbfs": -11.139632,
+        "truePeakDbtp": -10.3,
+        "intersampleOvershootDb": 0.839632,
+        "passes": true,
+        "retained": true
       },
       "impact-dirt.wav": {
-        "wavSamplePeakDbfs": -10.548527,
-        "truePeakDbtp": -10.5,
-        "intersampleOvershootDb": 0.048527,
-        "passes": true
+        "wavSamplePeakDbfs": -12.896239,
+        "truePeakDbtp": -12.9,
+        "intersampleOvershootDb": -0.003761,
+        "passes": true,
+        "retained": true
       },
       "impact-fabric.wav": {
-        "wavSamplePeakDbfs": -10.898342,
-        "truePeakDbtp": -10.9,
-        "intersampleOvershootDb": -0.001658,
-        "passes": true
+        "wavSamplePeakDbfs": -13.27894,
+        "truePeakDbtp": -13.3,
+        "intersampleOvershootDb": -0.02106,
+        "passes": true,
+        "retained": true
       },
       "impact-flesh.wav": {
-        "wavSamplePeakDbfs": -10.157457,
-        "truePeakDbtp": -10.2,
-        "intersampleOvershootDb": -0.042543,
-        "passes": true
+        "wavSamplePeakDbfs": -12.529692,
+        "truePeakDbtp": -12.5,
+        "intersampleOvershootDb": 0.029692,
+        "passes": true,
+        "retained": true
       },
       "impact-foliage.wav": {
-        "wavSamplePeakDbfs": -9.525477,
-        "truePeakDbtp": -9.5,
-        "intersampleOvershootDb": 0.025477,
-        "passes": true
+        "wavSamplePeakDbfs": -11.839973,
+        "truePeakDbtp": -11.8,
+        "intersampleOvershootDb": 0.039973,
+        "passes": true,
+        "retained": true
       },
       "impact-glass.wav": {
-        "wavSamplePeakDbfs": -9.176999,
-        "truePeakDbtp": -7.5,
-        "intersampleOvershootDb": 1.676999,
-        "passes": true
+        "wavSamplePeakDbfs": -11.514621,
+        "truePeakDbtp": -9.8,
+        "intersampleOvershootDb": 1.714621,
+        "passes": true,
+        "retained": true
       },
       "impact-metal.wav": {
-        "wavSamplePeakDbfs": -8.384707,
-        "truePeakDbtp": -6.5,
-        "intersampleOvershootDb": 1.884707,
-        "passes": true
+        "wavSamplePeakDbfs": -10.721674,
+        "truePeakDbtp": -8.9,
+        "intersampleOvershootDb": 1.821674,
+        "passes": true,
+        "retained": true
       },
       "impact-sand.wav": {
-        "wavSamplePeakDbfs": -12.0412,
-        "truePeakDbtp": -12,
-        "intersampleOvershootDb": 0.0412,
-        "passes": true
+        "wavSamplePeakDbfs": -14.360878,
+        "truePeakDbtp": -14.4,
+        "intersampleOvershootDb": -0.039122,
+        "passes": true,
+        "retained": true
       },
       "impact-water.wav": {
-        "wavSamplePeakDbfs": -7.53663,
-        "truePeakDbtp": -4.7,
-        "intersampleOvershootDb": 2.83663,
-        "passes": true
+        "wavSamplePeakDbfs": -9.888522,
+        "truePeakDbtp": -7,
+        "intersampleOvershootDb": 2.888522,
+        "passes": true,
+        "retained": true
       },
       "impact-wood.wav": {
-        "wavSamplePeakDbfs": -8.078372,
-        "truePeakDbtp": -8.1,
-        "intersampleOvershootDb": -0.021628,
-        "passes": true
+        "wavSamplePeakDbfs": -10.434985,
+        "truePeakDbtp": -10.4,
+        "intersampleOvershootDb": 0.034985,
+        "passes": true,
+        "retained": true
+      },
+      "matrix-44100-center-seed-1918988400.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -3.4,
+        "intersampleOvershootDb": 5.302242,
+        "passes": true,
+        "retained": false
+      },
+      "matrix-44100-center-seed-1918988401.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -3.3,
+        "intersampleOvershootDb": 5.402242,
+        "passes": true,
+        "retained": false
+      },
+      "matrix-44100-center-seed-1918988402.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -2.2,
+        "intersampleOvershootDb": 6.502242,
+        "passes": true,
+        "retained": false
+      },
+      "matrix-44100-left-seed-1918988400.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -3,
+        "intersampleOvershootDb": 5.702242,
+        "passes": true,
+        "retained": false
+      },
+      "matrix-44100-left-seed-1918988401.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -3,
+        "intersampleOvershootDb": 5.702242,
+        "passes": true,
+        "retained": false
+      },
+      "matrix-44100-left-seed-1918988402.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -1.8,
+        "intersampleOvershootDb": 6.902242,
+        "passes": true,
+        "retained": true
+      },
+      "matrix-44100-right-seed-1918988400.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -3,
+        "intersampleOvershootDb": 5.702242,
+        "passes": true,
+        "retained": false
+      },
+      "matrix-44100-right-seed-1918988401.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -3,
+        "intersampleOvershootDb": 5.702242,
+        "passes": true,
+        "retained": false
+      },
+      "matrix-44100-right-seed-1918988402.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -1.8,
+        "intersampleOvershootDb": 6.902242,
+        "passes": true,
+        "retained": false
+      },
+      "matrix-48000-center-seed-1918988400.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -3.2,
+        "intersampleOvershootDb": 5.502242,
+        "passes": true,
+        "retained": false
+      },
+      "matrix-48000-center-seed-1918988401.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -3.3,
+        "intersampleOvershootDb": 5.402242,
+        "passes": true,
+        "retained": false
+      },
+      "matrix-48000-center-seed-1918988402.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -2.6,
+        "intersampleOvershootDb": 6.102242,
+        "passes": true,
+        "retained": false
+      },
+      "matrix-48000-left-seed-1918988400.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -2.5,
+        "intersampleOvershootDb": 6.202242,
+        "passes": true,
+        "retained": false
+      },
+      "matrix-48000-left-seed-1918988401.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -2.6,
+        "intersampleOvershootDb": 6.102242,
+        "passes": true,
+        "retained": false
+      },
+      "matrix-48000-left-seed-1918988402.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -2.2,
+        "intersampleOvershootDb": 6.502242,
+        "passes": true,
+        "retained": false
+      },
+      "matrix-48000-right-seed-1918988400.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -2.5,
+        "intersampleOvershootDb": 6.202242,
+        "passes": true,
+        "retained": false
+      },
+      "matrix-48000-right-seed-1918988401.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -2.6,
+        "intersampleOvershootDb": 6.102242,
+        "passes": true,
+        "retained": false
+      },
+      "matrix-48000-right-seed-1918988402.wav": {
+        "wavSamplePeakDbfs": -8.702242,
+        "truePeakDbtp": -2.2,
+        "intersampleOvershootDb": 6.502242,
+        "passes": true,
+        "retained": false
       },
       "shot-far.wav": {
-        "wavSamplePeakDbfs": -13.928655,
-        "truePeakDbtp": -13.6,
-        "intersampleOvershootDb": 0.328655,
-        "passes": true
+        "wavSamplePeakDbfs": -16.343507,
+        "truePeakDbtp": -16,
+        "intersampleOvershootDb": 0.343507,
+        "passes": true,
+        "retained": true
       },
       "shot-near.wav": {
-        "wavSamplePeakDbfs": -7.10323,
-        "truePeakDbtp": -3.8,
-        "intersampleOvershootDb": 3.30323,
-        "passes": true
+        "wavSamplePeakDbfs": -9.424477,
+        "truePeakDbtp": -6.2,
+        "intersampleOvershootDb": 3.224477,
+        "passes": true,
+        "retained": true
       }
     }
   },

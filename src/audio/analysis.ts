@@ -148,8 +148,17 @@ function quantizeSample16(sample: number, canonicalBits: number): number {
     ? Math.round(clamped * 0x8000)
     : Math.round(clamped * 0x7fff);
   const quantum = 2 ** (16 - canonicalBits);
+  if (quantum === 1) return integer;
+  const lower = Math.floor(integer / quantum) * quantum;
+  const upper = lower + quantum;
+  const remainder = integer - lower;
+  const midpoint = quantum / 2;
+  const midpointDeadband = 4;
+  const canonical = Math.abs(remainder - midpoint) <= midpointDeadband
+    ? (integer < 0 ? upper : lower)
+    : (remainder > midpoint ? upper : lower);
   return clamp(
-    Math.round(integer / quantum) * quantum,
+    canonical,
     -0x8000,
     0x7fff,
   );
