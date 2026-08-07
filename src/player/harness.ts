@@ -24,6 +24,7 @@ export interface PlayerHarnessReport {
     jumpHeightMeters: number;
     maxStepHeightMeters: number;
     wallHeightMeters: number;
+    rampSlopeDegrees: number;
   };
   measurements: {
     timeTo95PercentWalkSpeedSeconds: number;
@@ -41,6 +42,10 @@ export interface PlayerHarnessReport {
     stepFinalZMeters: number;
     stepClearedObstacle: boolean;
     wallFinalZMeters: number;
+    rampGroundedThroughout: boolean;
+    rampMaxFootGapMeters: number;
+    rampMaxOneTickDropMeters: number;
+    rampFinalZMeters: number;
     determinismPositionDeltaMeters: number;
     determinismVelocityDeltaMetersPerSecond: number;
     fixedTickCostMicroseconds: number;
@@ -144,6 +149,34 @@ export function runPlayerHarness(): PlayerHarnessReport {
     wallMotor.fixedUpdate(FIXED_STEP, forward);
   }
 
+  const rampWorld = makeRampWorld();
+  const rampSpawnZ = 3.2;
+  const rampMotor = makeMotor(
+    rampWorld,
+    eventCounts,
+    new THREE.Vector3(0, rampFootHeight(rampSpawnZ), rampSpawnZ),
+  );
+  settle(rampMotor);
+  let rampGroundedThroughout = rampMotor.grounded;
+  let rampMaxFootGap = 0;
+  let rampMaxOneTickDrop = 0;
+  let previousRampY = rampMotor.position.y;
+  for (let tick = 0; tick < 180; tick++) {
+    rampMotor.fixedUpdate(FIXED_STEP, forward);
+    rampGroundedThroughout &&= rampMotor.grounded;
+    rampMaxOneTickDrop = Math.max(
+      rampMaxOneTickDrop,
+      previousRampY - rampMotor.position.y,
+    );
+    previousRampY = rampMotor.position.y;
+    if (rampMotor.position.z >= 0 && rampMotor.position.z <= RAMP_LENGTH) {
+      rampMaxFootGap = Math.max(
+        rampMaxFootGap,
+        rampMotor.position.y - rampSurfaceHeight(rampMotor.position.z),
+      );
+    }
+  }
+
   const deterministic30 = runBatchedScenario(openWorld, 30);
   const deterministic144 = runBatchedScenario(openWorld, 144);
   const determinismPositionDelta = deterministic30.position
@@ -245,6 +278,34 @@ export function runPlayerHarness(): PlayerHarnessReport {
     wallMotor.position.z > 0.55,
     true,
   );
+  checkBoolean(
+    assertions,
+    '15 degree downhill ramp remains grounded through the flat join',
+    rampGroundedThroughout,
+    true,
+  );
+  checkRange(
+    assertions,
+    '15 degree ramp keeps feet tightly supported by the surface',
+    rampMaxFootGap,
+    0,
+    0.02,
+    '≤ 0.020 m vertical foot gap',
+  );
+  checkRange(
+    assertions,
+    'ramp-to-flat join has no one-tick vertical drop',
+    rampMaxOneTickDrop,
+    0,
+    0.025,
+    '≤ 0.025 m per 120 Hz tick',
+  );
+  checkBoolean(
+    assertions,
+    'downhill ramp preserves forward progress',
+    rampMotor.position.z < -1.2,
+    true,
+  );
   checkRange(
     assertions,
     'fixed-step result is independent of render batching',
@@ -283,6 +344,7 @@ export function runPlayerHarness(): PlayerHarnessReport {
       jumpHeightMeters: DEFAULT_PLAYER_TUNING.jumpHeight,
       maxStepHeightMeters: DEFAULT_PLAYER_TUNING.maxStepHeight,
       wallHeightMeters: 0.8,
+      rampSlopeDegrees: RAMP_SLOPE_DEGREES,
     },
     measurements: {
       timeTo95PercentWalkSpeedSeconds: round(timeTo95),
@@ -300,6 +362,10 @@ export function runPlayerHarness(): PlayerHarnessReport {
       stepFinalZMeters: round(stepMotor.position.z),
       stepClearedObstacle: stepMotor.position.z < -1.2,
       wallFinalZMeters: round(wallMotor.position.z),
+      rampGroundedThroughout,
+      rampMaxFootGapMeters: round(rampMaxFootGap),
+      rampMaxOneTickDropMeters: round(rampMaxOneTickDrop),
+      rampFinalZMeters: round(rampMotor.position.z),
       determinismPositionDeltaMeters: round(determinismPositionDelta, 12),
       determinismVelocityDeltaMetersPerSecond: round(determinismVelocityDelta, 12),
       fixedTickCostMicroseconds: round(benchmark.microsecondsPerTick),
@@ -314,6 +380,7 @@ export function runPlayerHarness(): PlayerHarnessReport {
   openWorld.dispose();
   stepWorld.dispose();
   wallWorld.dispose();
+  rampWorld.dispose();
   return report;
 }
 
@@ -358,6 +425,55 @@ function makeWorld(
   for (const geometry of geometries) geometry.dispose();
   material.dispose();
   return world;
+}
+
+const RAMP_SLOPE_DEGREES = 15;
+const RAMP_SLOPE_RADIANS = THREE.MathUtils.degToRad(RAMP_SLOPE_DEGREES);
+const RAMP_LENGTH = 4;
+
+function makeRampWorld(): StaticCollisionWorld {
+  const scene = new THREE.Scene();
+  const material = new THREE.MeshBasicMaterial();
+  const geometries: THREE.BufferGeometry[] = [];
+
+  const floorGeometry = new THREE.BoxGeometry(80, 0.2, 80);
+  const floor = new THREE.Mesh(floorGeometry, material);
+  floor.position.y = -0.1;
+  floor.userData.surface = 'concrete';
+  scene.add(floor);
+  geometries.push(floorGeometry);
+
+  const rampGeometry = new THREE.BufferGeometry();
+  const rampHeight = rampSurfaceHeight(RAMP_LENGTH);
+  rampGeometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute([
+      -2, 0, 0,
+      -2, rampHeight, RAMP_LENGTH,
+      2, rampHeight, RAMP_LENGTH,
+      -2, 0, 0,
+      2, rampHeight, RAMP_LENGTH,
+      2, 0, 0,
+    ], 3),
+  );
+  const ramp = new THREE.Mesh(rampGeometry, material);
+  ramp.userData.surface = 'metal';
+  scene.add(ramp);
+  geometries.push(rampGeometry);
+
+  const world = StaticCollisionWorld.fromScene(scene);
+  for (const geometry of geometries) geometry.dispose();
+  material.dispose();
+  return world;
+}
+
+function rampSurfaceHeight(z: number): number {
+  return Math.tan(RAMP_SLOPE_RADIANS) * z;
+}
+
+function rampFootHeight(z: number): number {
+  return rampSurfaceHeight(z)
+    + DEFAULT_PLAYER_TUNING.radius * (1 / Math.cos(RAMP_SLOPE_RADIANS) - 1);
 }
 
 function settle(motor: PlayerMotor): void {

@@ -63,6 +63,7 @@ export class StaticCollisionWorld {
   private readonly trianglePoint = new THREE.Vector3();
   private readonly capsulePoint = new THREE.Vector3();
   private readonly correctionDirection = new THREE.Vector3();
+  private readonly surfaceNormal = new THREE.Vector3();
   private readonly capsuleCenter = new THREE.Vector3();
   private readonly groundProbeOrigin = new THREE.Vector3();
   private readonly groundProbeRay = new THREE.Ray(this.groundProbeOrigin, DOWN);
@@ -183,21 +184,17 @@ export class StaticCollisionWorld {
     if (options.displacement.y <= 0 && options.groundSnapDistance > 0) {
       const snapped = chosen.clone();
       snapped.y -= options.groundSnapDistance;
-      const snapContacts = this.resolveAt(
+      const snapResult = this.resolveGroundSnapVertically(
         snapped,
         options.height,
         options.radius,
-      ).contacts;
-      const snapHorizontalDrift = Math.hypot(
-        snapped.x - chosen.x,
-        snapped.z - chosen.z,
+        options.minGroundNormalY,
       );
 
-      if (hasWalkableContact(snapContacts, options.minGroundNormalY)
-        && snapHorizontalDrift <= COLLISION_EPSILON
+      if (snapResult
         && snapped.y <= chosen.y + COLLISION_EPSILON) {
         chosen = snapped;
-        allContacts.push(...snapContacts);
+        allContacts.push(...snapResult.contacts);
         grounded = true;
       }
 
@@ -365,6 +362,74 @@ export class StaticCollisionWorld {
 
     position.copy(this.capsuleSegment.start);
     position.y -= radius;
+    return { contacts };
+  }
+
+  private resolveGroundSnapVertically(
+    position: THREE.Vector3,
+    height: number,
+    radius: number,
+    minGroundNormalY: number,
+  ): ResolveResult | null {
+    if (!this.bvh) return null;
+
+    // A downward snap may correct Y, but must not inherit an edge's X/Z push.
+    this.setCapsule(position, height, radius);
+    const contacts: CapsuleContact[] = [];
+
+    for (let iteration = 0; iteration < MAX_RESOLVE_ITERATIONS; iteration++) {
+      let verticalCorrection = 0;
+      let invalidSurface = false;
+      this.updateCapsuleBounds(radius);
+
+      this.bvh.shapecast({
+        intersectsBounds: (box) => box.intersectsBox(this.capsuleBounds)
+          ? INTERSECTED
+          : false,
+        intersectsTriangle: (triangle, triangleIndex) => {
+          const distance = triangle.closestPointToSegment(
+            this.capsuleSegment,
+            this.trianglePoint,
+            this.capsulePoint,
+          );
+          if (distance >= radius - COLLISION_EPSILON) return false;
+
+          this.contactDirection(triangle, distance);
+          triangle.getNormal(this.surfaceNormal);
+          if (this.surfaceNormal.dot(this.correctionDirection) < 0) {
+            this.surfaceNormal.negate();
+          }
+          if (this.surfaceNormal.y < minGroundNormalY
+            || this.correctionDirection.y <= 1e-8) {
+            invalidSurface = true;
+            return true;
+          }
+
+          const depth = radius - distance;
+          verticalCorrection = Math.max(
+            verticalCorrection,
+            depth / this.correctionDirection.y,
+          );
+          contacts.push({
+            normal: this.surfaceNormal.clone(),
+            depth,
+            surface: this.surfaceForTriangle(triangleIndex),
+          });
+          return false;
+        },
+      });
+
+      if (invalidSurface) return null;
+      if (verticalCorrection <= 0) break;
+      this.capsuleSegment.start.y += verticalCorrection;
+      this.capsuleSegment.end.y += verticalCorrection;
+    }
+
+    position.copy(this.capsuleSegment.start);
+    position.y -= radius;
+    if (contacts.length === 0 || !this.canFit(position, height, radius)) {
+      return null;
+    }
     return { contacts };
   }
 

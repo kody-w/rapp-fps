@@ -1,12 +1,13 @@
 {
-  "generatedAt": "2026-08-07T20:11:28.518Z",
+  "generatedAt": "2026-08-07T20:43:55.995Z",
   "fixedStepHz": 120,
   "targets": {
     "walkSpeedMetersPerSecond": 5.4,
     "sprintSpeedMetersPerSecond": 7.5,
     "jumpHeightMeters": 1.05,
     "maxStepHeightMeters": 0.34,
-    "wallHeightMeters": 0.8
+    "wallHeightMeters": 0.8,
+    "rampSlopeDegrees": 15
   },
   "measurements": {
     "timeTo95PercentWalkSpeedSeconds": 0.158333,
@@ -24,11 +25,15 @@
     "stepFinalZMeters": -4.693618,
     "stepClearedObstacle": true,
     "wallFinalZMeters": 0.59,
+    "rampGroundedThroughout": true,
+    "rampMaxFootGapMeters": 0.012175,
+    "rampMaxOneTickDropMeters": 0.012333,
+    "rampFinalZMeters": -4.530629,
     "determinismPositionDeltaMeters": 0,
     "determinismVelocityDeltaMetersPerSecond": 0,
-    "fixedTickCostMicroseconds": 6.608333,
-    "estimatedPlayerCostAt60FpsMilliseconds": 0.013217,
-    "footstepEvents": 21,
+    "fixedTickCostMicroseconds": 7.483333,
+    "estimatedPlayerCostAt60FpsMilliseconds": 0.014967,
+    "footstepEvents": 25,
     "landedEvents": 2
   },
   "assertions": [
@@ -59,7 +64,7 @@
     {
       "name": "air control is useful but cannot reverse at ground authority",
       "passed": true,
-      "actual": 1.250666666666,
+      "actual": 1.250666666667,
       "expected": "0.8–2.2 m/s lateral velocity"
     },
     {
@@ -105,6 +110,30 @@
       "expected": "true"
     },
     {
+      "name": "15 degree downhill ramp remains grounded through the flat join",
+      "passed": true,
+      "actual": true,
+      "expected": "true"
+    },
+    {
+      "name": "15 degree ramp keeps feet tightly supported by the surface",
+      "passed": true,
+      "actual": 0.012175017446,
+      "expected": "≤ 0.020 m vertical foot gap"
+    },
+    {
+      "name": "ramp-to-flat join has no one-tick vertical drop",
+      "passed": true,
+      "actual": 0.012333030178,
+      "expected": "≤ 0.025 m per 120 Hz tick"
+    },
+    {
+      "name": "downhill ramp preserves forward progress",
+      "passed": true,
+      "actual": true,
+      "expected": "true"
+    },
+    {
       "name": "fixed-step result is independent of render batching",
       "passed": true,
       "actual": 0,
@@ -113,7 +142,7 @@
     {
       "name": "player CPU cost stays below 0.25 ms at 60 fps",
       "passed": true,
-      "actual": 0.013216666698,
+      "actual": 0.014966666698,
       "expected": "≤ 0.25 ms"
     },
     {
@@ -130,5 +159,6 @@
     }
   ],
   "passed": true,
+  "targetUrl": "http://127.0.0.1:5413/src/player/harness.html",
   "consoleErrors": []
 }
