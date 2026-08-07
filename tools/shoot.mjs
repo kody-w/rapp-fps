@@ -82,6 +82,40 @@ if (!Number.isFinite(FRAME_BUDGET_MS) || FRAME_BUDGET_MS <= 0) {
     + 'Expected a finite positive number of milliseconds.');
   process.exit(8);
 }
+const controlErrors = [];
+if (!Number.isInteger(WIDTH) || WIDTH <= 0 || WIDTH > 16384) {
+  controlErrors.push(`width must be an integer in 1..16384, got "${args.width ?? WIDTH}"`);
+}
+if (!Number.isInteger(HEIGHT) || HEIGHT <= 0 || HEIGHT > 16384) {
+  controlErrors.push(`height must be an integer in 1..16384, got "${args.height ?? HEIGHT}"`);
+}
+if (!Number.isFinite(CPU_THROTTLE) || CPU_THROTTLE < 1 || CPU_THROTTLE > 100) {
+  controlErrors.push(`cpuThrottle must be finite in 1..100, got "${args.cpuThrottle ?? CPU_THROTTLE}"`);
+}
+if (!Number.isFinite(RAF_DELAY) || RAF_DELAY < 0 || RAF_DELAY > 60_000) {
+  controlErrors.push(`rafDelay must be finite in 0..60000, got "${args.rafDelay ?? RAF_DELAY}"`);
+}
+if (
+  args.forceNoGpuTimer !== undefined
+  && args.forceNoGpuTimer !== '0'
+  && args.forceNoGpuTimer !== '1'
+) {
+  controlErrors.push(
+    `forceNoGpuTimer must be exactly 0 or 1, got "${args.forceNoGpuTimer}"`,
+  );
+}
+try {
+  const parsedUrl = new URL(URL_BASE);
+  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+    controlErrors.push(`url protocol must be http or https, got "${parsedUrl.protocol}"`);
+  }
+} catch {
+  controlErrors.push(`url is not valid, got "${URL_BASE}"`);
+}
+if (controlErrors.length > 0) {
+  console.error(`REFUSING: invalid controls:\n- ${controlErrors.join('\n- ')}`);
+  process.exit(10);
+}
 
 const browser = await chromium.launch({
   args: [

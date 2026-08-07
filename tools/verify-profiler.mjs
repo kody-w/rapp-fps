@@ -21,6 +21,7 @@ const OUT = 'shots/profiler-verification';
 const INVALID_OUT = `${OUT}-invalid-budget`;
 const UNKNOWN_OUT = `${OUT}-unknown-option`;
 const SPACED_OUT = `${OUT}-spaced-args`;
+const INVALID_CONTROL_OUT = `${OUT}-invalid-control`;
 
 function run(args) {
   return new Promise((resolve) => {
@@ -45,6 +46,7 @@ rmSync(`${ROOT}/${OUT}-unsupported`, { recursive: true, force: true });
 rmSync(`${ROOT}/${INVALID_OUT}`, { recursive: true, force: true });
 rmSync(`${ROOT}/${UNKNOWN_OUT}`, { recursive: true, force: true });
 rmSync(`${ROOT}/${SPACED_OUT}`, { recursive: true, force: true });
+rmSync(`${ROOT}/${INVALID_CONTROL_OUT}`, { recursive: true, force: true });
 
 const measured = await run([`--url=${TARGET_URL}`, `--out=${OUT}`, '--budgetMs=1000']);
 assert(measured.code === 0, `normal capture failed (${measured.code}): ${measured.stderr}`);
@@ -122,6 +124,29 @@ assert(
 );
 assert(unknownOption.stderr.includes('unknown option'), 'unknown option was not named');
 
+const invalidControls = [
+  ['--cpuThrottle=bad', 'cpuThrottle'],
+  ['--rafDelay=bad', 'rafDelay'],
+  ['--forceNoGpuTimer=true', 'forceNoGpuTimer'],
+  ['--width=0', 'width'],
+];
+for (const [flag, named] of invalidControls) {
+  rmSync(`${ROOT}/${INVALID_CONTROL_OUT}`, { recursive: true, force: true });
+  mkdirSync(`${ROOT}/${INVALID_CONTROL_OUT}`, { recursive: true });
+  writeFileSync(`${ROOT}/${INVALID_CONTROL_OUT}/report.json`, '{"stale":"green"}');
+  const invalid = await run([
+    '--url', TARGET_URL,
+    '--out', INVALID_CONTROL_OUT,
+    flag,
+  ]);
+  assert(invalid.code === 10, `${flag} exited ${invalid.code}, expected 10`);
+  assert(
+    !existsSync(`${ROOT}/${INVALID_CONTROL_OUT}/report.json`),
+    `${flag} left the pre-existing success-shaped report`,
+  );
+  assert(invalid.stderr.includes(named), `${flag} refusal did not name ${named}`);
+}
+
 console.log(JSON.stringify({
   passed: true,
   gpuMedianMs: perf.gpuFrameMs.median,
@@ -132,4 +157,5 @@ console.log(JSON.stringify({
   invalidBudgetExit: invalidBudget.code,
   spacedBudget: spacedReport.frameBudgetMs,
   unknownOptionExit: unknownOption.code,
+  invalidControlExit: 10,
 }, null, 2));
