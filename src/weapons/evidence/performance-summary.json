@@ -1,0 +1,110 @@
+{
+  "baseline": {
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "viewport": "1920x1080",
+    "budgetMs": 16.7,
+    "overBudget": false,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 7.862,
+      "p95": 10.623,
+      "worst": 12.441
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 1.2,
+      "p95": 1.7,
+      "worst": 1.9
+    },
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 7.862,
+      "p95": 10.623,
+      "worst": 12.441
+    },
+    "drawCallsPerFrame": 80,
+    "trianglesPerFrame": 84442,
+    "programs": 12,
+    "textures": 28,
+    "geometries": 8,
+    "gpuDisjointCount": 0,
+    "consoleErrors": []
+  },
+  "weaponIdle": {
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "viewport": "1920x1080",
+    "budgetMs": 16.7,
+    "overBudget": false,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 8.472,
+      "p95": 10.129,
+      "worst": 12.081
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 1.3,
+      "p95": 2,
+      "worst": 2.3
+    },
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 8.472,
+      "p95": 10.129,
+      "worst": 12.081
+    },
+    "drawCallsPerFrame": 84,
+    "trianglesPerFrame": 85406,
+    "programs": 13,
+    "textures": 28,
+    "geometries": 12,
+    "gpuDisjointCount": 0,
+    "consoleErrors": []
+  },
+  "sustainedFire": {
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "viewport": "1920x1080",
+    "budgetMs": 16.7,
+    "overBudget": false,
+    "gpuFrameMs": {
+      "samples": 121,
+      "median": 7.969,
+      "p95": 10.174,
+      "worst": 12.395
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 1.5,
+      "p95": 2.6,
+      "worst": 2.9
+    },
+    "budgetFrameMs": {
+      "samples": 121,
+      "median": 7.969,
+      "p95": 10.174,
+      "worst": 12.395
+    },
+    "drawCallsPerFrame": 84,
+    "trianglesPerFrame": 85406,
+    "programs": 15,
+    "textures": 28,
+    "geometries": 14,
+    "gpuDisjointCount": 0,
+    "consoleErrors": []
+  },
+  "observedDeltaFromBaseline": {
+    "idleGpuMedianMs": 0.61,
+    "idleGpuP95Ms": -0.494,
+    "idleCpuP95Ms": 0.3,
+    "sustainedGpuMedianMs": 0.107,
+    "sustainedGpuP95Ms": -0.449,
+    "sustainedCpuP95Ms": 0.9,
+    "drawCalls": 4,
+    "triangles": 964
+  },
+  "verdict": {
+    "idle": "PASS: 10.129ms p95 <= 16.700ms (6.571ms headroom)",
+    "sustainedFire": "PASS: 10.174ms p95 <= 16.700ms (6.526ms headroom)",
+    "costInterpretation": "The weapon adds 4 draw calls and 964 triangles. Single-run GPU p95 deltas are inside run-to-run variance; do not interpret a negative observed delta as a speedup. CPU p95 rose 0.3ms idle and 0.9ms under sustained fire."
+  }
+}

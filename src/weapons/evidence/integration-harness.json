@@ -1,0 +1,60 @@
+{
+  "passed": true,
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "assertions": 76,
+  "failures": [],
+  "consoleErrors": [],
+  "ads": {
+    "fov": 52,
+    "sensitivityScale": 0.62
+  },
+  "recoil": {
+    "shot-1": {
+      "cameraPitchDeg": 0.39083067619043754,
+      "cameraYawDeg": 0,
+      "gunBackMm": 20.517772429758548,
+      "gunPitchDeg": 1.6670690099178824
+    },
+    "shot-5": {
+      "cameraPitchDeg": 2.2621748766387113,
+      "cameraYawDeg": 0.41050466495516935,
+      "gunBackMm": 30.468453651543523,
+      "gunPitchDeg": 2.475561859187912
+    },
+    "shot-15": {
+      "cameraPitchDeg": 5.971098347603039,
+      "cameraYawDeg": -0.5874673887304157,
+      "gunBackMm": 30.586697621487776,
+      "gunPitchDeg": 2.4851691817458814
+    }
+  },
+  "eventCounts": {
+    "shot-1": {
+      "fired": 1,
+      "impacts": 1
+    },
+    "shot-5": {
+      "fired": 5,
+      "impacts": 5
+    },
+    "shot-15": {
+      "fired": 15,
+      "impacts": 15
+    }
+  },
+  "sampleImpact": {
+    "point": {
+      "x": 0.5859128493567884,
+      "y": 0.6936520142439917,
+      "z": -12.799999997019771
+    },
+    "normal": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "material": "concrete",
+    "distance": 14.69855359966245,
+    "damage": 28
+  }
+}

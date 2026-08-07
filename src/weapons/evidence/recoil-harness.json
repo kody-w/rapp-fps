@@ -1,0 +1,110 @@
+{
+  "passed": true,
+  "summaries": [
+    {
+      "test": "positive",
+      "expectedStatus": "passed",
+      "actualStatus": "passed",
+      "assertionCount": 96,
+      "assertionFailures": [],
+      "collectionErrors": [],
+      "shots": {
+        "1": {
+          "cameraPitchDeg": 0.3908306761904376,
+          "cameraYawDeg": 0,
+          "targetPitchDeg": 0.5616,
+          "targetYawDeg": 0,
+          "gunBackMm": 20.517772429758548,
+          "gunPitchDeg": 1.6670690099178824
+        },
+        "5": {
+          "cameraPitchDeg": 2.2621748766387113,
+          "cameraYawDeg": 0.4105046649551693,
+          "targetPitchDeg": 2.4023999999999996,
+          "targetYawDeg": 0.46019999999999994,
+          "gunBackMm": 30.468453651543523,
+          "gunPitchDeg": 2.4755618591879123
+        },
+        "15": {
+          "cameraPitchDeg": 5.971098347603039,
+          "cameraYawDeg": -0.5874673887304156,
+          "targetPitchDeg": 6.076199999999999,
+          "targetYawDeg": -0.6084000000000002,
+          "gunBackMm": 30.586697621487776,
+          "gunPitchDeg": 2.4851691817458814
+        }
+      },
+      "recovered": {
+        "cameraPitchDeg": 0.00006970003544773203,
+        "cameraYawDeg": -0.000006978950917744678,
+        "targetPitchDeg": 0.0000631511515755642,
+        "targetYawDeg": -0.000006323221852238784,
+        "gunBackMm": 0,
+        "gunPitchDeg": 0
+      },
+      "fixedStepCadencesHz": [
+        30,
+        60,
+        144
+      ]
+    },
+    {
+      "test": "constant-pattern negative control",
+      "expectedStatus": "failed",
+      "actualStatus": "failed",
+      "assertionCount": 96,
+      "assertionFailures": [
+        "shot 5 cameraPitchDeg: expected 2.262175 ± 0.0005, received 2.628055983556694",
+        "shot 5 cameraYawDeg: expected 0.410505 ± 0.0005, received 0",
+        "shot 5 targetPitchDeg: expected 2.4024 ± 0.0005, received 2.808",
+        "shot 5 targetYawDeg: expected 0.4602 ± 0.0005, received 0",
+        "shot 15 cameraPitchDeg: expected 5.971098 ± 0.0005, received 8.244055921552357",
+        "shot 15 cameraYawDeg: expected -0.587467 ± 0.0005, received 0",
+        "shot 15 targetPitchDeg: expected 6.0762 ± 0.0005, received 8.423999999999998",
+        "shot 15 targetYawDeg: expected -0.6084 ± 0.0005, received 0",
+        "shot 5 must be on the authored rightward branch of the recoil pattern",
+        "shot 15 must cross to the authored leftward branch of the recoil pattern"
+      ],
+      "collectionErrors": [],
+      "shots": {
+        "1": {
+          "cameraPitchDeg": 0.3908306761904376,
+          "cameraYawDeg": 0,
+          "targetPitchDeg": 0.5616,
+          "targetYawDeg": 0,
+          "gunBackMm": 20.517772429758548,
+          "gunPitchDeg": 1.6670690099178824
+        },
+        "5": {
+          "cameraPitchDeg": 2.628055983556694,
+          "cameraYawDeg": 0,
+          "targetPitchDeg": 2.808,
+          "targetYawDeg": 0,
+          "gunBackMm": 30.468453651543523,
+          "gunPitchDeg": 2.4755618591879123
+        },
+        "15": {
+          "cameraPitchDeg": 8.244055921552357,
+          "cameraYawDeg": 0,
+          "targetPitchDeg": 8.423999999999998,
+          "targetYawDeg": 0,
+          "gunBackMm": 30.586697621487776,
+          "gunPitchDeg": 2.4851691817458814
+        }
+      },
+      "recovered": {
+        "cameraPitchDeg": 0.0000966316280918493,
+        "cameraYawDeg": 0,
+        "targetPitchDeg": 0.00008755230256946001,
+        "targetYawDeg": 0,
+        "gunBackMm": 0,
+        "gunPitchDeg": 0
+      },
+      "fixedStepCadencesHz": [
+        30,
+        60,
+        144
+      ]
+    }
+  ]
+}

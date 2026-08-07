@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Duskline weapon evidence harness</title>
+  <style>
+    html,body{margin:0;height:100%;overflow:hidden;background:#000}
+    #game{display:block;width:100vw;height:100vh}
+    #hint{position:fixed;left:16px;bottom:14px;color:#d7dde4;font:12px/1.4 system-ui,sans-serif;
+      background:#0a0c0f99;padding:7px 9px;border:1px solid #ffffff22;pointer-events:none}
+      body.evidence #hint{display:none}
+  </style>
+</head>
+<body>
+  <script>if(new URLSearchParams(location.search).get("evidence")==="1")document.body.classList.add("evidence")</script>
+  <canvas id="game"></canvas>
+  <div id="hint">Click to look · WASD move sway · LMB fire · RMB aim · R reload</div>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+{
+  "at": "2026-08-07T20:40:57.294Z",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "cpuThrottleRate": 1,
+  "rafDelayMs": 0,
+  "frameBudgetMs": 16.7,
+  "overBudget": false,
+  "performance": {
+    "gpuSupported": true,
+    "gpuCounterBits": 64,
+    "gpuFrameMs": {
+      "samples": 121,
+      "median": 7.969,
+      "p95": 10.174,
+      "worst": 12.395
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 1.5,
+      "p95": 2.6,
+      "worst": 2.9
+    },
+    "rafIntervalMs": {
+      "samples": 122,
+      "median": 16.7,
+      "p95": 18,
+      "worst": 18.6
+    },
+    "budgetFrameMsMedian": 7.969,
+    "budgetFrameMsP95": 10.174,
+    "budgetFrameMs": {
+      "samples": 121,
+      "median": 7.969,
+      "p95": 10.174,
+      "worst": 12.395
+    },
+    "gpuDisjointCount": 0,
+    "note": "budget uses max(CPU, GPU); rAF interval is scheduler cadence only",
+    "drawCallsPerFrame": 84,
+    "trianglesPerFrame": 85406,
+    "programs": 15,
+    "textures": 28,
+    "geometries": 14
+  },
+  "shots": [
+    "src/weapons/evidence/perf-sustained-fire/default.png"
+  ],
+  "consoleErrors": []
+}
