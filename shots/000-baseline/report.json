@@ -1,0 +1,18 @@
+{
+  "at": "2026-08-07T15:25:47.407Z",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "performance": {
+    "fpsMedian": 78.1,
+    "frameMsP95": 13.9,
+    "drawCalls": 1,
+    "triangles": 1,
+    "programs": 16,
+    "textures": 35,
+    "geometries": 8
+  },
+  "shots": [
+    "shots/000-baseline/default.png"
+  ],
+  "consoleErrors": []
+}
