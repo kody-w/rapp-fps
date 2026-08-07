@@ -92,7 +92,7 @@ engine.present = (_u: UpdateContext) => {
   const info = engine.renderer.info;
   info.reset();
   
-  engine.renderer.render(engine.scene, engine.camera);
+  render.render();
   
   (window as any).__SCENE_STATS__ = {
     drawCallsPerFrame: info.render.calls,
@@ -150,6 +150,20 @@ function runStressTest() {
   
   const initGeos = engine.renderer.info.memory.geometries;
   
+  // Flash compile check
+  const initProgs = engine.renderer.info.programs?.length ?? 0;
+  const initTime = performance.now();
+  
+  engine.bus.emit(Events.WeaponFired, { origin: new THREE.Vector3(0,0,0), direction: new THREE.Vector3(1,0,0) });
+  fx.update({ dt: 0.1, elapsed: 0, frame: 0, alpha: 1 }, engine as any);
+  engine.present!({ dt: 0.1, elapsed: 0, frame: 0, alpha: 1 });
+  
+  const elapsed = performance.now() - initTime;
+  const afterProgs = engine.renderer.info.programs?.length ?? 0;
+  
+  if (afterProgs > initProgs) throw new Error(`Program count grew on WeaponFired: ${initProgs} -> ${afterProgs}`);
+  if (elapsed > 3.0) throw new Error(`First WeaponFired caused CPU spike: ${elapsed.toFixed(2)}ms`);
+
   for (let i = 0; i < 500; i++) {
     engine.bus.emit(Events.BulletImpact, { point: new THREE.Vector3(0,0,0), normal: new THREE.Vector3(0,1,0), material: 'metal', distance: 10 });
   }
@@ -189,11 +203,11 @@ function runStressTest() {
   fx.reset();
   engine.bus.emit(Events.WeaponFired, { origin: new THREE.Vector3(0,0,0), direction: new THREE.Vector3(1,0,0) });
   fx.update({ dt: 0.25, elapsed: 0, frame: 0, alpha: 1 }, engine as any);
-  if (!(fx.flash as any).light.visible) throw new Error('Muzzle flash expired before first render frame');
+  if (!(fx.flash as any).light.intensity) throw new Error('Muzzle flash expired before first render frame');
   
   engine.present!({ dt: 0.25, elapsed: 0, frame: 0, alpha: 1 });
   fx.update({ dt: 0.1, elapsed: 0, frame: 0, alpha: 1 }, engine as any);
-  if ((fx.flash as any).light.visible) throw new Error('Muzzle flash did not expire after render');
+  if ((fx.flash as any).light.intensity > 0) throw new Error('Muzzle flash did not expire after render');
 
   console.log('Stress test passed.');
   (window as any).STRESS_PASSED = true;
