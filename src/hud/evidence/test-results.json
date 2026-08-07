@@ -1,0 +1,56 @@
+{
+  "passed": true,
+  "domGrowth": {
+    "updates": 1000,
+    "before": 41,
+    "after": 41,
+    "growth": 0
+  },
+  "directionalMapping": {
+    "front": {
+      "angleDeg": 0,
+      "quadrant": "top"
+    },
+    "right": {
+      "angleDeg": 90,
+      "quadrant": "right"
+    },
+    "rear": {
+      "angleDeg": 180,
+      "quadrant": "bottom"
+    },
+    "left": {
+      "angleDeg": -90,
+      "quadrant": "left"
+    },
+    "yawedFront": {
+      "angleDeg": 0,
+      "quadrant": "top"
+    }
+  },
+  "ariaLive": {
+    "afterEvent": 1,
+    "afterFrames": 1,
+    "text": "TARGET DOWN",
+    "visible": true
+  },
+  "debugGate": {
+    "absentWithoutFlag": true,
+    "presentWithFlag": true,
+    "fields": {
+      "exists": true,
+      "gpu": "7.30 ms",
+      "cpu": "1.70 ms",
+      "paired": "7.30 ms",
+      "draws": "80",
+      "overBudget": "false",
+      "text": "\n        FRAME / P95\n        GPU 7.30 ms\n        CPU 1.70 ms\n        PAIR 7.30 ms\n        DRAW 80\n        overBudget FALSE · 16.7 ms\n      "
+    }
+  },
+  "mutationControl": {
+    "before": 43,
+    "after": 1043,
+    "assertionFailure": "DOM node count grew from 43 to 1043 after 1,000 updates with node reuse disabled\n\n1043 !== 43\n"
+  },
+  "consoleErrors": []
+}

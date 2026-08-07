@@ -1,0 +1,46 @@
+{
+  "capturedAt": "2026-08-07T20:28:55.006Z",
+  "url": "http://127.0.0.1:5332/harness.html",
+  "vitePort": 5332,
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "frameBudgetMs": 16.7,
+  "performance": {
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 9.382,
+      "p95": 9.722,
+      "worst": 9.84
+    },
+    "cpuFrameMs": {
+      "samples": 121,
+      "median": 0.3,
+      "p95": 0.5,
+      "worst": 1.2
+    },
+    "pairedFrameMs": {
+      "samples": 120,
+      "median": 9.382,
+      "p95": 9.722,
+      "worst": 9.84
+    },
+    "pairedP95Ms": 9.722,
+    "drawCalls": 80,
+    "overBudget": false,
+    "note": "paired frame cost is max(CPU, GPU) for the same issued frame"
+  },
+  "debugOverlay": {
+    "query": "hudDebug=1",
+    "screenshot": "src/hud/evidence/debug.png"
+  },
+  "shots": [
+    "src/hud/evidence/hip.png",
+    "src/hud/evidence/ads.png",
+    "src/hud/evidence/reload.png",
+    "src/hud/evidence/damaged-left.png",
+    "src/hud/evidence/low-health.png",
+    "src/hud/evidence/hit-confirm.png",
+    "src/hud/evidence/objective.png"
+  ],
+  "consoleErrors": []
+}
