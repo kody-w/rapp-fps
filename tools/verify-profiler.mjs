@@ -19,6 +19,8 @@ const ROOT = new URL('..', import.meta.url).pathname;
 const TARGET_URL = process.env.FPS_URL ?? 'http://127.0.0.1:5273/';
 const OUT = 'shots/profiler-verification';
 const INVALID_OUT = `${OUT}-invalid-budget`;
+const UNKNOWN_OUT = `${OUT}-unknown-option`;
+const SPACED_OUT = `${OUT}-spaced-args`;
 
 function run(args) {
   return new Promise((resolve) => {
@@ -41,6 +43,8 @@ function assert(condition, message) {
 rmSync(`${ROOT}/${OUT}`, { recursive: true, force: true });
 rmSync(`${ROOT}/${OUT}-unsupported`, { recursive: true, force: true });
 rmSync(`${ROOT}/${INVALID_OUT}`, { recursive: true, force: true });
+rmSync(`${ROOT}/${UNKNOWN_OUT}`, { recursive: true, force: true });
+rmSync(`${ROOT}/${SPACED_OUT}`, { recursive: true, force: true });
 
 const measured = await run([`--url=${TARGET_URL}`, `--out=${OUT}`, '--budgetMs=1000']);
 assert(measured.code === 0, `normal capture failed (${measured.code}): ${measured.stderr}`);
@@ -93,6 +97,31 @@ assert(
   'invalid-budget refusal did not name the invalid input',
 );
 
+// The usage string documents space-separated values. They must be consumed,
+// not silently dropped in favour of defaults.
+const spacedArgs = await run([
+  '--url', TARGET_URL,
+  '--out', SPACED_OUT,
+  '--budgetMs', '1000',
+]);
+assert(spacedArgs.code === 0, `space-separated args exited ${spacedArgs.code}`);
+const spacedReport = JSON.parse(readFileSync(`${ROOT}/${SPACED_OUT}/report.json`, 'utf8'));
+assert(spacedReport.frameBudgetMs === 1000, 'space-separated budget fell back to default');
+
+mkdirSync(`${ROOT}/${UNKNOWN_OUT}`, { recursive: true });
+writeFileSync(`${ROOT}/${UNKNOWN_OUT}/report.json`, '{"stale":"green"}');
+const unknownOption = await run([
+  '--url', TARGET_URL,
+  '--out', UNKNOWN_OUT,
+  '--budegtMs', '1000',
+]);
+assert(unknownOption.code === 9, `unknown option exited ${unknownOption.code}, expected 9`);
+assert(
+  !existsSync(`${ROOT}/${UNKNOWN_OUT}/report.json`),
+  'unknown option left the pre-existing success-shaped report',
+);
+assert(unknownOption.stderr.includes('unknown option'), 'unknown option was not named');
+
 console.log(JSON.stringify({
   passed: true,
   gpuMedianMs: perf.gpuFrameMs.median,
@@ -101,4 +130,6 @@ console.log(JSON.stringify({
   gpuSamples: perf.gpuFrameMs.samples,
   unsupportedExit: unsupported.code,
   invalidBudgetExit: invalidBudget.code,
+  spacedBudget: spacedReport.frameBudgetMs,
+  unknownOptionExit: unknownOption.code,
 }, null, 2));

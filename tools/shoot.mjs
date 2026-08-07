@@ -21,12 +21,43 @@ import { chromium } from 'playwright';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const args = Object.fromEntries(
-  process.argv.slice(2).flatMap((a) => {
-    const m = /^--([^=]+)=(.*)$/.exec(a);
-    return m ? [[m[1], m[2]]] : [];
-  }),
-);
+const SUPPORTED_ARGS = new Set([
+  'url', 'out', 'width', 'height', 'cpuThrottle', 'rafDelay',
+  'forceNoGpuTimer', 'budgetMs', 'shots',
+]);
+
+function parseArgs(argv) {
+  const values = {};
+  const errors = [];
+  for (let i = 0; i < argv.length; i++) {
+    const token = argv[i];
+    if (!token.startsWith('--')) {
+      errors.push(`unexpected positional argument "${token}"`);
+      continue;
+    }
+    const equals = /^--([^=]+)=(.*)$/.exec(token);
+    const key = equals ? equals[1] : token.slice(2);
+    let value = equals?.[2];
+    if (!SUPPORTED_ARGS.has(key)) {
+      errors.push(`unknown option "--${key}"`);
+      continue;
+    }
+    if (value === undefined) {
+      const next = argv[i + 1];
+      if (next === undefined || next.startsWith('--')) {
+        errors.push(`option "--${key}" requires a value`);
+        continue;
+      }
+      value = next;
+      i++;
+    }
+    values[key] = value;
+  }
+  return { values, errors };
+}
+
+const parsed = parseArgs(process.argv.slice(2));
+const args = parsed.values;
 
 const URL_BASE = args.url ?? 'http://127.0.0.1:5273/';
 const OUT = args.out ?? 'shots/latest';
@@ -42,6 +73,10 @@ const REPORT_PATH = join(OUT, 'report.json');
 // Refusal must not leave yesterday's green report behind in a reused output
 // directory. Remove it before any capability check can exit.
 rmSync(REPORT_PATH, { force: true });
+if (parsed.errors.length > 0) {
+  console.error(`REFUSING: invalid arguments:\n- ${parsed.errors.join('\n- ')}`);
+  process.exit(9);
+}
 if (!Number.isFinite(FRAME_BUDGET_MS) || FRAME_BUDGET_MS <= 0) {
   console.error(`REFUSING: invalid frame budget "${args.budgetMs ?? ''}". `
     + 'Expected a finite positive number of milliseconds.');
