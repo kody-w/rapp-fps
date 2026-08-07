@@ -96,6 +96,12 @@ export const PORT_LEVEL_LAYOUT = {
   maintenanceDoorCenterX: 7.15,
   maintenanceDoorWidth: 2.25,
   maintenanceDoorHeight: 3.15,
+  maintenanceWorkbenchX: 4.1,
+  maintenanceWorkbenchY: 1.05,
+  maintenanceWorkbenchZ: -35.7,
+  maintenanceWorkbenchWidth: 3.4,
+  maintenanceWorkbenchHeight: 0.14,
+  maintenanceWorkbenchDepth: 0.9,
   checkpointCenterX: -1.8,
   checkpointZ: -45.8,
   checkpointWidth: 7.5,
@@ -1383,6 +1389,21 @@ export class PortLevel implements System {
         rotation,
       );
     }
+
+    this.addCollider(
+      'maintenance-workbench',
+      this.box(
+        PORT_LEVEL_LAYOUT.maintenanceWorkbenchWidth,
+        PORT_LEVEL_LAYOUT.maintenanceWorkbenchHeight,
+        PORT_LEVEL_LAYOUT.maintenanceWorkbenchDepth,
+      ),
+      [
+        PORT_LEVEL_LAYOUT.maintenanceWorkbenchX,
+        PORT_LEVEL_LAYOUT.maintenanceWorkbenchY,
+        PORT_LEVEL_LAYOUT.maintenanceWorkbenchZ,
+      ],
+      'metal',
+    );
 
     this.addCollider(
       'interior-utility-crates',

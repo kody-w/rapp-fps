@@ -33,6 +33,11 @@ export interface PortLevelCollisionResult {
   maintenanceDoorCapsuleClear: boolean;
   maintenanceJambRayBlocked: boolean;
   maintenanceJambCapsuleBlocked: boolean;
+  workbenchRayBlocked: boolean;
+  workbenchRayDistanceMatchesVisual: boolean;
+  workbenchCapsuleBlocked: boolean;
+  workbenchAdjacentRayClear: boolean;
+  workbenchAdjacentCapsuleClear: boolean;
   checkpointRayClear: boolean;
   checkpointCapsuleClear: boolean;
   checkpointLeftPostRayBlocked: boolean;
@@ -204,6 +209,7 @@ export const runPortLevelCollisionHarness = (
 ): PortLevelCollisionResult => {
   const colliders = level.getCollisionMeshes();
   const maintenanceFront = named(colliders, 'maintenance-front-');
+  const workbench = named(colliders, 'maintenance-workbench');
   const checkpoint = named(colliders, 'checkpoint-');
   const forward = new THREE.Vector3(0, 0, -1);
 
@@ -228,6 +234,34 @@ export const runPortLevelCollisionHarness = (
     maintenanceFront,
     5.5,
     PORT_LEVEL_LAYOUT.maintenanceFrontZ,
+  );
+
+  const workbenchHits = rayHits(
+    workbench,
+    new THREE.Vector3(3.5, 1.05, -34.5),
+    forward.clone(),
+    2,
+  );
+  const workbenchRayBlocked = workbenchHits[0]?.object.name === 'maintenance-workbench';
+  const workbenchRayDistanceMatchesVisual = (
+    workbenchHits[0] !== undefined
+    && Math.abs(workbenchHits[0].distance - 0.75) < 0.001
+  );
+  const workbenchCapsuleBlocked = capsuleOverlaps(
+    workbench,
+    3.5,
+    PORT_LEVEL_LAYOUT.maintenanceWorkbenchZ,
+  );
+  const workbenchAdjacentRayClear = rayHits(
+    workbench,
+    new THREE.Vector3(7.2, 1.05, -34.5),
+    forward.clone(),
+    2,
+  ).length === 0;
+  const workbenchAdjacentCapsuleClear = !capsuleOverlaps(
+    workbench,
+    7.2,
+    PORT_LEVEL_LAYOUT.maintenanceWorkbenchZ,
   );
 
   const checkpointRayClear = rayHits(
@@ -269,6 +303,11 @@ export const runPortLevelCollisionHarness = (
     maintenanceDoorCapsuleClear,
     maintenanceJambRayBlocked,
     maintenanceJambCapsuleBlocked,
+    workbenchRayBlocked,
+    workbenchRayDistanceMatchesVisual,
+    workbenchCapsuleBlocked,
+    workbenchAdjacentRayClear,
+    workbenchAdjacentCapsuleClear,
     checkpointRayClear,
     checkpointCapsuleClear,
     checkpointLeftPostRayBlocked,
