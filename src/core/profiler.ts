@@ -243,18 +243,7 @@ export class FrameProfiler {
   }
 
   private pollGpuQueries(): void {
-    if (!this.ext) return;
-
-    const disjoint = Boolean(this.gl.getParameter(this.ext.GPU_DISJOINT_EXT));
-    if (disjoint) {
-      this.disjointCount++;
-      for (const pending of this.pending.splice(0)) this.gl.deleteQuery(pending.query);
-      this.cpuByFrame.clear();
-      this.gpuMs.length = 0;
-      this.pairedMs.length = 0;
-      return;
-    }
-    if (this.pending.length === 0) return;
+    if (!this.ext || this.pending.length === 0) return;
 
     // Query completion is ordered. Stop at the first unavailable result rather
     // than walking the whole queue every frame.
@@ -265,6 +254,18 @@ export class FrameProfiler {
         this.gl.QUERY_RESULT_AVAILABLE,
       ));
       if (!available) break;
+      // Khronos requires observing availability before testing disjoint. A
+      // disjoint can occur while this query is in flight; checking before
+      // availability can read false, then accept the now-invalid result.
+      const disjoint = Boolean(this.gl.getParameter(this.ext.GPU_DISJOINT_EXT));
+      if (disjoint) {
+        this.disjointCount++;
+        for (const invalid of this.pending.splice(0)) this.gl.deleteQuery(invalid.query);
+        this.cpuByFrame.clear();
+        this.gpuMs.length = 0;
+        this.pairedMs.length = 0;
+        return;
+      }
       const elapsedNanoseconds = Number(this.gl.getQueryParameter(
         pending.query,
         this.gl.QUERY_RESULT,

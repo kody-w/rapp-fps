@@ -118,8 +118,11 @@ for (const name of SHOT_NAMES) {
     );
   }
 }
-if (new Set(SHOT_NAMES).size !== SHOT_NAMES.length) {
-  controlErrors.push('shots must not contain duplicate names');
+if (new Set(SHOT_NAMES.map((name) => name.toLowerCase())).size !== SHOT_NAMES.length) {
+  // The development volume is case-insensitive. `default` and `Default`
+  // resolve to the same file and would overwrite evidence while the report
+  // claimed two artifacts.
+  controlErrors.push('shots must not contain duplicate names, including case-only duplicates');
 }
 try {
   const parsedUrl = new URL(URL_BASE);
