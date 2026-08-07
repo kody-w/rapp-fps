@@ -32,6 +32,9 @@ const URL_BASE = args.url ?? 'http://127.0.0.1:5273/';
 const OUT = args.out ?? 'shots/latest';
 const WIDTH = Number(args.width ?? 1920);
 const HEIGHT = Number(args.height ?? 1080);
+const CPU_THROTTLE = Number(args.cpuThrottle ?? 1);
+const RAF_DELAY = Number(args.rafDelay ?? 0);
+const FORCE_NO_GPU_TIMER = args.forceNoGpuTimer === '1';
 
 mkdirSync(OUT, { recursive: true });
 
@@ -42,7 +45,6 @@ const browser = await chromium.launch({
     '--ignore-gpu-blocklist',
     '--enable-gpu-rasterization',
     '--enable-zero-copy',
-    '--disable-frame-rate-limit',
   ],
 });
 
@@ -50,6 +52,21 @@ const page = await browser.newPage({
   viewport: { width: WIDTH, height: HEIGHT },
   deviceScaleFactor: 1,
 });
+if (CPU_THROTTLE > 1) {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU_THROTTLE });
+}
+if (RAF_DELAY > 0) {
+  // Negative control for the profiler: delay callback delivery without
+  // changing the render commands bracketed by the GPU timer query. A correct
+  // profiler reports a larger rAF interval while GPU cost stays stable.
+  await page.addInitScript((delay) => {
+    const nativeRaf = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = (callback) => nativeRaf(() => {
+      setTimeout(() => callback(performance.now()), delay);
+    });
+  }, RAF_DELAY);
+}
 
 const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
@@ -87,46 +104,55 @@ try {
 // converged image rather than frame one of an accumulating effect.
 await page.waitForTimeout(1200);
 
-const perf = await page.evaluate(async () => {
-  // Headless Chromium runs requestAnimationFrame unthrottled, so "fps" here is
-  // GPU THROUGHPUT, not display frame rate. Reporting 1428 fps because rAF
-  // fired in a burst is the kind of number that looks like good news and is
-  // not an answer to any question anyone asked.
-  //
-  // So measure the thing that actually transfers: how long the GPU takes to
-  // produce one presented frame, over a window, reported as a distribution.
-  const deltas = [];
-  await new Promise((resolve) => {
-    let n = 0;
-    let last = performance.now();
-    const tick = () => {
-      const now = performance.now();
-      const d = now - last;
-      last = now;
-      // Discard the first few: shader compilation and texture upload land
-      // there and describe startup, not steady state.
-      if (n > 20) deltas.push(d);
-      if (++n < 200) requestAnimationFrame(tick); else resolve();
-    };
-    requestAnimationFrame(tick);
-  });
-  deltas.sort((a, b) => a - b);
-  const q = (p) => +deltas[Math.min(deltas.length - 1, Math.floor(deltas.length * p))].toFixed(2);
+const profilerSupport = FORCE_NO_GPU_TIMER
+  ? false
+  : await page.evaluate(() => window.engine?.profiler?.gpuSupported ?? false);
+if (!profilerSupport) {
+  console.error('REFUSING: EXT_disjoint_timer_query_webgl2 is unavailable. '
+    + 'GPU frame cost is UNVERIFIED; rAF cadence will not be substituted.');
+  await browser.close();
+  process.exit(4);
+}
+
+await page.evaluate(() => window.engine.profiler.reset());
+try {
+  await page.waitForFunction(
+    () => window.engine.profiler.snapshot().gpuFrameMs.samples >= 120,
+    null,
+    { timeout: 60_000 },
+  );
+} catch {
+  const partial = await page.evaluate(() => window.engine.profiler.snapshot());
+  console.error('REFUSING: fewer than 120 completed GPU timer queries in 60s.');
+  console.error(JSON.stringify(partial, null, 2));
+  await browser.close();
+  process.exit(5);
+}
+
+const timings = await page.evaluate(() => window.engine.profiler.snapshot());
+if (timings.gpuDisjointCount > 0) {
+  console.error(`REFUSING: ${timings.gpuDisjointCount} disjoint GPU timing event(s).`);
+  await browser.close();
+  process.exit(6);
+}
+
+const perf = await page.evaluate((measured) => {
   const s = window.__SCENE_STATS__ ?? {};
   return {
-    // Named for what they are. A budget is stated in milliseconds because a
-    // 60fps target means 16.7ms and a 120fps target means 8.3ms.
-    frameMsMedian: q(0.5),
-    frameMsP95: q(0.95),
-    frameMsWorst: q(0.999),
-    note: 'headless rAF is unthrottled — these are GPU throughput times, not display fps',
+    gpuFrameMs: measured.gpuFrameMs,
+    cpuFrameMs: measured.cpuFrameMs,
+    rafIntervalMs: measured.rafIntervalMs,
+    budgetFrameMsMedian: measured.budgetFrameMsMedian,
+    budgetFrameMsP95: measured.budgetFrameMsP95,
+    gpuDisjointCount: measured.gpuDisjointCount,
+    note: 'budget uses max(CPU, GPU); rAF interval is scheduler cadence only',
     drawCallsPerFrame: s.drawCallsPerFrame ?? null,
     trianglesPerFrame: s.trianglesPerFrame ?? null,
     programs: s.programs ?? null,
     textures: s.textures ?? null,
     geometries: s.geometries ?? null,
   };
-});
+}, timings);
 
 const shots = (args.shots ?? 'default').split(',').filter(Boolean);
 const written = [];
@@ -145,6 +171,8 @@ const report = {
   at: new Date().toISOString(),
   renderer: gpu.renderer,
   viewport: `${WIDTH}x${HEIGHT}`,
+  cpuThrottleRate: CPU_THROTTLE,
+  rafDelayMs: RAF_DELAY,
   performance: perf,
   shots: written,
   consoleErrors,
