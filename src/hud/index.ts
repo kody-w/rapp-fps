@@ -2,6 +2,7 @@ export {
   CombatHud,
   HudEvents,
   mapWorldDamageDirection,
+  type CharacterId,
   type CombatHudOptions,
   type DamageHudEvent,
   type DamageScreenDirection,

@@ -48,6 +48,35 @@ try {
     `DOM node count grew from ${growth.before} to ${growth.after} after 1,000 updates`,
   );
 
+  const enemyDamage = await page.evaluate(async () => {
+    const harness = window.__HUD_HARNESS__;
+    await harness.setState('hip');
+    const indicator = document.querySelector('.hud-damage');
+    const health = document.querySelector('.hud-health-value');
+    if (!(indicator instanceof HTMLElement) || !(health instanceof HTMLElement)) {
+      throw new Error('HUD damage presentation is missing');
+    }
+    const before = {
+      health: health.textContent,
+      indicatorVisible: indicator.classList.contains('is-visible'),
+      quadrant: indicator.dataset.quadrant ?? null,
+      angle: indicator.style.getPropertyValue('--damage-angle'),
+    };
+    const after = await harness.emitDamage(
+      'enemy-17',
+      { x: -1, y: 0, z: 0 },
+      5,
+    );
+    return { before, after };
+  });
+  assert.deepEqual(
+    enemyDamage.after,
+    enemyDamage.before,
+    'Damage for a non-player character changed the player HUD',
+  );
+  assert.equal(enemyDamage.after.health, '100');
+  assert.equal(enemyDamage.after.indicatorVisible, false);
+
   const directions = await page.evaluate(async () => {
     const harness = window.__HUD_HARNESS__;
     return {
@@ -75,27 +104,66 @@ try {
     const observer = new MutationObserver((records) => {
       mutations += records.length;
     });
-    observer.observe(live, { childList: true, characterData: true, subtree: true });
+    observer.observe(live, { characterData: true, subtree: true });
+
     await window.__HUD_HARNESS__.emitElimination('TARGET DOWN');
-    const afterEvent = mutations;
-    await window.__HUD_HARNESS__.waitFrames(40);
-    const afterFrames = mutations;
+    const afterFirstElimination = mutations;
+    await window.__HUD_HARNESS__.waitFrames(20);
+    const afterFirstEliminationFrames = mutations;
+
+    await window.__HUD_HARNESS__.emitElimination('TARGET DOWN');
+    const afterSecondElimination = mutations;
+    await window.__HUD_HARNESS__.waitFrames(20);
+    const afterSecondEliminationFrames = mutations;
+
+    await window.__HUD_HARNESS__.emitReloadStart();
+    const afterFirstReload = mutations;
+    await window.__HUD_HARNESS__.waitFrames(20);
+    const afterFirstReloadFrames = mutations;
+
+    await window.__HUD_HARNESS__.emitReloadStart();
+    const afterSecondReload = mutations;
+    await window.__HUD_HARNESS__.waitFrames(20);
+    const afterSecondReloadFrames = mutations;
+
     observer.disconnect();
     return {
-      afterEvent,
-      afterFrames,
-      text: live.textContent,
+      afterFirstElimination,
+      afterFirstEliminationFrames,
+      afterSecondElimination,
+      afterSecondEliminationFrames,
+      afterFirstReload,
+      afterFirstReloadFrames,
+      afterSecondReload,
+      afterSecondReloadFrames,
+      message: live instanceof HTMLElement ? live.dataset.message : undefined,
       visible: document.querySelector('.hud-elimination')?.classList.contains('is-visible'),
     };
   });
-  assert.equal(aria.text, 'TARGET DOWN');
   assert.equal(aria.visible, true, 'elimination event did not show confirmation');
-  assert.equal(aria.afterEvent, 1, 'one semantic event should produce one live-region update');
+  assert.equal(aria.afterFirstElimination, 1);
+  assert.equal(aria.afterFirstEliminationFrames, 1);
+  assert.equal(aria.afterSecondElimination, 2);
+  assert.equal(aria.afterSecondEliminationFrames, 2);
+  assert.equal(aria.afterFirstReload, 3);
+  assert.equal(aria.afterFirstReloadFrames, 3);
+  assert.equal(aria.afterSecondReload, 4);
   assert.equal(
-    aria.afterFrames,
-    aria.afterEvent,
+    aria.afterSecondReloadFrames,
+    4,
     'ARIA live region changed during presentation-only animation frames',
   );
+  assert.equal(aria.message, 'Reloading');
+
+  const lifecycle = await page.evaluate(
+    () => window.__HUD_HARNESS__.remount(),
+  );
+  assert.equal(lifecycle.rootCount, 1, 'dispose/init created duplicate HUD roots');
+  assert.equal(lifecycle.nodeCount, growth.before, 'remounted HUD structure changed');
+  assert.equal(lifecycle.ammo, '05', 'ammo was blank after remount');
+  assert.equal(lifecycle.health, '18', 'health was blank after remount');
+  assert.equal(lifecycle.reticle, 'ads', 'reticle state was blank after remount');
+  assert.equal(lifecycle.objective, 'LIFECYCLE CHECK', 'objective was blank after remount');
 
   const debugAbsent = await page.evaluate(
     () => document.querySelector('[data-hud-debug]') === null,
@@ -131,7 +199,7 @@ try {
   assert.match(debug.text, /overBudget (TRUE|FALSE)/);
   await debugPage.close();
 
-  const mutationPage = await open('?state=hip&reuse=0');
+  const mutationPage = await open('?state=hip&mutation=no-reuse');
   const mutationGrowth = await mutationPage.evaluate(
     () => window.__HUD_HARNESS__.stressUpdates(1_000),
   );
@@ -141,17 +209,15 @@ try {
       mutationGrowth.after,
       mutationGrowth.before,
       `DOM node count grew from ${mutationGrowth.before} to ${mutationGrowth.after} `
-        + 'after 1,000 updates with node reuse disabled',
+        + 'after 1,000 updates in the harness no-reuse mutation control',
     );
   } catch (error) {
     assert.ok(error instanceof AssertionError, 'mutation control did not produce an assertion');
     mutationFailure = error.message;
   }
   assert.notEqual(mutationFailure, '', 'mutation control unexpectedly passed');
-  assert.ok(
-    mutationGrowth.after - mutationGrowth.before >= 1_000,
-    'disabled reuse did not leak at least one node per update',
-  );
+  assert.equal(mutationGrowth.before, 43, 'mutation-control baseline changed');
+  assert.equal(mutationGrowth.after, 1_043, 'mutation control did not leak one node per update');
   await mutationPage.close();
 
   assert.deepEqual(consoleErrors, [], `browser console errors:\n${consoleErrors.join('\n')}`);
@@ -164,8 +230,10 @@ try {
       after: growth.after,
       growth: growth.after - growth.before,
     },
+    playerDamageFilter: enemyDamage,
     directionalMapping: directions,
     ariaLive: aria,
+    lifecycle,
     debugGate: {
       absentWithoutFlag: debugAbsent,
       presentWithFlag: debug.exists,

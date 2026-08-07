@@ -1,6 +1,6 @@
 {
-  "capturedAt": "2026-08-07T20:28:55.006Z",
-  "url": "http://127.0.0.1:5332/harness.html",
+  "capturedAt": "2026-08-07T21:24:54.861Z",
+  "url": "http://[::1]:5332/harness.html",
   "vitePort": 5332,
   "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
   "viewport": "1920x1080",
@@ -8,23 +8,23 @@
   "performance": {
     "gpuFrameMs": {
       "samples": 120,
-      "median": 9.382,
-      "p95": 9.722,
-      "worst": 9.84
+      "median": 7.501,
+      "p95": 9.49,
+      "worst": 9.758
     },
     "cpuFrameMs": {
       "samples": 121,
       "median": 0.3,
-      "p95": 0.5,
-      "worst": 1.2
+      "p95": 0.4,
+      "worst": 0.5
     },
     "pairedFrameMs": {
       "samples": 120,
-      "median": 9.382,
-      "p95": 9.722,
-      "worst": 9.84
+      "median": 7.501,
+      "p95": 9.49,
+      "worst": 9.758
     },
-    "pairedP95Ms": 9.722,
+    "pairedP95Ms": 9.49,
     "drawCalls": 80,
     "overBudget": false,
     "note": "paired frame cost is max(CPU, GPU) for the same issued frame"

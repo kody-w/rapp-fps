@@ -53,7 +53,10 @@ export interface PlayerHudStatus {
   maxHealth?: number;
 }
 
+export type CharacterId = string | number;
+
 export interface DamageHudEvent {
+  id: CharacterId;
   amount: number;
   /** World-space direction from the damaged player toward the damage source. */
   direction: Vector3Like;
@@ -90,15 +93,12 @@ export interface HudProfilerSource {
 }
 
 export interface CombatHudOptions {
+  /** Only Damage events for this character may affect the player HUD. */
+  playerId: CharacterId;
   parent?: HTMLElement;
   profiler?: HudProfilerSource;
   /** Defaults to `location.search`; only `hudDebug=1` enables the overlay. */
   query?: string;
-  /**
-   * Negative-control seam for the harness. Production callers must leave this
-   * enabled; disabling it deliberately leaks a node per state mutation.
-   */
-  reuseNodes?: boolean;
 }
 
 interface HudState {
@@ -119,7 +119,6 @@ interface HudState {
   eliminationLabel: string;
   objective: ObjectiveHudStatus | null;
   interaction: InteractionHudStatus | null;
-  announcement: string;
 }
 
 interface HudElements {
@@ -138,6 +137,7 @@ interface HudElements {
   elimination: HTMLElement;
   eliminationLabel: HTMLElement;
   live: HTMLElement;
+  liveText: Text;
 }
 
 interface DebugElements {
@@ -266,13 +266,12 @@ export class CombatHud implements System {
     eliminationLabel: 'TARGET DOWN',
     objective: null,
     interaction: null,
-    announcement: '',
   };
 
   private readonly cameraWorldQuaternion = new Quaternion();
   private readonly subscriptions: Array<() => void> = [];
-  private readonly reuseNodes: boolean;
   private readonly showDebug: boolean;
+  private readonly announcementQueue: string[] = [];
   private root: HTMLElement | null = null;
   private elements: HudElements | null = null;
   private debugElements: DebugElements | null = null;
@@ -283,17 +282,17 @@ export class CombatHud implements System {
   private renderedHitActive = false;
   private renderedEliminationActive = false;
   private lastDebugAt = -Infinity;
-  private lastAnnouncement = '';
+  private announcementSerial = 0;
 
-  constructor(private readonly options: CombatHudOptions = {}) {
+  constructor(private readonly options: CombatHudOptions) {
     const query = options.query
       ?? (typeof location === 'undefined' ? '' : location.search);
     this.showDebug = debugEnabled(query);
-    this.reuseNodes = options.reuseNodes !== false;
   }
 
   init(ctx: EngineContext): void {
     if (this.root) return;
+    this.resetPresentationState();
     this.camera = ctx.camera;
     this.mount(this.options.parent ?? document.body);
     this.subscribe(ctx.bus);
@@ -388,6 +387,7 @@ export class CombatHud implements System {
     this.elements = null;
     this.debugElements = null;
     this.camera = null;
+    this.resetPresentationState();
   }
 
   private mount(parent: HTMLElement): void {
@@ -468,6 +468,9 @@ export class CombatHud implements System {
 
     parent.append(root);
     this.root = root;
+    const live = required(root, '.hud-live');
+    const liveText = document.createTextNode('');
+    live.append(liveText);
     this.elements = {
       ammo: required(root, '.hud-ammo-value'),
       reserve: required(root, '.hud-reserve-value'),
@@ -483,7 +486,8 @@ export class CombatHud implements System {
       hit: required(root, '.hud-hit'),
       elimination: required(root, '.hud-elimination'),
       eliminationLabel: required(root, '.hud-elimination-label'),
-      live: required(root, '.hud-live'),
+      live,
+      liveText,
     };
   }
 
@@ -496,7 +500,7 @@ export class CombatHud implements System {
         if (payload) this.setPlayerStatus(payload);
       }),
       bus.on<DamageHudEvent>(Events.Damage, (payload) => {
-        if (payload) this.receiveDamage(payload);
+        if (payload?.id === this.options.playerId) this.receiveDamage(payload);
       }),
       bus.on(Events.ReloadStart, () => {
         this.setWeaponStatus({ reloading: true });
@@ -558,19 +562,13 @@ export class CombatHud implements System {
   }
 
   private announce(message: string): void {
-    if (!message || message === this.state.announcement) return;
-    this.state.announcement = message;
+    if (!message) return;
+    this.announcementQueue.push(message);
     this.markDirty(DIRTY.ACCESSIBILITY);
   }
 
   private markDirty(mask: number): void {
     this.dirty |= mask;
-    if (!this.reuseNodes && this.root) {
-      const leaked = document.createElement('i');
-      leaked.className = 'hud-mutation-node';
-      leaked.hidden = true;
-      this.root.append(leaked);
-    }
   }
 
   private present = (now: number): void => {
@@ -588,12 +586,14 @@ export class CombatHud implements System {
       this.dirty |= DIRTY.ELIMINATION;
     }
 
-    if (this.dirty & DIRTY.RETICLE) this.renderReticle(root);
-    if (this.dirty & DIRTY.AMMO) this.renderAmmo(root, elements);
-    if (this.dirty & DIRTY.HEALTH) this.renderHealth(root, elements);
-    if (this.dirty & DIRTY.OBJECTIVE) this.renderObjective(elements);
-    if (this.dirty & DIRTY.INTERACTION) this.renderInteraction(elements);
-    if (this.dirty & DIRTY.DAMAGE) {
+    const dirty = this.dirty;
+    this.dirty = 0;
+    if (dirty & DIRTY.RETICLE) this.renderReticle(root);
+    if (dirty & DIRTY.AMMO) this.renderAmmo(root, elements);
+    if (dirty & DIRTY.HEALTH) this.renderHealth(root, elements);
+    if (dirty & DIRTY.OBJECTIVE) this.renderObjective(elements);
+    if (dirty & DIRTY.INTERACTION) this.renderInteraction(elements);
+    if (dirty & DIRTY.DAMAGE) {
       this.renderedDamageActive = damageActive;
       elements.damage.classList.toggle('is-visible', damageActive);
       elements.damage.style.setProperty(
@@ -602,29 +602,46 @@ export class CombatHud implements System {
       );
       elements.damage.dataset.quadrant = this.state.damageQuadrant;
     }
-    if (this.dirty & DIRTY.HIT) {
+    if (dirty & DIRTY.HIT) {
       this.renderedHitActive = hitActive;
       elements.hit.classList.toggle('is-visible', hitActive);
       elements.hit.classList.toggle('is-lethal', this.state.hitLethal);
     }
-    if (this.dirty & DIRTY.ELIMINATION) {
+    if (dirty & DIRTY.ELIMINATION) {
       this.renderedEliminationActive = eliminationActive;
       elements.elimination.classList.toggle('is-visible', eliminationActive);
       elements.eliminationLabel.textContent = this.state.eliminationLabel;
     }
-    if (this.dirty & DIRTY.ACCESSIBILITY) {
-      if (this.state.announcement !== this.lastAnnouncement) {
-        elements.live.textContent = this.state.announcement;
-        this.lastAnnouncement = this.state.announcement;
+    if (dirty & DIRTY.ACCESSIBILITY) {
+      const message = this.announcementQueue.shift();
+      if (message !== undefined) {
+        this.announcementSerial++;
+        const repeatMarker = this.announcementSerial % 2 === 0 ? '\u2060' : '';
+        elements.liveText.data = `${message}${repeatMarker}`;
+        elements.live.dataset.message = message;
       }
+      if (this.announcementQueue.length > 0) this.dirty |= DIRTY.ACCESSIBILITY;
     }
-    this.dirty = 0;
 
     if (this.debugElements && now - this.lastDebugAt >= DEBUG_REFRESH_MS) {
       this.lastDebugAt = now;
       this.renderDebug(this.debugElements);
     }
   };
+
+  private resetPresentationState(): void {
+    this.dirty = DIRTY_ALL;
+    this.renderedDamageActive = false;
+    this.renderedHitActive = false;
+    this.renderedEliminationActive = false;
+    this.lastDebugAt = -Infinity;
+    this.announcementQueue.length = 0;
+    this.announcementSerial = 0;
+    this.state.damageUntil = 0;
+    this.state.hitUntil = 0;
+    this.state.eliminationUntil = 0;
+    this.cameraWorldQuaternion.identity();
+  }
 
   private renderReticle(root: HTMLElement): void {
     const precisionGap = 2.5;
