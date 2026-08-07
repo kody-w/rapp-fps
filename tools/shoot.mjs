@@ -18,22 +18,124 @@
  */
 
 import { chromium } from 'playwright';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const args = Object.fromEntries(
-  process.argv.slice(2).flatMap((a) => {
-    const m = /^--([^=]+)=(.*)$/.exec(a);
-    return m ? [[m[1], m[2]]] : [];
-  }),
-);
+const SUPPORTED_ARGS = new Set([
+  'url', 'out', 'width', 'height', 'cpuThrottle', 'rafDelay',
+  'forceNoGpuTimer', 'budgetMs', 'shots',
+]);
+
+function parseArgs(argv) {
+  const values = {};
+  const errors = [];
+  for (let i = 0; i < argv.length; i++) {
+    const token = argv[i];
+    if (!token.startsWith('--')) {
+      errors.push(`unexpected positional argument "${token}"`);
+      continue;
+    }
+    const equals = /^--([^=]+)=(.*)$/.exec(token);
+    const key = equals ? equals[1] : token.slice(2);
+    let value = equals?.[2];
+    if (!SUPPORTED_ARGS.has(key)) {
+      errors.push(`unknown option "--${key}"`);
+      continue;
+    }
+    if (value === undefined) {
+      const next = argv[i + 1];
+      if (next === undefined || next.startsWith('--')) {
+        errors.push(`option "--${key}" requires a value`);
+        continue;
+      }
+      value = next;
+      i++;
+    }
+    values[key] = value;
+  }
+  return { values, errors };
+}
+
+const parsed = parseArgs(process.argv.slice(2));
+const args = parsed.values;
 
 const URL_BASE = args.url ?? 'http://127.0.0.1:5273/';
 const OUT = args.out ?? 'shots/latest';
 const WIDTH = Number(args.width ?? 1920);
 const HEIGHT = Number(args.height ?? 1080);
+const CPU_THROTTLE = Number(args.cpuThrottle ?? 1);
+const RAF_DELAY = Number(args.rafDelay ?? 0);
+const FORCE_NO_GPU_TIMER = args.forceNoGpuTimer === '1';
+const FRAME_BUDGET_MS = Number(args.budgetMs ?? 16.7);
+const SHOT_NAMES = (args.shots ?? 'default')
+  .split(',')
+  .map((name) => name.trim())
+  .filter(Boolean);
 
 mkdirSync(OUT, { recursive: true });
+const REPORT_PATH = join(OUT, 'report.json');
+// Refusal must not leave yesterday's green report behind in a reused output
+// directory. Remove it before any capability check can exit.
+rmSync(REPORT_PATH, { force: true });
+if (parsed.errors.length > 0) {
+  console.error(`REFUSING: invalid arguments:\n- ${parsed.errors.join('\n- ')}`);
+  process.exit(9);
+}
+if (!Number.isFinite(FRAME_BUDGET_MS) || FRAME_BUDGET_MS <= 0) {
+  console.error(`REFUSING: invalid frame budget "${args.budgetMs ?? ''}". `
+    + 'Expected a finite positive number of milliseconds.');
+  process.exit(8);
+}
+const controlErrors = [];
+if (!Number.isInteger(WIDTH) || WIDTH <= 0 || WIDTH > 16384) {
+  controlErrors.push(`width must be an integer in 1..16384, got "${args.width ?? WIDTH}"`);
+}
+if (!Number.isInteger(HEIGHT) || HEIGHT <= 0 || HEIGHT > 16384) {
+  controlErrors.push(`height must be an integer in 1..16384, got "${args.height ?? HEIGHT}"`);
+}
+if (!Number.isFinite(CPU_THROTTLE) || CPU_THROTTLE < 1 || CPU_THROTTLE > 100) {
+  controlErrors.push(`cpuThrottle must be finite in 1..100, got "${args.cpuThrottle ?? CPU_THROTTLE}"`);
+}
+if (!Number.isFinite(RAF_DELAY) || RAF_DELAY < 0 || RAF_DELAY > 60_000) {
+  controlErrors.push(`rafDelay must be finite in 0..60000, got "${args.rafDelay ?? RAF_DELAY}"`);
+}
+if (
+  args.forceNoGpuTimer !== undefined
+  && args.forceNoGpuTimer !== '0'
+  && args.forceNoGpuTimer !== '1'
+) {
+  controlErrors.push(
+    `forceNoGpuTimer must be exactly 0 or 1, got "${args.forceNoGpuTimer}"`,
+  );
+}
+if (SHOT_NAMES.length === 0) {
+  controlErrors.push('shots must contain at least one non-empty name');
+}
+for (const name of SHOT_NAMES) {
+  if (!/^[A-Za-z0-9._-]+$/.test(name)) {
+    controlErrors.push(
+      `shot name "${name}" may contain only letters, digits, dot, underscore and dash`,
+    );
+  }
+}
+if (new Set(SHOT_NAMES.map((name) => name.toLowerCase())).size !== SHOT_NAMES.length) {
+  // The development volume is case-insensitive. `default` and `Default`
+  // resolve to the same file and would overwrite evidence while the report
+  // claimed two artifacts.
+  controlErrors.push('shots must not contain duplicate names, including case-only duplicates');
+}
+try {
+  const parsedUrl = new URL(URL_BASE);
+  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+    controlErrors.push(`url protocol must be http or https, got "${parsedUrl.protocol}"`);
+  }
+} catch {
+  controlErrors.push(`url is not valid, got "${URL_BASE}"`);
+}
+if (controlErrors.length > 0) {
+  console.error(`REFUSING: invalid controls:\n- ${controlErrors.join('\n- ')}`);
+  process.exit(10);
+}
 
 const browser = await chromium.launch({
   args: [
@@ -42,7 +144,6 @@ const browser = await chromium.launch({
     '--ignore-gpu-blocklist',
     '--enable-gpu-rasterization',
     '--enable-zero-copy',
-    '--disable-frame-rate-limit',
   ],
 });
 
@@ -50,6 +151,21 @@ const page = await browser.newPage({
   viewport: { width: WIDTH, height: HEIGHT },
   deviceScaleFactor: 1,
 });
+if (CPU_THROTTLE > 1) {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU_THROTTLE });
+}
+if (RAF_DELAY > 0) {
+  // Negative control for the profiler: delay callback delivery without
+  // changing the render commands bracketed by the GPU timer query. A correct
+  // profiler reports a larger rAF interval while GPU cost stays stable.
+  await page.addInitScript((delay) => {
+    const nativeRaf = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = (callback) => nativeRaf(() => {
+      setTimeout(() => callback(performance.now()), delay);
+    });
+  }, RAF_DELAY);
+}
 
 const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
@@ -87,50 +203,61 @@ try {
 // converged image rather than frame one of an accumulating effect.
 await page.waitForTimeout(1200);
 
-const perf = await page.evaluate(async () => {
-  // Headless Chromium runs requestAnimationFrame unthrottled, so "fps" here is
-  // GPU THROUGHPUT, not display frame rate. Reporting 1428 fps because rAF
-  // fired in a burst is the kind of number that looks like good news and is
-  // not an answer to any question anyone asked.
-  //
-  // So measure the thing that actually transfers: how long the GPU takes to
-  // produce one presented frame, over a window, reported as a distribution.
-  const deltas = [];
-  await new Promise((resolve) => {
-    let n = 0;
-    let last = performance.now();
-    const tick = () => {
-      const now = performance.now();
-      const d = now - last;
-      last = now;
-      // Discard the first few: shader compilation and texture upload land
-      // there and describe startup, not steady state.
-      if (n > 20) deltas.push(d);
-      if (++n < 200) requestAnimationFrame(tick); else resolve();
-    };
-    requestAnimationFrame(tick);
-  });
-  deltas.sort((a, b) => a - b);
-  const q = (p) => +deltas[Math.min(deltas.length - 1, Math.floor(deltas.length * p))].toFixed(2);
+const profilerSupport = FORCE_NO_GPU_TIMER
+  ? false
+  : await page.evaluate(() => window.engine?.profiler?.gpuSupported ?? false);
+if (!profilerSupport) {
+  console.error('REFUSING: EXT_disjoint_timer_query_webgl2 is unavailable. '
+    + 'GPU frame cost is UNVERIFIED; rAF cadence will not be substituted.');
+  await browser.close();
+  process.exit(4);
+}
+
+await page.evaluate(() => window.engine.profiler.reset());
+try {
+  await page.waitForFunction(
+    () => window.engine.profiler.snapshot().budgetFrameMs.samples >= 120,
+    null,
+    { timeout: 60_000 },
+  );
+} catch {
+  const partial = await page.evaluate(() => window.engine.profiler.snapshot());
+  console.error('REFUSING: fewer than 120 completed GPU timer queries in 60s.');
+  console.error(JSON.stringify(partial, null, 2));
+  await browser.close();
+  process.exit(5);
+}
+
+const timings = await page.evaluate(() => window.engine.profiler.snapshot());
+if (timings.gpuDisjointCount > 0) {
+  console.error(`REFUSING: ${timings.gpuDisjointCount} disjoint GPU timing event(s).`);
+  await browser.close();
+  process.exit(6);
+}
+
+const perf = await page.evaluate((measured) => {
   const s = window.__SCENE_STATS__ ?? {};
   return {
-    // Named for what they are. A budget is stated in milliseconds because a
-    // 60fps target means 16.7ms and a 120fps target means 8.3ms.
-    frameMsMedian: q(0.5),
-    frameMsP95: q(0.95),
-    frameMsWorst: q(0.999),
-    note: 'headless rAF is unthrottled — these are GPU throughput times, not display fps',
+    gpuSupported: measured.gpuSupported,
+    gpuCounterBits: measured.gpuCounterBits,
+    gpuFrameMs: measured.gpuFrameMs,
+    cpuFrameMs: measured.cpuFrameMs,
+    rafIntervalMs: measured.rafIntervalMs,
+    budgetFrameMsMedian: measured.budgetFrameMsMedian,
+    budgetFrameMsP95: measured.budgetFrameMsP95,
+    budgetFrameMs: measured.budgetFrameMs,
+    gpuDisjointCount: measured.gpuDisjointCount,
+    note: 'budget uses max(CPU, GPU); rAF interval is scheduler cadence only',
     drawCallsPerFrame: s.drawCallsPerFrame ?? null,
     trianglesPerFrame: s.trianglesPerFrame ?? null,
     programs: s.programs ?? null,
     textures: s.textures ?? null,
     geometries: s.geometries ?? null,
   };
-});
+}, timings);
 
-const shots = (args.shots ?? 'default').split(',').filter(Boolean);
 const written = [];
-for (const name of shots) {
+for (const name of SHOT_NAMES) {
   if (name !== 'default') {
     // A named shot may reposition the camera through a hook the level exposes.
     await page.evaluate((n) => window.__SHOT__?.(n), name);
@@ -145,12 +272,16 @@ const report = {
   at: new Date().toISOString(),
   renderer: gpu.renderer,
   viewport: `${WIDTH}x${HEIGHT}`,
+  cpuThrottleRate: CPU_THROTTLE,
+  rafDelayMs: RAF_DELAY,
+  frameBudgetMs: FRAME_BUDGET_MS,
+  overBudget: perf.budgetFrameMsP95 > FRAME_BUDGET_MS,
   performance: perf,
   shots: written,
   consoleErrors,
 };
-writeFileSync(join(OUT, 'report.json'), JSON.stringify(report, null, 2));
+writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2));
 console.log(JSON.stringify(report, null, 2));
 
 await browser.close();
-process.exit(consoleErrors.length ? 1 : 0);
+process.exit(consoleErrors.length ? 1 : report.overBudget ? 7 : 0);

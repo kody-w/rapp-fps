@@ -18,6 +18,7 @@
 import * as THREE from 'three';
 import type { EngineContext, InputState, QualityTier, System, UpdateContext } from './contracts.js';
 import { EventBusImpl } from './bus.js';
+import { FrameProfiler } from './profiler.js';
 
 /** Simulation runs at this rate regardless of display refresh. */
 const FIXED_STEP = 1 / 120;
@@ -29,6 +30,7 @@ export class Engine {
   readonly camera: THREE.PerspectiveCamera;
   readonly renderer: THREE.WebGLRenderer;
   readonly bus = new EventBusImpl();
+  readonly profiler: FrameProfiler;
 
   private systems: System[] = [];
   private byName = new Map<string, System>();
@@ -54,6 +56,7 @@ export class Engine {
       depth: true,
       alpha: false,
     });
+    this.profiler = new FrameProfiler(this.renderer);
 
     // ── Colour pipeline ──────────────────────────────────────────────────
     // Work in linear, present in sRGB, and map HDR through ACES. Without this
@@ -146,37 +149,53 @@ export class Engine {
     const now = performance.now() / 1000;
     let dt = now - this.last;
     this.last = now;
+    const frameToken = this.profiler.beginFrame(dt * 1000);
     if (dt > MAX_FRAME) dt = MAX_FRAME;   // a stalled tab must not fire a
                                           // thousand simulation steps at once
 
-    // ── Fixed-step simulation ────────────────────────────────────────────
-    this.accumulator += dt;
     const ctx = this.context;
-    let steps = 0;
-    while (this.accumulator >= FIXED_STEP && steps < 8) {
-      for (const s of this.systems) s.fixedUpdate?.(FIXED_STEP, ctx);
-      this.accumulator -= FIXED_STEP;
-      steps++;
+    try {
+      // ── Fixed-step simulation ──────────────────────────────────────────
+      // Keep the whole frame inside the timing range and the finally block.
+      // A fixed-step system can throw just as readily as a presentation
+      // system; leaving TIME_ELAPSED active would poison every later frame.
+      this.accumulator += dt;
+      let steps = 0;
+      while (this.accumulator >= FIXED_STEP && steps < 8) {
+        for (const s of this.systems) s.fixedUpdate?.(FIXED_STEP, ctx);
+        this.accumulator -= FIXED_STEP;
+        steps++;
+      }
+
+      // ── Presentation ───────────────────────────────────────────────────
+      const u: UpdateContext = {
+        dt,
+        elapsed: now,
+        frame: this.frame++,
+        alpha: this.accumulator / FIXED_STEP, // interpolate fixed-step state
+      };
+      for (const s of this.systems) s.update?.(u, ctx);
+
+      // GPU queries bracket only submitted render commands. Beginning the query
+      // before simulation measures device idle time while JavaScript works.
+      this.profiler.beginGpu();
+      try {
+        if (this.present) this.present(u);
+        else this.renderer.render(this.scene, this.camera);
+      } finally {
+        this.profiler.endGpu();
+      }
+    } finally {
+      // CPU covers simulation, presentation and command submission.
+      this.profiler.endFrame(frameToken);
     }
-
-    // ── Presentation ─────────────────────────────────────────────────────
-    const u: UpdateContext = {
-      dt,
-      elapsed: now,
-      frame: this.frame++,
-      alpha: this.accumulator / FIXED_STEP,   // lets a renderer interpolate
-                                              // between the last two steps
-    };
-    for (const s of this.systems) s.update?.(u, ctx);
-
-    if (this.present) this.present(u);
-    else this.renderer.render(this.scene, this.camera);
   };
 
   dispose(): void {
     this.stop();
     window.removeEventListener('resize', this.onResize);
     for (const s of this.systems) s.dispose?.();
+    this.profiler.dispose();
     this.renderer.dispose();
   }
 }
