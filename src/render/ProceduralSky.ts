@@ -152,6 +152,8 @@ export function generateSky(renderer: THREE.WebGLRenderer, params: SkyParams): S
   });
 
   const prevTarget = renderer.getRenderTarget();
+  const prevCubeFace = renderer.getActiveCubeFace();
+  const prevMipmapLevel = renderer.getActiveMipmapLevel();
   const prevToneMapping = renderer.toneMapping;
   renderer.toneMapping = THREE.NoToneMapping;
 
@@ -162,7 +164,9 @@ export function generateSky(renderer: THREE.WebGLRenderer, params: SkyParams): S
   const envTarget = pmrem.fromCubemap(cubeTarget.texture);
 
   renderer.toneMapping = prevToneMapping;
-  renderer.setRenderTarget(prevTarget);
+  // Preserve the complete target state. Omitting face/mip silently resets an
+  // active cube face, array layer or mip level to zero.
+  renderer.setRenderTarget(prevTarget, prevCubeFace, prevMipmapLevel);
 
   // The scratch geometry, material and PMREM helper are done. The two render
   // targets stay alive because their textures are now in use by the scene.

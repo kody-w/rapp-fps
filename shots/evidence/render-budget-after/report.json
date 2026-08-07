@@ -1,16 +1,16 @@
 {
-  "at": "2026-08-07T16:40:05.180Z",
+  "at": "2026-08-07T17:03:41.211Z",
   "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
   "viewport": "1920x1080",
   "performance": {
-    "frameMsMedian": 6.2,
-    "frameMsP95": 7.6,
-    "frameMsWorst": 8.4,
+    "frameMsMedian": 6.4,
+    "frameMsP95": 8.2,
+    "frameMsWorst": 8.6,
     "note": "headless rAF is unthrottled — these are GPU throughput times, not display fps",
-    "drawCallsPerFrame": 91,
-    "trianglesPerFrame": 84453,
+    "drawCallsPerFrame": 87,
+    "trianglesPerFrame": 84449,
     "programs": 18,
-    "textures": 39,
+    "textures": 35,
     "geometries": 9
   },
   "shots": [

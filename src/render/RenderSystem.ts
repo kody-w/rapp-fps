@@ -43,7 +43,6 @@ import {
   ToneMappingMode,
   VignetteEffect,
   BlendFunction,
-  KernelSize,
   type Effect,
 } from 'postprocessing';
 import { N8AOPostPass } from 'n8ao';
@@ -103,11 +102,16 @@ function readConfig(): RenderConfig {
   };
 }
 
-function kernelFor(mode: Exclude<BloomMode, 'off'>): KernelSize {
+/**
+ * Mipmap bloom controls. `kernelSize` is deprecated and ignored when
+ * `mipmapBlur` is enabled, so the old large/medium/small modes were identical.
+ * Radius changes the visible spread; levels changes both spread and pass cost.
+ */
+function bloomFor(mode: Exclude<BloomMode, 'off'>): { radius: number; levels: number } {
   switch (mode) {
-    case 'large': return KernelSize.LARGE;
-    case 'medium': return KernelSize.MEDIUM;
-    case 'small': return KernelSize.SMALL;
+    case 'large': return { radius: 0.9, levels: 8 };
+    case 'medium': return { radius: 0.72, levels: 6 };
+    case 'small': return { radius: 0.5, levels: 4 };
   }
 }
 
@@ -159,7 +163,10 @@ export class RenderSystem implements System {
     // to catch at grazing angles. It adds no fullscreen pass and measured
     // ~0.1ms rather than the zero originally claimed. Built before the passes
     // so material sampling is live from frame one.
-    if (cfg.env) {
+    // Generate when either consumer needs it. `env=0` now disables only IBL,
+    // while retaining the same sky background, so the benchmark changes one
+    // axis rather than changing both lighting and background geometry.
+    if (cfg.env || cfg.bg === 'sky') {
       this.sky = generateSky(renderer, {
         sunDirection: SUN_DIRECTION,
         sunColor: new THREE.Color(1.0, 0.74, 0.5),
@@ -169,8 +176,10 @@ export class RenderSystem implements System {
         sunIntensity: 26.0,
         resolution: 512,
       });
-      scene.environment = this.sky.environment;
-      scene.environmentIntensity = ENV_INTENSITY;
+      if (cfg.env) {
+        scene.environment = this.sky.environment;
+        scene.environmentIntensity = ENV_INTENSITY;
+      }
       if (cfg.bg === 'sky') this.pendingBackground = this.sky.background;
     }
 
@@ -195,6 +204,7 @@ export class RenderSystem implements System {
     const effects: Effect[] = [];
 
     if (cfg.bloom !== 'off') {
+      const blur = bloomFor(cfg.bloom);
       // Thresholded well above mid-grey so only real emitters and blown
       // highlights bloom. A low threshold is what makes web scenes look hazy.
       this.bloom = new BloomEffect({
@@ -202,8 +212,9 @@ export class RenderSystem implements System {
         luminanceThreshold: 0.85,
         luminanceSmoothing: 0.3,
         intensity: 0.9,
-        kernelSize: kernelFor(cfg.bloom),
         mipmapBlur: true,
+        radius: blur.radius,
+        levels: blur.levels,
       });
       effects.push(this.bloom);
     }
@@ -248,8 +259,11 @@ export class RenderSystem implements System {
 
     ctx.bus.on('engine:resize', (p: unknown) => {
       const { width, height } = p as { width: number; height: number };
+      // EffectComposer forwards drawing-buffer dimensions (including DPR) to
+      // every pass. Calling `ao.setSize` again with CSS pixels overwrote that:
+      // on DPR 2, full-res became half-res and configured half-res became
+      // quarter-width after the first resize.
       this.composer.setSize(width, height);
-      this.ao?.setSize(width, height);
     });
 
     ctx.bus.on('camera:shake', (p: unknown) => {
