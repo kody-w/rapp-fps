@@ -38,7 +38,7 @@ engine.add(fx);
 await engine.init();
 
 engine.renderer.info.autoReset = false;
-engine.present = (u: UpdateContext) => {
+engine.present = (_u: UpdateContext) => {
   const info = engine.renderer.info;
   info.reset();
   
