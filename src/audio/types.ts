@@ -52,6 +52,7 @@ export type AudioArmState =
   | 'arming'
   | 'armed'
   | 'suspended'
+  | 'interrupted'
   | 'unavailable'
   | 'closed';
 

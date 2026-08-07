@@ -18,6 +18,8 @@ export interface ProceduralAudioEngineOptions {
   masterGain?: number;
 }
 
+export const LIMITER_OUTPUT_CEILING = 0.55;
+
 interface Voice {
   nodes: AudioNode[];
   remainingSources: number;
@@ -158,7 +160,7 @@ export class ProceduralAudioEngine {
     this.input.gain.value = 2.6;
 
     const master = this.createGain();
-    master.gain.value = options.masterGain ?? 0.92;
+    master.gain.value = clamp(options.masterGain ?? 0.92, 0, 1);
     this.outputNodes.push(master);
 
     if (options.limiterEnabled ?? true) {
@@ -167,16 +169,19 @@ export class ProceduralAudioEngine {
 
       const limiter = this.createWaveShaper();
       limiter.curve = this.createLimiterCurve();
+      const ceiling = this.createGain();
+      ceiling.gain.value = LIMITER_OUTPUT_CEILING;
 
       this.input.connect(compressor);
       compressor.connect(limiter);
       limiter.connect(master);
-      this.outputNodes.push(compressor, limiter);
+      master.connect(ceiling);
+      ceiling.connect(context.destination);
+      this.outputNodes.push(compressor, limiter, ceiling);
     } else {
       this.input.connect(master);
+      master.connect(context.destination);
     }
-
-    master.connect(context.destination);
   }
 
   get diagnostics(): SynthesisDiagnostics {

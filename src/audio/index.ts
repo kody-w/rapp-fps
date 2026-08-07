@@ -1,5 +1,10 @@
-export { AudioSystem, type AudioSystemOptions } from './AudioSystem.js';
 export {
+  AudioSystem,
+  type AudioSynthesisBackend,
+  type AudioSystemOptions,
+} from './AudioSystem.js';
+export {
+  LIMITER_OUTPUT_CEILING,
   ProceduralAudioEngine,
   type ProceduralAudioEngineOptions,
 } from './ProceduralAudioEngine.js';

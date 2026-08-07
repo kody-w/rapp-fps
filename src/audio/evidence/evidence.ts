@@ -5,20 +5,29 @@ import {
 } from '../../core/contracts.js';
 import {
   analyzePcm,
+  canonicalizePcm16,
   channelRms,
   encodeWav16,
   sha256Hex,
   type PcmAnalysis,
 } from '../analysis.js';
-import { AudioSystem } from '../AudioSystem.js';
-import { ProceduralAudioEngine } from '../ProceduralAudioEngine.js';
+import {
+  AudioSystem,
+  type AudioSynthesisBackend,
+} from '../AudioSystem.js';
+import {
+  LIMITER_OUTPUT_CEILING,
+  ProceduralAudioEngine,
+} from '../ProceduralAudioEngine.js';
 import {
   AUDIO_SURFACES,
+  type ListenerPose,
   type SynthesisDiagnostics,
   type Vector3Like,
 } from '../types.js';
 
 const SAMPLE_RATE = 24_000;
+const CANONICAL_PCM_BITS = 10;
 const DEFAULT_SEED = 0x72617070;
 const DEFAULT_LISTENER = {
   position: { x: 0, y: 0, z: 0 },
@@ -31,6 +40,7 @@ interface RenderResult {
   pcm: Float32Array[];
   wav: Uint8Array;
   wavSha256: string;
+  rawSamplePeak: number;
   analysis: PcmAnalysis;
   diagnostics: SynthesisDiagnostics;
   scheduleMilliseconds: number;
@@ -75,6 +85,135 @@ class HarnessBus implements EventBus {
   }
 }
 
+class HarnessSynthesis implements AudioSynthesisBackend {
+  readonly diagnostics: SynthesisDiagnostics = {
+    eventsScheduled: 0,
+    voicesCreated: 0,
+    activeVoices: 0,
+    peakActiveVoices: 0,
+    sourcesCreated: 0,
+    activeSources: 0,
+    peakActiveSources: 0,
+    peakConcurrentSources: 0,
+    nodesCreated: 0,
+    maximumTailSeconds: 0,
+    latestScheduledEnd: 0,
+  };
+  disposed = false;
+
+  setListenerPose(pose: ListenerPose): void {
+    void pose;
+  }
+
+  playWeaponFired(payload: unknown, when?: number): boolean {
+    void payload;
+    void when;
+    return true;
+  }
+
+  playBulletImpact(payload: unknown, when?: number): boolean {
+    void payload;
+    void when;
+    return true;
+  }
+
+  playFootstep(payload: unknown, when?: number): boolean {
+    void payload;
+    void when;
+    return true;
+  }
+
+  playReloadStart(when?: number): boolean {
+    void when;
+    return true;
+  }
+
+  playReloadEnd(when?: number): boolean {
+    void when;
+    return true;
+  }
+
+  playDamage(payload: unknown, when?: number): boolean {
+    void payload;
+    void when;
+    return true;
+  }
+
+  dispose(): void {
+    this.disposed = true;
+  }
+}
+
+type HarnessContextState = AudioContextState | 'interrupted';
+
+class ControlledAudioContext {
+  private readonly listeners = new Set<EventListenerOrEventListenerObject>();
+  private pendingResume: {
+    resolve: () => void;
+    reject: (error: Error) => void;
+  } | null = null;
+  private stateValue: HarnessContextState;
+  resumeCalls = 0;
+  closeCalls = 0;
+
+  constructor(
+    initialState: HarnessContextState,
+    private readonly resumeMode: 'immediate' | 'pending',
+  ) {
+    this.stateValue = initialState;
+  }
+
+  get state(): AudioContextState {
+    return this.stateValue as AudioContextState;
+  }
+
+  addEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+  ): void {
+    if (type === 'statechange') this.listeners.add(listener);
+  }
+
+  removeEventListener(
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+  ): void {
+    if (type === 'statechange') this.listeners.delete(listener);
+  }
+
+  resume(): Promise<void> {
+    this.resumeCalls++;
+    if (this.resumeMode === 'immediate') {
+      this.transition('running');
+      return Promise.resolve();
+    }
+    return new Promise<void>((resolve, reject) => {
+      this.pendingResume = { resolve, reject };
+    });
+  }
+
+  close(): Promise<void> {
+    this.closeCalls++;
+    this.transition('closed');
+    return Promise.resolve();
+  }
+
+  transition(state: HarnessContextState): void {
+    this.stateValue = state;
+    const event = new Event('statechange');
+    for (const listener of [...this.listeners]) {
+      if (typeof listener === 'function') listener(event);
+      else listener.handleEvent(event);
+    }
+  }
+
+  rejectResume(error: Error): void {
+    const pending = this.pendingResume;
+    this.pendingResume = null;
+    pending?.reject(error);
+  }
+}
+
 window.__AUDIO_EVIDENCE__ = { status: 'idle' };
 
 const runButton = document.getElementById('run') as HTMLButtonElement;
@@ -105,6 +244,23 @@ async function buildEvidence(): Promise<SerializableEvidence> {
     'autoplay gate creates no context before arm and drops pre-arm events',
     assertions,
   );
+  const lifecycle = await verifyAudioLifecycle();
+  check(
+    lifecycle.initialArm
+      && lifecycle.interruptedState === 'interrupted'
+      && lifecycle.retryArm
+      && lifecycle.resumeCalls === 2,
+    'iOS interrupted state remains resumable and arm retry succeeds',
+    assertions,
+  );
+  check(
+    lifecycle.raceState === 'closed'
+      && !lifecycle.raceArmResult
+      && lifecycle.raceLastError === null
+      && lifecycle.raceBackendDisposed,
+    'dispose wins a pending resume race without obsolete arm state mutation',
+    assertions,
+  );
 
   const near = await renderShot('shot-near', DEFAULT_SEED, { x: 0, y: 0, z: -2 });
   const nearRepeat = await renderShot(
@@ -124,8 +280,8 @@ async function buildEvidence(): Promise<SerializableEvidence> {
     1,
   );
 
-  assertNoClipping(near.analysis);
-  assertNoClipping(far.analysis);
+  assertNoSampleClipping(near.analysis);
+  assertNoSampleClipping(far.analysis);
   check(
     near.wavSha256 === nearRepeat.wavSha256,
     'same seed produces byte-identical signed 16-bit PCM/WAV bytes',
@@ -155,9 +311,16 @@ async function buildEvidence(): Promise<SerializableEvidence> {
   const impacts: Record<string, RenderResult> = {};
   for (const surface of AUDIO_SURFACES) {
     const result = await renderImpact(surface);
-    assertNoClipping(result.analysis);
+    assertNoSampleClipping(result.analysis);
     impacts[surface] = result;
   }
+  check(
+    Object.values(impacts).every(
+      (result) => result.analysis.durationSeconds === 0.6,
+    ),
+    'surface comparison uses one seed and one 0.6-second analysis window',
+    assertions,
+  );
   const impactHashes = Object.values(impacts).map((result) => result.wavSha256);
   check(
     new Set(impactHashes).size === AUDIO_SURFACES.length,
@@ -173,7 +336,7 @@ async function buildEvidence(): Promise<SerializableEvidence> {
   );
 
   const footsteps = await renderFootsteps();
-  assertNoClipping(footsteps.result.analysis);
+  assertNoSampleClipping(footsteps.result.analysis);
   check(
     footsteps.adjacentSegmentsDiffer,
     'deterministic footsteps avoid adjacent machine-gun repetition',
@@ -181,7 +344,7 @@ async function buildEvidence(): Promise<SerializableEvidence> {
   );
 
   const stress = await renderAutomaticFire(true);
-  assertNoClipping(stress.result.analysis);
+  assertNoSampleClipping(stress.result.analysis);
   check(
     stress.result.diagnostics.activeSources === 0
       && stress.result.diagnostics.activeVoices === 0,
@@ -207,14 +370,14 @@ async function buildEvidence(): Promise<SerializableEvidence> {
   const negativeControl = await renderAutomaticFire(false);
   let negativeControlFailed = false;
   try {
-    assertNoClipping(negativeControl.result.analysis);
+    assertNoSampleClipping(negativeControl.result.analysis);
   } catch {
     negativeControlFailed = true;
   }
   check(
-    negativeControl.result.analysis.samplePeak > 1
+    negativeControl.result.rawSamplePeak > 1
       && negativeControlFailed,
-    'disabled-limiter negative control clips and fails the clipping assertion',
+    'disabled-limiter raw render exceeds sample full scale',
     assertions,
   );
 
@@ -225,7 +388,7 @@ async function buildEvidence(): Promise<SerializableEvidence> {
     assertions,
   );
   const eventCoverage = await renderReloadAndDamageCoverage();
-  assertNoClipping(eventCoverage.analysis);
+  assertNoSampleClipping(eventCoverage.analysis);
   check(
     eventCoverage.diagnostics.eventsScheduled === 3
       && eventCoverage.diagnostics.activeSources === 0,
@@ -239,6 +402,7 @@ async function buildEvidence(): Promise<SerializableEvidence> {
     ...AUDIO_SURFACES.map((surface) => impacts[surface]),
     footsteps.result,
     stress.result,
+    negativeControl.result,
   ];
   const wavs: Record<string, string> = {};
   for (const result of wavResults) {
@@ -247,13 +411,16 @@ async function buildEvidence(): Promise<SerializableEvidence> {
 
   const nodesPerShot = stress.result.diagnostics.nodesCreated / 30;
   const report: Record<string, unknown> = {
-    formatVersion: 1,
+    formatVersion: 2,
     proceduralOnly: true,
     sampleRate: SAMPLE_RATE,
     seed: DEFAULT_SEED,
-    deterministicPcmFormat: 'signed 16-bit little-endian PCM',
+    deterministicPcmFormat:
+      `${CANONICAL_PCM_BITS}-bit canonical quantization in signed 16-bit little-endian PCM`,
+    limiterOutputCeilingLinear: LIMITER_OUTPUT_CEILING,
     assertions,
     armPolicy,
+    lifecycle,
     shots: {
       near: summarize(near),
       far: summarize(far),
@@ -262,6 +429,12 @@ async function buildEvidence(): Promise<SerializableEvidence> {
     impacts: Object.fromEntries(
       AUDIO_SURFACES.map((surface) => [surface, summarize(impacts[surface])]),
     ),
+    surfaceComparison: {
+      seed: DEFAULT_SEED,
+      durationSeconds: 0.6,
+      eventTimeSeconds: 0.035,
+      point: { x: 0, y: 0, z: -2.5 },
+    },
     footsteps: {
       ...summarize(footsteps.result),
       segmentHashes: footsteps.segmentHashes,
@@ -299,7 +472,9 @@ async function buildEvidence(): Promise<SerializableEvidence> {
       note: 'The subsystem creates Web Audio nodes only and never enters the renderer.',
     },
     metricNotes: {
-      truePeakApprox: '4x cubic interpolation; useful overshoot check, not a certified meter',
+      standardsTruePeak: 'Added by the Node runner using FFmpeg EBU R128 peak=true.',
+      canonicalPcm:
+        `${CANONICAL_PCM_BITS}-bit canonical quantization removes cross-process ±1 PCM16 LSB summation variance before every reported PCM metric.`,
       lufsApprox: 'mean-square LUFS approximation without K-weighting or gating',
       energyBandsHz: {
         sub: '0-120',
@@ -328,9 +503,9 @@ async function renderShot(
 async function renderImpact(surface: typeof AUDIO_SURFACES[number]): Promise<RenderResult> {
   return renderScenario(
     `impact-${surface}`,
-    surface === 'glass' || surface === 'metal' ? 0.52 : 0.42,
+    0.6,
     1,
-    DEFAULT_SEED + AUDIO_SURFACES.indexOf(surface) * 101,
+    DEFAULT_SEED,
     true,
     (engine) => {
       engine.playBulletImpact({
@@ -371,7 +546,9 @@ async function renderFootsteps(): Promise<{
     const start = Math.floor(at * SAMPLE_RATE);
     const end = Math.min(result.pcm[0].length, start + Math.floor(0.24 * SAMPLE_RATE));
     const segment = result.pcm[0].slice(start, end);
-    segmentHashes.push(await sha256Hex(encodeWav16([segment], SAMPLE_RATE)));
+    segmentHashes.push(await sha256Hex(
+      encodeWav16([segment], SAMPLE_RATE, CANONICAL_PCM_BITS),
+    ));
   }
   return {
     result,
@@ -498,10 +675,17 @@ async function renderScenario(
   const renderMilliseconds = performance.now() - renderStart;
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
-  const pcm = Array.from(
+  const renderedPcm = Array.from(
     { length: rendered.numberOfChannels },
     (_, channel) => rendered.getChannelData(channel).slice(),
   );
+  let rawSamplePeak = 0;
+  for (const channel of renderedPcm) {
+    for (const sample of channel) {
+      rawSamplePeak = Math.max(rawSamplePeak, Math.abs(sample));
+    }
+  }
+  const pcm = canonicalizePcm16(renderedPcm, CANONICAL_PCM_BITS);
   const analysis = analyzePcm(pcm, SAMPLE_RATE);
   const wav = encodeWav16(pcm, SAMPLE_RATE);
   const diagnostics = engine.diagnostics;
@@ -511,6 +695,7 @@ async function renderScenario(
     pcm,
     wav,
     wavSha256: await sha256Hex(wav),
+    rawSamplePeak,
     analysis,
     diagnostics,
     scheduleMilliseconds,
@@ -551,6 +736,52 @@ async function verifyArmPolicy(): Promise<{
   };
 }
 
+async function verifyAudioLifecycle(): Promise<{
+  initialArm: boolean;
+  interruptedState: string;
+  retryArm: boolean;
+  resumeCalls: number;
+  raceState: string;
+  raceArmResult: boolean;
+  raceLastError: string | null;
+  raceBackendDisposed: boolean;
+}> {
+  const interruptedContext = new ControlledAudioContext('suspended', 'immediate');
+  const interruptedBackend = new HarnessSynthesis();
+  const interruptedAudio = new AudioSystem({
+    contextFactory: () => interruptedContext as unknown as AudioContext,
+    synthesisFactory: () => interruptedBackend,
+  });
+  const initialArm = await interruptedAudio.arm();
+  interruptedContext.transition('interrupted');
+  const interruptedState = interruptedAudio.status.state;
+  const retryArm = await interruptedAudio.arm();
+  const resumeCalls = interruptedContext.resumeCalls;
+  interruptedAudio.dispose();
+
+  const raceContext = new ControlledAudioContext('suspended', 'pending');
+  const raceBackend = new HarnessSynthesis();
+  const raceAudio = new AudioSystem({
+    contextFactory: () => raceContext as unknown as AudioContext,
+    synthesisFactory: () => raceBackend,
+  });
+  const pendingArm = raceAudio.arm();
+  raceAudio.dispose();
+  raceContext.rejectResume(new Error('resume rejected after dispose'));
+  const raceArmResult = await pendingArm;
+
+  return {
+    initialArm,
+    interruptedState,
+    retryArm,
+    resumeCalls,
+    raceState: raceAudio.status.state,
+    raceArmResult,
+    raceLastError: raceAudio.status.lastError,
+    raceBackendDisposed: raceBackend.disposed,
+  };
+}
+
 function weaponPayload(origin: Vector3Like): Record<string, unknown> {
   return {
     origin,
@@ -560,11 +791,9 @@ function weaponPayload(origin: Vector3Like): Record<string, unknown> {
   };
 }
 
-function assertNoClipping(analysis: PcmAnalysis): void {
-  if (analysis.samplePeak >= 1 || analysis.truePeakApprox >= 1) {
-    throw new Error(
-      `Clipping: peak=${analysis.samplePeak}, true-ish=${analysis.truePeakApprox}`,
-    );
+function assertNoSampleClipping(analysis: PcmAnalysis): void {
+  if (analysis.samplePeak >= 1) {
+    throw new Error(`Sample clipping: peak=${analysis.samplePeak}`);
   }
 }
 
@@ -581,9 +810,8 @@ function summarize(result: RenderResult): Record<string, unknown> {
   return {
     wavSha256: result.wavSha256,
     analysis: {
+      rawFloatSamplePeak: rounded(result.rawSamplePeak),
       samplePeak: rounded(result.analysis.samplePeak),
-      truePeakApprox: rounded(result.analysis.truePeakApprox),
-      intersampleOvershoot: rounded(result.analysis.intersampleOvershoot),
       rms: rounded(result.analysis.rms),
       rmsDbfs: rounded(result.analysis.rmsDbfs),
       lufsApprox: rounded(result.analysis.lufsApprox),

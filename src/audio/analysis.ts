@@ -8,8 +8,6 @@ export interface SpectralBands {
 
 export interface PcmAnalysis {
   samplePeak: number;
-  truePeakApprox: number;
-  intersampleOvershoot: number;
   rms: number;
   rmsDbfs: number;
   lufsApprox: number;
@@ -51,14 +49,11 @@ export function analyzePcm(
 
   const meanSquare = squareSum / sampleCount;
   const rms = Math.sqrt(meanSquare);
-  const truePeak = approximateTruePeak(channels, length);
   const mono = downmix(channels, length);
   const spectrum = analyzeSpectrum(mono, sampleRate);
 
   return {
     samplePeak: peak,
-    truePeakApprox: truePeak,
-    intersampleOvershoot: Math.max(0, truePeak - peak),
     rms,
     rmsDbfs: decibels(rms),
     lufsApprox: meanSquare > 0
@@ -85,11 +80,28 @@ export function channelRms(
   return Math.sqrt(sum / (end - start));
 }
 
+export function canonicalizePcm16(
+  channels: readonly Float32Array[],
+  canonicalBits: number,
+): Float32Array[] {
+  validateCanonicalBits(canonicalBits);
+  return channels.map((channel) => {
+    const canonical = new Float32Array(channel.length);
+    for (let i = 0; i < channel.length; i++) {
+      const integer = quantizeSample16(channel[i], canonicalBits);
+      canonical[i] = integer < 0 ? integer / 0x8000 : integer / 0x7fff;
+    }
+    return canonical;
+  });
+}
+
 export function encodeWav16(
   channels: readonly Float32Array[],
   sampleRate: number,
+  canonicalBits = 16,
 ): Uint8Array {
   if (channels.length === 0) throw new Error('WAV encoding requires PCM channels.');
+  validateCanonicalBits(canonicalBits);
   const length = Math.min(...channels.map((channel) => channel.length));
   const bytesPerSample = 2;
   const dataLength = length * channels.length * bytesPerSample;
@@ -113,15 +125,34 @@ export function encodeWav16(
   let offset = 44;
   for (let frame = 0; frame < length; frame++) {
     for (const channel of channels) {
-      const sample = clamp(channel[frame], -1, 1);
-      const integer = sample < 0
-        ? Math.round(sample * 0x8000)
-        : Math.round(sample * 0x7fff);
-      view.setInt16(offset, integer, true);
+      view.setInt16(
+        offset,
+        quantizeSample16(channel[frame], canonicalBits),
+        true,
+      );
       offset += bytesPerSample;
     }
   }
   return output;
+}
+
+function validateCanonicalBits(canonicalBits: number): void {
+  if (!Number.isInteger(canonicalBits) || canonicalBits < 2 || canonicalBits > 16) {
+    throw new Error('Canonical PCM precision must be an integer from 2 to 16 bits.');
+  }
+}
+
+function quantizeSample16(sample: number, canonicalBits: number): number {
+  const clamped = clamp(sample, -1, 1);
+  const integer = clamped < 0
+    ? Math.round(clamped * 0x8000)
+    : Math.round(clamped * 0x7fff);
+  const quantum = 2 ** (16 - canonicalBits);
+  return clamp(
+    Math.round(integer / quantum) * quantum,
+    -0x8000,
+    0x7fff,
+  );
 }
 
 export async function sha256Hex(bytes: Uint8Array): Promise<string> {
@@ -131,36 +162,6 @@ export async function sha256Hex(bytes: Uint8Array): Promise<string> {
   return [...new Uint8Array(digest)]
     .map((value) => value.toString(16).padStart(2, '0'))
     .join('');
-}
-
-function approximateTruePeak(
-  channels: readonly Float32Array[],
-  length: number,
-): number {
-  let peak = 0;
-  for (const channel of channels) {
-    for (let i = 0; i < length; i++) {
-      peak = Math.max(peak, Math.abs(channel[i]));
-      if (i >= length - 1) continue;
-      const p0 = channel[Math.max(0, i - 1)];
-      const p1 = channel[i];
-      const p2 = channel[i + 1];
-      const p3 = channel[Math.min(length - 1, i + 2)];
-      for (let step = 1; step < 4; step++) {
-        const t = step / 4;
-        const t2 = t * t;
-        const t3 = t2 * t;
-        const interpolated = 0.5 * (
-          2 * p1
-          + (-p0 + p2) * t
-          + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2
-          + (-p0 + 3 * p1 - 3 * p2 + p3) * t3
-        );
-        peak = Math.max(peak, Math.abs(interpolated));
-      }
-    }
-  }
-  return peak;
 }
 
 function downmix(

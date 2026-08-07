@@ -15,17 +15,35 @@ import {
   type BulletImpactPayload,
   type DamagePayload,
   type FootstepPayload,
+  type ListenerPose,
   type QuaternionLike,
   type SynthesisDiagnostics,
   type Vector3Like,
   type WeaponFiredPayload,
 } from './types.js';
 
+export interface AudioSynthesisBackend {
+  readonly diagnostics: SynthesisDiagnostics;
+  setListenerPose(pose: ListenerPose): void;
+  playWeaponFired(payload: unknown, when?: number): boolean;
+  playBulletImpact(payload: unknown, when?: number): boolean;
+  playFootstep(payload: unknown, when?: number): boolean;
+  playReloadStart(when?: number): boolean;
+  playReloadEnd(when?: number): boolean;
+  playDamage(payload: unknown, when?: number): boolean;
+  dispose(): void;
+}
+
 export interface AudioSystemOptions extends ProceduralAudioEngineOptions {
   contextFactory?: () => AudioContext;
+  synthesisFactory?: (
+    context: BaseAudioContext,
+    options: ProceduralAudioEngineOptions,
+  ) => AudioSynthesisBackend;
 }
 
 type StatusListener = (status: AudioStatus) => void;
+type ExtendedAudioContextState = AudioContextState | 'interrupted';
 
 const rotateVector = (
   vector: Vector3Like,
@@ -61,8 +79,9 @@ export class AudioSystem implements System {
   private readonly statusListeners = new Set<StatusListener>();
   private readonly unsubscribers: Array<() => void> = [];
   private context: AudioContext | null = null;
-  private synthesis: ProceduralAudioEngine | null = null;
+  private synthesis: AudioSynthesisBackend | null = null;
   private armState: AudioArmState = 'unarmed';
+  private armGeneration = 0;
   private droppedWhileUnarmed = 0;
   private malformedEvents = 0;
   private lastError: string | null = null;
@@ -146,41 +165,50 @@ export class AudioSystem implements System {
    */
   async arm(): Promise<boolean> {
     if (this.disposed || this.armState === 'closed') return false;
-    if (this.context?.state === 'running' && this.synthesis) {
+    if (
+      this.context
+      && this.contextState(this.context) === 'running'
+      && this.synthesis
+    ) {
       this.setState('armed');
       return true;
     }
 
+    const generation = ++this.armGeneration;
     this.lastError = null;
     this.setState('arming');
-    try {
-      if (!this.context) {
-        const context = this.options.contextFactory?.() ?? this.createContext();
+    let context = this.context;
+
+    if (!context) {
+      try {
+        context = this.options.contextFactory?.() ?? this.createContext();
+        if (!this.isCurrentArm(generation)) {
+          if (this.contextState(context) !== 'closed') void context.close();
+          return false;
+        }
         this.context = context;
         context.addEventListener('statechange', this.onContextStateChange);
-        this.synthesis = new ProceduralAudioEngine(context, this.options);
-      }
-
-      await this.context.resume();
-      if (this.context.state !== 'running') {
-        this.setState('suspended');
+        this.synthesis = this.options.synthesisFactory?.(context, this.options)
+          ?? new ProceduralAudioEngine(context, this.options);
+      } catch (error) {
+        if (!this.isCurrentArm(generation)) return false;
+        this.lastError = error instanceof Error ? error.message : String(error);
+        this.releaseContext(context);
+        this.setState('unavailable');
         return false;
       }
-
-      this.setState('armed');
-      return true;
-    } catch (error) {
-      this.lastError = error instanceof Error ? error.message : String(error);
-      this.synthesis?.dispose();
-      this.synthesis = null;
-      if (this.context) {
-        this.context.removeEventListener('statechange', this.onContextStateChange);
-        if (this.context.state !== 'closed') void this.context.close();
-      }
-      this.context = null;
-      this.setState('unavailable');
-      return false;
     }
+
+    try {
+      await context.resume();
+    } catch (error) {
+      if (!this.isCurrentArm(generation, context)) return false;
+      this.lastError = error instanceof Error ? error.message : String(error);
+      return this.applyContextState(context);
+    }
+
+    if (!this.isCurrentArm(generation, context)) return false;
+    return this.applyContextState(context);
   }
 
   subscribeStatus(listener: StatusListener): () => void {
@@ -192,14 +220,9 @@ export class AudioSystem implements System {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.armGeneration++;
     for (const unsubscribe of this.unsubscribers.splice(0)) unsubscribe();
-    this.synthesis?.dispose();
-    this.synthesis = null;
-    if (this.context) {
-      this.context.removeEventListener('statechange', this.onContextStateChange);
-      if (this.context.state !== 'closed') void this.context.close();
-      this.context = null;
-    }
+    this.releaseContext(this.context);
     this.setState('closed');
     this.statusListeners.clear();
   }
@@ -212,10 +235,11 @@ export class AudioSystem implements System {
     this.unsubscribers.push(bus.on<T>(event, listener));
   }
 
-  private schedule(play: (engine: ProceduralAudioEngine) => boolean): void {
+  private schedule(play: (engine: AudioSynthesisBackend) => boolean): void {
     if (
       this.armState !== 'armed'
-      || this.context?.state !== 'running'
+      || !this.context
+      || this.contextState(this.context) !== 'running'
       || !this.synthesis
     ) {
       this.droppedWhileUnarmed++;
@@ -240,14 +264,49 @@ export class AudioSystem implements System {
 
   private onContextStateChange = (): void => {
     if (this.disposed || !this.context) return;
-    if (this.context.state === 'running') {
-      this.setState('armed');
-    } else if (this.context.state === 'suspended') {
-      this.setState('suspended');
-    } else {
-      this.setState('closed');
-    }
+    this.applyContextState(this.context);
   };
+
+  private applyContextState(context: AudioContext): boolean {
+    const state = this.contextState(context);
+    if (state === 'running') {
+      this.setState('armed');
+      return true;
+    }
+    if (state === 'interrupted') {
+      this.setState('interrupted');
+      return false;
+    }
+    if (state === 'suspended') {
+      this.setState('suspended');
+      return false;
+    }
+    this.releaseContext(context);
+    this.setState('closed');
+    return false;
+  }
+
+  private contextState(context: AudioContext): ExtendedAudioContextState {
+    return (context as AudioContext & { state: ExtendedAudioContextState }).state;
+  }
+
+  private isCurrentArm(
+    generation: number,
+    context: AudioContext | null = this.context,
+  ): boolean {
+    return !this.disposed
+      && generation === this.armGeneration
+      && (context === null || this.context === context);
+  }
+
+  private releaseContext(context: AudioContext | null): void {
+    this.synthesis?.dispose();
+    this.synthesis = null;
+    if (!context) return;
+    context.removeEventListener('statechange', this.onContextStateChange);
+    if (this.context === context) this.context = null;
+    if (this.contextState(context) !== 'closed') void context.close();
+  }
 
   private setState(state: AudioArmState): void {
     if (this.armState === state) return;
