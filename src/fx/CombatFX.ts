@@ -7,9 +7,9 @@ import { MuzzleFlash } from './MuzzleFlash.js';
 
 export class CombatFX implements System {
   readonly name = 'fx';
-  private particles!: ParticleSystem;
-  private decals!: DecalSystem;
-  private flash!: MuzzleFlash;
+  public particles!: ParticleSystem;
+  public decals!: DecalSystem;
+  public flash!: MuzzleFlash;
   private unsubs: Array<() => void> = [];
 
   init(ctx: EngineContext): void {
@@ -23,9 +23,6 @@ export class CombatFX implements System {
       ),
       ctx.bus.on<{ point: THREE.Vector3; normal: THREE.Vector3; material: SurfaceKind }>(
         Events.BulletImpact, (e) => this.onImpact(e)
-      ),
-      ctx.bus.on<{ point: THREE.Vector3; direction: THREE.Vector3 }>(
-        Events.Damage, (e) => this.onDamage(e)
       )
     );
   }
@@ -37,12 +34,6 @@ export class CombatFX implements System {
   private onImpact(e: { point: THREE.Vector3; normal: THREE.Vector3; material: SurfaceKind }) {
     this.decals.emit(e.point, e.normal, e.material);
     this.particles.emit(e.point, e.normal, e.material);
-  }
-
-  private onDamage(_e: { point: THREE.Vector3; direction: THREE.Vector3 }) {
-    // Subtle screen response? Or just trigger a screen shake. 
-    // We could do a procedural vignette or simply emit a camera shake if we want.
-    // The prompt says "damage hit direction / subtle screen response only if it can be done through events without owning HUD;"
   }
 
   update(u: UpdateContext, _ctx: EngineContext): void {
@@ -57,6 +48,7 @@ export class CombatFX implements System {
     this.decals.dispose();
     this.flash.dispose();
   }
-  getParticleCount() { return (this.particles as any).activeCount; }
-  getDecalCount() { return (this.decals as any).getActiveCount(); }
+
+  getParticleCount() { return this.particles.activeCount; }
+  getDecalCount() { return this.decals.getActiveCount(); }
 }

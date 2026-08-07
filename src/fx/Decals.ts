@@ -1,11 +1,14 @@
 import * as THREE from 'three';
 import type { SurfaceKind } from '../core/contracts.js';
+import { random } from './RNG.js';
 
 const MAX_DECALS = 500;
 const _matrix = new THREE.Matrix4();
 const _position = new THREE.Vector3();
 const _scale = new THREE.Vector3();
 const _rotation = new THREE.Quaternion();
+const _zAxis = new THREE.Vector3(0, 0, 1);
+const _randomRoll = new THREE.Quaternion();
 
 interface DecalData {
   age: number;
@@ -13,9 +16,9 @@ interface DecalData {
 }
 
 export class DecalSystem {
-  private mesh: THREE.InstancedMesh;
+  public mesh: THREE.InstancedMesh;
   private data: DecalData[] = [];
-  private activeCount = 0;
+  public activeCount = 0;
   private material: THREE.ShaderMaterial;
 
   constructor(private scene: THREE.Scene) {
@@ -36,7 +39,6 @@ export class DecalSystem {
         varying vec2 vUv;
         varying float vAlpha;
         
-        // Simple 2D hash for noise
         float hash(vec2 p) {
           return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
         }
@@ -54,16 +56,10 @@ export class DecalSystem {
         
         void main() {
           vec2 p = vUv * 2.0 - 1.0;
-          
-          // Add noise to radius to make it jagged
           float n = noise(p * 8.0) * 0.2 + noise(p * 16.0) * 0.1;
           float d = length(p) + n - 0.15;
-          
           float alpha = smoothstep(0.8, 0.6, d) * vAlpha;
-          
-          // Crater edge
           vec3 color = mix(vec3(0.0), vec3(0.15), smoothstep(0.1, 0.5, d));
-          
           if (alpha < 0.01) discard;
           gl_FragColor = vec4(color, alpha);
         }
@@ -72,6 +68,7 @@ export class DecalSystem {
       depthWrite: false,
       polygonOffset: true,
       polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
     });
 
     const alphas = new Float32Array(MAX_DECALS);
@@ -88,23 +85,20 @@ export class DecalSystem {
   }
 
   emit(point: THREE.Vector3, normal: THREE.Vector3, kind: SurfaceKind) {
-    if (kind === 'water' || kind === 'air' as any) return;
-    
+    if (kind === 'water') return;
     if (this.activeCount >= MAX_DECALS) return;
+    
     const idx = this.activeCount++;
     
     this.data[idx].age = 0;
     this.data[idx].life = 10.0;
     
     _position.copy(point);
-    // Push slightly along normal to prevent z-fighting alongside polygonOffset
-    _position.addScaledVector(normal, 0.001);
+    _rotation.setFromUnitVectors(_zAxis, normal);
+    _randomRoll.setFromAxisAngle(normal, random() * Math.PI * 2);
+    _rotation.premultiply(_randomRoll);
     
-    _rotation.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
-    const randomRoll = new THREE.Quaternion().setFromAxisAngle(normal, Math.random() * Math.PI * 2);
-    _rotation.premultiply(randomRoll);
-    
-    const s = 0.15 + Math.random() * 0.1;
+    const s = 0.15 + random() * 0.1;
     _scale.set(s, s, s);
     
     _matrix.compose(_position, _rotation, _scale);
@@ -152,6 +146,7 @@ export class DecalSystem {
 
   dispose() {
     this.scene.remove(this.mesh);
+    this.mesh.dispose();
     this.mesh.geometry.dispose();
     this.material.dispose();
   }

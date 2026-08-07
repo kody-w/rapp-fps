@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { SurfaceKind } from '../core/contracts.js';
+import { random } from './RNG.js';
 
 const MAX_PARTICLES = 4000;
 const _matrix = new THREE.Matrix4();
@@ -31,16 +32,11 @@ const SURFACE_PARAMS: Record<SurfaceKind, ParticleParams> = {
   fabric: { color: new THREE.Color(0xaaaaaa), emissive: 0, size: 0.04, gravity: 2, drag: 6, life: 1.5, count: 5, speed: 2 },
 };
 
-// Deterministic random
-let seed = 12345;
-function random() {
-  seed = (seed * 1664525 + 1013904223) | 0;
-  return (seed >>> 0) / 4294967296;
-}
-export function setSeed(s: number) { seed = s; }
+const _tangent = new THREE.Vector3();
+const _bitangent = new THREE.Vector3();
 
 export class ParticleSystem {
-  private mesh: THREE.InstancedMesh;
+  public mesh: THREE.InstancedMesh;
   private colors: Float32Array;
   private positions = new Float32Array(MAX_PARTICLES * 3);
   private velocities = new Float32Array(MAX_PARTICLES * 3);
@@ -49,9 +45,8 @@ export class ParticleSystem {
   private drags = new Float32Array(MAX_PARTICLES);
   private gravities = new Float32Array(MAX_PARTICLES);
   private baseSizes = new Float32Array(MAX_PARTICLES);
-  private activeCount = 0;
+  public activeCount = 0;
   
-  // Custom shader for emissive per instance
   private material: THREE.ShaderMaterial;
 
   constructor(private scene: THREE.Scene) {
@@ -85,14 +80,15 @@ export class ParticleSystem {
   }
 
   emit(point: THREE.Vector3, normal: THREE.Vector3, kind: SurfaceKind) {
+    if (this.activeCount >= MAX_PARTICLES) return;
+    
     const params = SURFACE_PARAMS[kind] || SURFACE_PARAMS.concrete;
     const count = params.count;
     
-    // Basis vectors for normal-aligned hemisphere
-    const tangent = new THREE.Vector3(1, 0, 0);
-    if (Math.abs(normal.x) > 0.9) tangent.set(0, 1, 0);
-    tangent.cross(normal).normalize();
-    const bitangent = new THREE.Vector3().crossVectors(normal, tangent);
+    _tangent.set(1, 0, 0);
+    if (Math.abs(normal.x) > 0.9) _tangent.set(0, 1, 0);
+    _tangent.cross(normal).normalize();
+    _bitangent.crossVectors(normal, _tangent);
 
     for (let i = 0; i < count; i++) {
       if (this.activeCount >= MAX_PARTICLES) break;
@@ -102,22 +98,20 @@ export class ParticleSystem {
       this.positions[idx * 3 + 1] = point.y;
       this.positions[idx * 3 + 2] = point.z;
 
-      // Random direction in hemisphere
       const u = random();
       const v = random();
       const theta = u * 2.0 * Math.PI;
-      const phi = Math.acos(v); // 0 to pi/2 for hemisphere
+      const phi = Math.acos(v);
       const sinPhi = Math.sin(phi);
       
       const dirX = sinPhi * Math.cos(theta);
       const dirY = Math.cos(phi);
       const dirZ = sinPhi * Math.sin(theta);
       
-      // Transform direction to align with normal
       const speed = params.speed * (0.5 + 0.5 * random());
-      this.velocities[idx * 3] = (tangent.x * dirX + normal.x * dirY + bitangent.x * dirZ) * speed;
-      this.velocities[idx * 3 + 1] = (tangent.y * dirX + normal.y * dirY + bitangent.y * dirZ) * speed;
-      this.velocities[idx * 3 + 2] = (tangent.z * dirX + normal.z * dirY + bitangent.z * dirZ) * speed;
+      this.velocities[idx * 3] = (_tangent.x * dirX + normal.x * dirY + _bitangent.x * dirZ) * speed;
+      this.velocities[idx * 3 + 1] = (_tangent.y * dirX + normal.y * dirY + _bitangent.y * dirZ) * speed;
+      this.velocities[idx * 3 + 2] = (_tangent.z * dirX + normal.z * dirY + _bitangent.z * dirZ) * speed;
 
       this.ages[idx] = 0;
       this.lifetimes[idx] = params.life * (0.8 + 0.4 * random());
@@ -125,9 +119,8 @@ export class ParticleSystem {
       this.gravities[idx] = params.gravity;
       this.baseSizes[idx] = params.size * (0.8 + 0.4 * random());
 
-      // Pack emissive info into color by boosting values
       const c = params.color;
-      const m = 1.0 + params.emissive * 5.0; // bloom boost
+      const m = 1.0 + params.emissive * 5.0;
       this.colors[idx * 3] = c.r * m;
       this.colors[idx * 3 + 1] = c.g * m;
       this.colors[idx * 3 + 2] = c.b * m;
@@ -143,7 +136,6 @@ export class ParticleSystem {
       this.ages[i] += dt;
       if (this.ages[i] < this.lifetimes[i]) {
         if (i !== alive) {
-          // Compact array
           for(let j=0; j<3; j++) {
             this.positions[alive * 3 + j] = this.positions[i * 3 + j];
             this.velocities[alive * 3 + j] = this.velocities[i * 3 + j];
@@ -156,7 +148,6 @@ export class ParticleSystem {
           this.baseSizes[alive] = this.baseSizes[i];
         }
         
-        // Physics update
         this.velocities[alive * 3 + 1] -= this.gravities[alive] * dt;
         const drag = Math.exp(-this.drags[alive] * dt);
         this.velocities[alive * 3] *= drag;
@@ -167,12 +158,11 @@ export class ParticleSystem {
         this.positions[alive * 3 + 1] += this.velocities[alive * 3 + 1] * dt;
         this.positions[alive * 3 + 2] += this.velocities[alive * 3 + 2] * dt;
         
-        // Matrix update
         const lifeRatio = this.ages[alive] / this.lifetimes[alive];
-        const s = this.baseSizes[alive] * (1.0 - lifeRatio * lifeRatio); // shrink
+        const s = this.baseSizes[alive] * (1.0 - lifeRatio * lifeRatio);
         _position.set(this.positions[alive*3], this.positions[alive*3+1], this.positions[alive*3+2]);
         _scale.set(s, s, s);
-        _rotation.identity(); // Could add tumbling
+        _rotation.identity();
         _matrix.compose(_position, _rotation, _scale);
         this.mesh.setMatrixAt(alive, _matrix);
         
@@ -188,6 +178,7 @@ export class ParticleSystem {
 
   dispose() {
     this.scene.remove(this.mesh);
+    this.mesh.dispose();
     this.mesh.geometry.dispose();
     this.material.dispose();
   }

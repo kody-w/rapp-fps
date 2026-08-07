@@ -3,9 +3,14 @@ import { Engine } from '../core/engine.js';
 import { RenderSystem } from '../render/RenderSystem.js';
 import { TestLevel } from '../level/TestLevel.js';
 import { CombatFX } from './CombatFX.js';
-import { setSeed } from './Particles.js';
+import { setSeed, random } from './RNG.js';
 import { Events } from '../core/contracts.js';
 import type { SurfaceKind, UpdateContext } from '../core/contracts.js';
+
+const SURFACES: SurfaceKind[] = ['concrete', 'metal', 'wood', 'sand', 'glass', 'flesh', 'foliage', 'water', 'dirt', 'fabric'];
+let activeShot = '';
+let shotFrame = 0;
+let sustainedLoad = true;
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const engine = new Engine(canvas);
@@ -24,7 +29,7 @@ addEventListener('keyup', (e) => held.delete(e.code));
 
 const render = new RenderSystem();
 const level = new TestLevel();
-const fx = new CombatFX();
+let fx = new CombatFX();
 
 engine.add(render);
 engine.add(level);
@@ -33,9 +38,54 @@ engine.add(fx);
 await engine.init();
 
 engine.renderer.info.autoReset = false;
-engine.present = (_u: UpdateContext) => {
+engine.present = (u: UpdateContext) => {
   const info = engine.renderer.info;
   info.reset();
+  
+  if (sustainedLoad) {
+    for (let i = 0; i < 10; i++) {
+      const px = -2 + (random() * 8 - 4);
+      const py = 1.7 + (random() * 3 - 1.5);
+      engine.bus.emit(Events.BulletImpact, {
+        point: new THREE.Vector3(px, py, -12.8),
+        normal: new THREE.Vector3(0, 0, 1),
+        material: SURFACES[Math.floor(random() * SURFACES.length)],
+        distance: 10
+      });
+    }
+  }
+
+  shotFrame++;
+  if (activeShot && activeShot !== 'stress' && activeShot !== 'sustained-fire' && !sustainedLoad) {
+    if (shotFrame % 5 === 0 && SURFACES.includes(activeShot as SurfaceKind)) {
+      const px = -2 + (random() * 4 - 2);
+      const py = 1.7 + (random() * 2 - 1);
+      engine.bus.emit(Events.BulletImpact, {
+        point: new THREE.Vector3(px, py, -12.8),
+        normal: new THREE.Vector3(0, 0, 1),
+        material: activeShot as SurfaceKind,
+        distance: 10
+      });
+      engine.bus.emit(Events.WeaponFired, {
+        origin: new THREE.Vector3(px, py, -10),
+        direction: new THREE.Vector3(0, 0, -1)
+      });
+    }
+  } else if (activeShot === 'sustained-fire' && !sustainedLoad) {
+    if (shotFrame % 2 === 0) {
+      for (let i = 0; i < 10; i++) {
+        const px = -2 + (random() * 8 - 4);
+        const py = 1.7 + (random() * 3 - 1.5);
+        engine.bus.emit(Events.BulletImpact, {
+          point: new THREE.Vector3(px, py, -12.8),
+          normal: new THREE.Vector3(0, 0, 1),
+          material: SURFACES[Math.floor(random() * SURFACES.length)],
+          distance: 10
+        });
+      }
+    }
+  }
+
   render.render();
   (window as any).__SCENE_STATS__ = {
     drawCallsPerFrame: info.render.calls,
@@ -61,12 +111,19 @@ const markReady = () => {
 };
 requestAnimationFrame(markReady);
 
-// --- Shot Hooks ---
-let activeShot = '';
-let shotFrame = 0;
+
 (window as any).__SHOT__ = (name: string) => {
+  sustainedLoad = false;
   activeShot = name;
   shotFrame = 0;
+  
+  fx.dispose();
+  const sys = (engine as any).systems as any[];
+  sys.splice(sys.indexOf(fx), 1);
+  fx = new CombatFX();
+  engine.add(fx);
+  fx.init(engine as any);
+  
   setSeed(12345);
   console.log(`Starting shot: ${name}`);
   
@@ -75,98 +132,67 @@ let shotFrame = 0;
   }
 };
 
-const SURFACES: SurfaceKind[] = ['concrete', 'metal', 'wood', 'sand', 'glass', 'flesh', 'foliage', 'water', 'dirt', 'fabric'];
-
-// We hook into update via EventBus or just patching engine.update?
-// Actually we can just run an update listener since we have the bus, or we can patch engine.present.
-const originalPresent = engine.present;
-engine.present = (_u: UpdateContext) => {
-  shotFrame++;
-  if (activeShot && activeShot !== 'stress' && activeShot !== 'sustained-fire') {
-    // Emit one impact every 5 frames so we get a trail
-    if (shotFrame % 5 === 0 && SURFACES.includes(activeShot as SurfaceKind)) {
-      // Wall is at z = -13 from TestLevel
-      // Let's emit on the wall
-      const px = -2 + (Math.random() * 4 - 2);
-      const py = 1.7 + (Math.random() * 2 - 1);
-      engine.bus.emit(Events.BulletImpact, {
-        point: new THREE.Vector3(px, py, -12.8),
-        normal: new THREE.Vector3(0, 0, 1),
-        material: activeShot as SurfaceKind,
-        distance: 10
-      });
-      engine.bus.emit(Events.WeaponFired, {
-        origin: new THREE.Vector3(px, py, -10),
-        direction: new THREE.Vector3(0, 0, -1)
-      });
-    }
-  } else if (activeShot === 'sustained-fire') {
-    // Emit heavily
-    if (shotFrame % 2 === 0) {
-      for (let i = 0; i < 10; i++) {
-        const px = -2 + (Math.random() * 8 - 4);
-        const py = 1.7 + (Math.random() * 3 - 1.5);
-        engine.bus.emit(Events.BulletImpact, {
-          point: new THREE.Vector3(px, py, -12.8),
-          normal: new THREE.Vector3(0, 0, 1),
-          material: SURFACES[Math.floor(Math.random() * SURFACES.length)],
-          distance: 10
-        });
-      }
-    }
-  }
-  originalPresent!(_u);
-};
-
 function runStressTest() {
   console.log('Running stress test...');
-  // Warmup
+  
   for (let i = 0; i < 50; i++) {
-    engine.bus.emit(Events.BulletImpact, {
-      point: new THREE.Vector3(0, 0, 0), normal: new THREE.Vector3(0,1,0),
-      material: 'concrete', distance: 10
-    });
+    engine.bus.emit(Events.BulletImpact, { point: new THREE.Vector3(0,0,0), normal: new THREE.Vector3(0,1,0), material: 'concrete', distance: 10 });
   }
-  
-  // Render one frame to compile shaders
   engine.present!({ dt: 0.1, elapsed: 0, frame: 0, alpha: 1 });
-  const initGeos = engine.renderer.info.memory.geometries;
-    
-  console.log(`Warmup done. Geos: ${initGeos}`);
   
-  // 500 impacts
+  const initGeos = engine.renderer.info.memory.geometries;
+  
   for (let i = 0; i < 500; i++) {
-    engine.bus.emit(Events.BulletImpact, {
-      point: new THREE.Vector3(0, 0, 0), normal: new THREE.Vector3(0,1,0),
-      material: 'metal', distance: 10
-    });
+    engine.bus.emit(Events.BulletImpact, { point: new THREE.Vector3(0,0,0), normal: new THREE.Vector3(0,1,0), material: 'metal', distance: 10 });
   }
   
-  // Update manually or render to let things process
   fx.update({ dt: 0.1, elapsed: 0, frame: 0, alpha: 1 }, engine as any);
   engine.present!({ dt: 0.1, elapsed: 0, frame: 0, alpha: 1 });
   
+  if (fx.getParticleCount() !== 4000) throw new Error(`Expected exactly 4000 particles, got ${fx.getParticleCount()}`);
+  if (fx.getDecalCount() !== 500) throw new Error(`Expected exactly 500 decals, got ${fx.getDecalCount()}`);
+  
   const curGeos = engine.renderer.info.memory.geometries;
-  
-  const particleCount = fx.getParticleCount();
-  const decalCount = fx.getDecalCount();
-  
-  console.log(`After 500 impacts. Active Particles: ${particleCount}, Active Decals: ${decalCount}, Geos: ${curGeos}`);
-  
-  if (particleCount > 4000) throw new Error(`Particle count ${particleCount} exceeded cap`);
-  if (decalCount > 500) throw new Error(`Decal count ${decalCount} exceeded cap`);
   if (curGeos > initGeos) throw new Error(`Geometry count grew from ${initGeos} to ${curGeos}`);
   
-  // Let time pass so they expire
   fx.update({ dt: 15.0, elapsed: 15, frame: 0, alpha: 1 }, engine as any);
+  engine.present!({ dt: 0.1, elapsed: 0, frame: 0, alpha: 1 });
+  if (fx.getParticleCount() !== 0) throw new Error('Particles did not expire');
+  if (fx.getDecalCount() !== 0) throw new Error('Decals did not expire');
   
-  const endParticleCount = fx.getParticleCount();
-  const endDecalCount = fx.getDecalCount();
-  console.log(`After 15s. Active Particles: ${endParticleCount}, Active Decals: ${endDecalCount}`);
+  setSeed(100);
+  fx.dispose();
+  fx = new CombatFX();
+  fx.init(engine as any);
+  engine.bus.emit(Events.BulletImpact, { point: new THREE.Vector3(0,0,0), normal: new THREE.Vector3(0,1,0), material: 'concrete', distance: 10 });
+  fx.update({ dt: 0.1, elapsed: 0, frame: 0, alpha: 1 }, engine as any);
+  const matrixA = new THREE.Matrix4();
+  fx.decals.mesh.getMatrixAt(0, matrixA);
   
-  if (endParticleCount !== 0) throw new Error(`Particles did not expire, count is ${endParticleCount}`);
-  if (endDecalCount !== 0) throw new Error(`Decals did not expire, count is ${endDecalCount}`);
+  setSeed(100);
+  fx.dispose();
+  fx = new CombatFX();
+  fx.init(engine as any);
+  engine.bus.emit(Events.BulletImpact, { point: new THREE.Vector3(0,0,0), normal: new THREE.Vector3(0,1,0), material: 'concrete', distance: 10 });
+  fx.update({ dt: 0.1, elapsed: 0, frame: 0, alpha: 1 }, engine as any);
+  const matrixB = new THREE.Matrix4();
+  fx.decals.mesh.getMatrixAt(0, matrixB);
   
+  for(let i=0; i<16; i++) {
+    if (matrixA.elements[i] !== matrixB.elements[i]) throw new Error('Determinism failed: identical seeds produced different matrices');
+  }
+
+  fx.dispose();
+  fx = new CombatFX();
+  fx.init(engine as any);
+  engine.bus.emit(Events.WeaponFired, { origin: new THREE.Vector3(0,0,0), direction: new THREE.Vector3(1,0,0) });
+  fx.update({ dt: 0.25, elapsed: 0, frame: 0, alpha: 1 }, engine as any);
+  if (!(fx.flash as any).light.visible) throw new Error('Muzzle flash expired before first render frame');
+  
+  engine.present!({ dt: 0.25, elapsed: 0, frame: 0, alpha: 1 });
+  fx.update({ dt: 0.1, elapsed: 0, frame: 0, alpha: 1 }, engine as any);
+  if ((fx.flash as any).light.visible) throw new Error('Muzzle flash did not expire after render');
+
   console.log('Stress test passed.');
   (window as any).STRESS_PASSED = true;
 }
