@@ -1,0 +1,217 @@
+{
+  "commit": "4385736",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "method": "median of 3 independent 200-frame captures; first 20 frames discarded per capture",
+  "rows": [
+    {
+      "name": "default",
+      "query": "(none)",
+      "medianMs": 6.5,
+      "p95Ms": 6.9,
+      "medianRange": [
+        6.5,
+        5.6,
+        6.5
+      ],
+      "p95Range": [
+        7,
+        6.9,
+        6.9
+      ],
+      "drawCalls": 87,
+      "textures": 35,
+      "consoleErrors": 0
+    },
+    {
+      "name": "ibl-off",
+      "query": "?env=0",
+      "medianMs": 6.3,
+      "p95Ms": 6.8,
+      "medianRange": [
+        5.5,
+        6.3,
+        6.3
+      ],
+      "p95Range": [
+        6.8,
+        6.9,
+        6.7
+      ],
+      "drawCalls": 87,
+      "textures": 35,
+      "consoleErrors": 0
+    },
+    {
+      "name": "ao-full",
+      "query": "?ao=full",
+      "medianMs": 11.9,
+      "p95Ms": 13.1,
+      "medianRange": [
+        11.9,
+        11.7,
+        12.2
+      ],
+      "p95Range": [
+        13.1,
+        13,
+        16.7
+      ],
+      "drawCalls": 86,
+      "textures": 33,
+      "consoleErrors": 0
+    },
+    {
+      "name": "ao-off",
+      "query": "?ao=off",
+      "medianMs": 7.9,
+      "p95Ms": 17.8,
+      "medianRange": [
+        7.9,
+        7.9,
+        8
+      ],
+      "p95Range": [
+        14.3,
+        17.8,
+        21.7
+      ],
+      "drawCalls": 80,
+      "textures": 28,
+      "consoleErrors": 0
+    },
+    {
+      "name": "aa-off",
+      "query": "?aa=off",
+      "medianMs": 5.3,
+      "p95Ms": 6.3,
+      "medianRange": [
+        10.3,
+        5.3,
+        5.3
+      ],
+      "p95Range": [
+        16.6,
+        6.2,
+        6.3
+      ],
+      "drawCalls": 84,
+      "textures": 31,
+      "consoleErrors": 0
+    },
+    {
+      "name": "aa-high",
+      "query": "?aa=high",
+      "medianMs": 6.5,
+      "p95Ms": 6.9,
+      "medianRange": [
+        6.5,
+        6.5,
+        6.5
+      ],
+      "p95Range": [
+        6.9,
+        6.9,
+        6.9
+      ],
+      "drawCalls": 87,
+      "textures": 35,
+      "consoleErrors": 0
+    },
+    {
+      "name": "bloom-large",
+      "query": "?bloom=large",
+      "medianMs": 6.5,
+      "p95Ms": 6.9,
+      "medianRange": [
+        6.5,
+        6.5,
+        6.5
+      ],
+      "p95Range": [
+        7,
+        6.9,
+        6.9
+      ],
+      "drawCalls": 91,
+      "textures": 39,
+      "consoleErrors": 0
+    },
+    {
+      "name": "bloom-medium",
+      "query": "?bloom=medium",
+      "medianMs": 6.5,
+      "p95Ms": 6.9,
+      "medianRange": [
+        6.4,
+        6.5,
+        6.5
+      ],
+      "p95Range": [
+        7,
+        6.9,
+        6.9
+      ],
+      "drawCalls": 87,
+      "textures": 35,
+      "consoleErrors": 0
+    },
+    {
+      "name": "bloom-small",
+      "query": "?bloom=small",
+      "medianMs": 6.5,
+      "p95Ms": 6.8,
+      "medianRange": [
+        6.5,
+        6.5,
+        6.5
+      ],
+      "p95Range": [
+        6.8,
+        6.8,
+        6.8
+      ],
+      "drawCalls": 83,
+      "textures": 31,
+      "consoleErrors": 0
+    },
+    {
+      "name": "bloom-off",
+      "query": "?bloom=off",
+      "medianMs": 5.3,
+      "p95Ms": 6.4,
+      "medianRange": [
+        5.3,
+        5.4,
+        5.3
+      ],
+      "p95Range": [
+        6.4,
+        6.6,
+        6.4
+      ],
+      "drawCalls": 75,
+      "textures": 23,
+      "consoleErrors": 0
+    },
+    {
+      "name": "lens-off",
+      "query": "?lens=0",
+      "medianMs": 6.5,
+      "p95Ms": 6.9,
+      "medianRange": [
+        6.5,
+        6.5,
+        6.5
+      ],
+      "p95Range": [
+        6.9,
+        7.1,
+        6.9
+      ],
+      "drawCalls": 87,
+      "textures": 35,
+      "consoleErrors": 0
+    }
+  ]
+}

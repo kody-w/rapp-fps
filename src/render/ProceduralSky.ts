@@ -19,9 +19,10 @@
  * coherence whose absence reads as "CG" without anyone being able to say why.
  *
  * The bake is one-time. At runtime this adds zero fullscreen passes, but the
- * materials do sample the environment texture; measured cost was ~0.1ms on the
- * M4 (6.2ms default versus 6.1ms with the environment disabled). That is small,
- * not free, and the distinction matters in a 16.7ms budget.
+ * materials do sample the environment texture. Three current trials measured
+ * 6.5ms default versus 6.3ms with IBL disabled while holding the sky constant,
+ * inside the harness's ~0.9ms run-to-run range. The cost is below the current
+ * instrument's resolution, not proven zero.
  */
 
 import * as THREE from 'three';

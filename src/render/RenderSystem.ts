@@ -9,9 +9,10 @@
  *     reflect read as coloured plastic; a floor under a black void reads as
  *     paper on a desk. Image-based lighting from a real (here: procedurally
  *     generated) environment is the difference between "PBR materials" and
- *     "materials that are somewhere". It adds no fullscreen pass and measured
- *     ~0.1ms on the M4 (6.2ms default versus 6.1ms with `?env=0`), which is why
- *     it leads this list ahead of effects that cost whole milliseconds.
+ *     "materials that are somewhere". It adds no fullscreen pass; three current
+ *     trials measured 6.5ms default versus 6.3ms with IBL off, inside the
+ *     harness's ~0.9ms run-to-run range. Its steady-state cost is therefore
+ *     below this instrument's resolution, not "free."
  *  1. Anti-aliasing that survives motion. Jagged specular crawling on gun
  *     edges is the single loudest "this is a demo" signal.
  *  2. Ambient occlusion. Without contact darkening, everything looks like it
@@ -161,8 +162,9 @@ export class RenderSystem implements System {
     // The single largest visual change per millisecond spent: a procedurally
     // baked sky gives the metals something real to reflect and the floor a sky
     // to catch at grazing angles. It adds no fullscreen pass and measured
-    // ~0.1ms rather than the zero originally claimed. Built before the passes
-    // so material sampling is live from frame one.
+    // 0.2ms in the current median-of-three matrix, inside the harness's 0.9ms
+    // run-to-run range — below measurement resolution, not free. Built before
+    // the passes so material sampling is live from frame one.
     // Generate when either consumer needs it. `env=0` now disables only IBL,
     // while retaining the same sky background, so the benchmark changes one
     // axis rather than changing both lighting and background geometry.
@@ -188,7 +190,8 @@ export class RenderSystem implements System {
     // first-person motion, where the standard implementation swims visibly.
     // Half-resolution by default — see the budget commit; at 1080p the full-res
     // pass is the single most expensive thing in the frame and the half-res
-    // result is indistinguishable once the denoise runs.
+    // result showed no visible difference in the static calibration capture
+    // once denoised. Temporal stability in motion remains unverified.
     if (cfg.ao !== 'off') {
       this.ao = new N8AOPostPass(scene, camera, window.innerWidth, window.innerHeight);
       this.ao.configuration.aoRadius = 1.4;
