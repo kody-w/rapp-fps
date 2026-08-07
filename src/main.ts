@@ -9,6 +9,9 @@ import * as THREE from 'three';
 import { Engine } from './core/engine.js';
 import { RenderSystem } from './render/RenderSystem.js';
 import { TestLevel } from './level/TestLevel.js';
+import { CombatFX } from './fx/CombatFX.js';
+import { AudioSystem } from './audio/AudioSystem.js';
+import { CombatHud } from './hud/CombatHud.js';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const engine = new Engine(canvas);
@@ -28,8 +31,33 @@ addEventListener('keydown', (e) => { if (!held.has(e.code)) edge.add(e.code); he
 addEventListener('keyup', (e) => held.delete(e.code));
 
 const render = new RenderSystem();
+const fx = new CombatFX();
+const audio = new AudioSystem();
+const hud = new CombatHud({
+  playerId: 'player',
+  profiler: {
+    snapshot: () => engine.profiler.snapshot(),
+    drawCalls: () => {
+      const stats = (window as unknown as {
+        __SCENE_STATS__?: { drawCallsPerFrame?: number };
+      }).__SCENE_STATS__;
+      return stats?.drawCallsPerFrame ?? null;
+    },
+  },
+});
+
+// Development-only mutation seam for the integration verifier. Production
+// builds always register all three; Vite folds `import.meta.env.DEV` to false.
+const integrationOmit = import.meta.env.DEV
+  ? new URLSearchParams(location.search).get('integrationOmit')
+  : null;
+const enabled = (name: 'fx' | 'audio' | 'hud'): boolean => integrationOmit !== name;
+
 engine.add(render);
 engine.add(new TestLevel());
+if (enabled('fx')) engine.add(fx);
+if (enabled('audio')) engine.add(audio);
+if (enabled('hud')) engine.add(hud);
 
 await engine.init();
 
@@ -57,6 +85,31 @@ engine.present = () => {
 
 engine.start();
 
+// Web Audio may only start from a real user gesture. Keep the listeners until
+// arming actually succeeds; a suspended/interrupted context is retryable.
+hud.setInteraction({ action: 'ENABLE AUDIO', binding: 'CLICK' });
+const removeAudioArmListeners = (): void => {
+  removeEventListener('pointerdown', armAudio);
+  removeEventListener('keydown', armAudio);
+};
+const armAudio = (): void => {
+  void audio.arm().then((armed) => {
+    document.documentElement.dataset.audio = audio.status.state;
+    if (armed) {
+      hud.setInteraction(null);
+      removeAudioArmListeners();
+    }
+  });
+};
+addEventListener('pointerdown', armAudio);
+addEventListener('keydown', armAudio);
+audio.subscribeStatus((status) => {
+  document.documentElement.dataset.audio = status.state;
+  if (status.state === 'unavailable') {
+    hud.setInteraction({ action: 'AUDIO UNAVAILABLE', binding: '' });
+  }
+});
+
 // Clear edge-triggered input after every frame, once, in one place.
 const clearEdges = () => { edge.clear(); requestAnimationFrame(clearEdges); };
 requestAnimationFrame(clearEdges);
@@ -74,4 +127,13 @@ const markReady = () => {
 };
 requestAnimationFrame(markReady);
 
-Object.assign(window as unknown as Record<string, unknown>, { engine, THREE });
+Object.assign(window as unknown as Record<string, unknown>, {
+  engine,
+  THREE,
+  __INTEGRATION__: { fx, audio, hud },
+});
+
+addEventListener('pagehide', () => {
+  removeAudioArmListeners();
+  engine.dispose();
+}, { once: true });

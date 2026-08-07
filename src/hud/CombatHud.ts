@@ -9,12 +9,12 @@ import type { ProfilerSnapshot } from '../core/profiler.js';
 import './hud.css';
 
 export const HudEvents = {
-  WeaponStatus: 'weapon:status',
-  PlayerStatus: 'player:status',
-  HitConfirmed: 'combat:hit-confirm',
-  Elimination: 'combat:elimination',
-  ObjectiveChanged: 'hud:objective',
-  InteractionChanged: 'hud:interaction',
+  WeaponStatus: Events.WeaponStatus,
+  PlayerStatus: Events.PlayerStatus,
+  HitConfirmed: Events.HitConfirmed,
+  Elimination: Events.Elimination,
+  ObjectiveChanged: Events.ObjectiveChanged,
+  InteractionChanged: Events.InteractionChanged,
 } as const;
 
 export interface Vector3Like {
