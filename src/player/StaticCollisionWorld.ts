@@ -188,8 +188,13 @@ export class StaticCollisionWorld {
         options.height,
         options.radius,
       ).contacts;
+      const snapHorizontalDrift = Math.hypot(
+        snapped.x - chosen.x,
+        snapped.z - chosen.z,
+      );
 
       if (hasWalkableContact(snapContacts, options.minGroundNormalY)
+        && snapHorizontalDrift <= COLLISION_EPSILON
         && snapped.y <= chosen.y + COLLISION_EPSILON) {
         chosen = snapped;
         allContacts.push(...snapContacts);

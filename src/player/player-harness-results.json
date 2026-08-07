@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-07T16:05:17.792Z",
+  "generatedAt": "2026-08-07T20:11:28.518Z",
   "fixedStepHz": 120,
   "targets": {
     "walkSpeedMetersPerSecond": 5.4,
@@ -11,25 +11,25 @@
   "measurements": {
     "timeTo95PercentWalkSpeedSeconds": 0.158333,
     "stopTimeSeconds": 0.191667,
-    "stoppingDistanceMeters": 0.494613,
+    "stoppingDistanceMeters": 0.498333,
     "jumpApexMeters": 1.020628,
     "jumpAirTimeSeconds": 0.558333,
     "landingImpactMetersPerSecond": 6.700704,
     "airStrafeVelocityMetersPerSecond": 1.250667,
     "crouchTransitionSeconds": 0.125,
-    "crouchTopSpeedMetersPerSecond": 2.623943,
+    "crouchTopSpeedMetersPerSecond": 2.65,
     "sprintStaminaAfterTwoSeconds": 0.444444,
-    "sprintSpeedAfterTwoSeconds": 7.488087,
+    "sprintSpeedAfterTwoSeconds": 7.5,
     "stepPeakFeetHeightMeters": 0.3,
-    "stepFinalZMeters": 1.414594,
-    "stepClearedObstacle": false,
+    "stepFinalZMeters": -4.693618,
+    "stepClearedObstacle": true,
     "wallFinalZMeters": 0.59,
     "determinismPositionDeltaMeters": 0,
     "determinismVelocityDeltaMetersPerSecond": 0,
-    "fixedTickCostMicroseconds": 6.841667,
-    "estimatedPlayerCostAt60FpsMilliseconds": 0.013683,
-    "footstepEvents": 17,
-    "landedEvents": 1
+    "fixedTickCostMicroseconds": 6.608333,
+    "estimatedPlayerCostAt60FpsMilliseconds": 0.013217,
+    "footstepEvents": 21,
+    "landedEvents": 2
   },
   "assertions": [
     {
@@ -47,7 +47,7 @@
     {
       "name": "stopping distance remains under one body length",
       "passed": true,
-      "actual": 0.494612631772,
+      "actual": 0.498333333333,
       "expected": "0.35–0.75 m"
     },
     {
@@ -71,7 +71,7 @@
     {
       "name": "crouch has a real movement cost",
       "passed": true,
-      "actual": 2.623942879224,
+      "actual": 2.65,
       "expected": "2.50–2.75 m/s"
     },
     {
@@ -83,7 +83,7 @@
     {
       "name": "sprint reaches its tuned top speed",
       "passed": true,
-      "actual": 7.488087085451,
+      "actual": 7.5,
       "expected": "7.4–7.6 m/s"
     },
     {
@@ -94,8 +94,8 @@
     },
     {
       "name": "0.30 m step is traversed rather than edge-stalled",
-      "passed": false,
-      "actual": false,
+      "passed": true,
+      "actual": true,
       "expected": "true"
     },
     {
@@ -113,7 +113,7 @@
     {
       "name": "player CPU cost stays below 0.25 ms at 60 fps",
       "passed": true,
-      "actual": 0.013683333317,
+      "actual": 0.013216666698,
       "expected": "≤ 0.25 ms"
     },
     {
@@ -129,6 +129,6 @@
       "expected": "true"
     }
   ],
-  "passed": false,
+  "passed": true,
   "consoleErrors": []
 }
