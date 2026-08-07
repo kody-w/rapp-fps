@@ -149,7 +149,7 @@ export class Engine {
     const now = performance.now() / 1000;
     let dt = now - this.last;
     this.last = now;
-    const cpuStart = this.profiler.beginFrame(dt * 1000);
+    const frameToken = this.profiler.beginFrame(dt * 1000);
     if (dt > MAX_FRAME) dt = MAX_FRAME;   // a stalled tab must not fire a
                                           // thousand simulation steps at once
 
@@ -187,7 +187,7 @@ export class Engine {
       }
     } finally {
       // CPU covers simulation, presentation and command submission.
-      this.profiler.endFrame(cpuStart);
+      this.profiler.endFrame(frameToken);
     }
   };
 

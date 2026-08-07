@@ -12,7 +12,7 @@
  *    no success-shaped report.
  */
 
-import { rmSync, existsSync, readFileSync } from 'node:fs';
+import { rmSync, existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 
 const ROOT = new URL('..', import.meta.url).pathname;
@@ -40,23 +40,25 @@ function assert(condition, message) {
 rmSync(`${ROOT}/${OUT}`, { recursive: true, force: true });
 rmSync(`${ROOT}/${OUT}-unsupported`, { recursive: true, force: true });
 
-const measured = await run([`--url=${TARGET_URL}`, `--out=${OUT}`]);
+const measured = await run([`--url=${TARGET_URL}`, `--out=${OUT}`, '--budgetMs=1000']);
 assert(measured.code === 0, `normal capture failed (${measured.code}): ${measured.stderr}`);
 
 const report = JSON.parse(readFileSync(`${ROOT}/${OUT}/report.json`, 'utf8'));
 const perf = report.performance;
 assert(perf.gpuFrameMs.samples >= 120, `only ${perf.gpuFrameMs.samples} GPU samples`);
+assert(perf.budgetFrameMs.samples >= 120, `only ${perf.budgetFrameMs.samples} paired samples`);
+assert(perf.gpuCounterBits > 0, `timer query reports ${perf.gpuCounterBits} counter bits`);
 assert(perf.cpuFrameMs.samples >= 120, `only ${perf.cpuFrameMs.samples} CPU samples`);
 assert(perf.gpuDisjointCount === 0, `GPU was disjoint ${perf.gpuDisjointCount} time(s)`);
 assert(perf.gpuFrameMs.median > 0, 'GPU median was not positive');
 assert(perf.cpuFrameMs.median > 0, 'CPU median was not positive');
 assert(perf.rafIntervalMs.median > 0, 'rAF cadence was not recorded');
-assert(
-  perf.budgetFrameMsMedian === Math.max(perf.gpuFrameMs.median, perf.cpuFrameMs.median),
-  'budget median is not max(CPU, GPU)',
-);
+assert(perf.budgetFrameMsMedian === perf.budgetFrameMs.median, 'budget median is not paired');
+assert(perf.budgetFrameMsP95 === perf.budgetFrameMs.p95, 'budget p95 is not paired');
 assert(!('frameMsMedian' in perf), 'legacy rAF-as-frame-cost field still exists');
 
+mkdirSync(`${ROOT}/${OUT}-unsupported`, { recursive: true });
+writeFileSync(`${ROOT}/${OUT}-unsupported/report.json`, '{"stale":"green"}');
 const unsupported = await run([
   `--url=${TARGET_URL}`,
   `--out=${OUT}-unsupported`,
@@ -65,7 +67,7 @@ const unsupported = await run([
 assert(unsupported.code === 4, `unsupported timer exited ${unsupported.code}, expected 4`);
 assert(
   !existsSync(`${ROOT}/${OUT}-unsupported/report.json`),
-  'unsupported timer wrote a success-shaped report',
+  'unsupported timer left the pre-existing success-shaped report',
 );
 assert(
   unsupported.stderr.includes('GPU frame cost is UNVERIFIED'),

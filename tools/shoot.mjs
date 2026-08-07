@@ -18,7 +18,7 @@
  */
 
 import { chromium } from 'playwright';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const args = Object.fromEntries(
@@ -35,8 +35,13 @@ const HEIGHT = Number(args.height ?? 1080);
 const CPU_THROTTLE = Number(args.cpuThrottle ?? 1);
 const RAF_DELAY = Number(args.rafDelay ?? 0);
 const FORCE_NO_GPU_TIMER = args.forceNoGpuTimer === '1';
+const FRAME_BUDGET_MS = Number(args.budgetMs ?? 16.7);
 
 mkdirSync(OUT, { recursive: true });
+const REPORT_PATH = join(OUT, 'report.json');
+// Refusal must not leave yesterday's green report behind in a reused output
+// directory. Remove it before any capability check can exit.
+rmSync(REPORT_PATH, { force: true });
 
 const browser = await chromium.launch({
   args: [
@@ -117,7 +122,7 @@ if (!profilerSupport) {
 await page.evaluate(() => window.engine.profiler.reset());
 try {
   await page.waitForFunction(
-    () => window.engine.profiler.snapshot().gpuFrameMs.samples >= 120,
+    () => window.engine.profiler.snapshot().budgetFrameMs.samples >= 120,
     null,
     { timeout: 60_000 },
   );
@@ -139,11 +144,14 @@ if (timings.gpuDisjointCount > 0) {
 const perf = await page.evaluate((measured) => {
   const s = window.__SCENE_STATS__ ?? {};
   return {
+    gpuSupported: measured.gpuSupported,
+    gpuCounterBits: measured.gpuCounterBits,
     gpuFrameMs: measured.gpuFrameMs,
     cpuFrameMs: measured.cpuFrameMs,
     rafIntervalMs: measured.rafIntervalMs,
     budgetFrameMsMedian: measured.budgetFrameMsMedian,
     budgetFrameMsP95: measured.budgetFrameMsP95,
+    budgetFrameMs: measured.budgetFrameMs,
     gpuDisjointCount: measured.gpuDisjointCount,
     note: 'budget uses max(CPU, GPU); rAF interval is scheduler cadence only',
     drawCallsPerFrame: s.drawCallsPerFrame ?? null,
@@ -173,12 +181,14 @@ const report = {
   viewport: `${WIDTH}x${HEIGHT}`,
   cpuThrottleRate: CPU_THROTTLE,
   rafDelayMs: RAF_DELAY,
+  frameBudgetMs: FRAME_BUDGET_MS,
+  overBudget: perf.budgetFrameMsP95 > FRAME_BUDGET_MS,
   performance: perf,
   shots: written,
   consoleErrors,
 };
-writeFileSync(join(OUT, 'report.json'), JSON.stringify(report, null, 2));
+writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2));
 console.log(JSON.stringify(report, null, 2));
 
 await browser.close();
-process.exit(consoleErrors.length ? 1 : 0);
+process.exit(consoleErrors.length ? 1 : report.overBudget ? 7 : 0);
