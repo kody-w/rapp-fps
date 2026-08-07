@@ -1,0 +1,60 @@
+{
+  "commit": "working-tree issue #1",
+  "method": "median of 3 natural-cadence hardware captures",
+  "rows": [
+    {
+      "name": "ao-off",
+      "gpuMedianMs": 7.841,
+      "pairedP95Ms": 10.806,
+      "trials": [
+        {
+          "gpu": 9.556,
+          "p95": 12.956,
+          "cpu": 1.3
+        },
+        {
+          "gpu": 7.739,
+          "p95": 10.806,
+          "cpu": 1.2
+        },
+        {
+          "gpu": 7.841,
+          "p95": 10.598,
+          "cpu": 1.3
+        }
+      ],
+      "overBudget": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "name": "ao-half",
+      "gpuMedianMs": 15.916,
+      "pairedP95Ms": 24.893,
+      "trials": [
+        {
+          "gpu": 17.276,
+          "p95": 24.893,
+          "cpu": 1.4
+        },
+        {
+          "gpu": 15.194,
+          "p95": 24.449,
+          "cpu": 1.5
+        },
+        {
+          "gpu": 15.916,
+          "p95": 25.549,
+          "cpu": 1.5
+        }
+      ],
+      "overBudget": [
+        true,
+        true,
+        true
+      ]
+    }
+  ]
+}
