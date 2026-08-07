@@ -1,0 +1,50 @@
+{
+  "at": "2026-08-07T19:53:07.364Z",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "cpuThrottleRate": 1,
+  "rafDelayMs": 0,
+  "frameBudgetMs": 16.7,
+  "overBudget": true,
+  "performance": {
+    "gpuSupported": true,
+    "gpuCounterBits": 64,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 17.276,
+      "p95": 24.893,
+      "worst": 25.309
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 1.4,
+      "p95": 2,
+      "worst": 2.3
+    },
+    "rafIntervalMs": {
+      "samples": 122,
+      "median": 16.7,
+      "p95": 18.2,
+      "worst": 18.7
+    },
+    "budgetFrameMsMedian": 17.276,
+    "budgetFrameMsP95": 24.893,
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 17.276,
+      "p95": 24.893,
+      "worst": 25.309
+    },
+    "gpuDisjointCount": 0,
+    "note": "budget uses max(CPU, GPU); rAF interval is scheduler cadence only",
+    "drawCallsPerFrame": 87,
+    "trianglesPerFrame": 84449,
+    "programs": 18,
+    "textures": 35,
+    "geometries": 9
+  },
+  "shots": [
+    "shots/true-budget-matrix/ao-half-1/default.png"
+  ],
+  "consoleErrors": []
+}

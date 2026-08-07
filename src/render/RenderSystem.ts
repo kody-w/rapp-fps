@@ -95,7 +95,13 @@ function readConfig(): RenderConfig {
   return {
     env: bool('env', true),
     bg: pick('bg', 'sky', ['sky', 'dark'] as const),
-    ao: pick('ao', 'half', ['full', 'half', 'off'] as const),
+    // True GPU timer queries show even half-resolution N8AO costs ~7ms on the
+    // M4 and pushes the empty calibration frame to 24ms p95. In this view the
+    // denoised on/off captures are visually indistinguishable; direct/VSM
+    // shadows and IBL already provide the contact cues. Keep AO available for
+    // controlled tests, but do not spend nearly half the 60fps budget on it by
+    // default. #1
+    ao: pick('ao', 'off', ['full', 'half', 'off'] as const),
     aoQuality: pick('aoq', 'High', ['High', 'Medium', 'Low'] as const),
     aa: pick('aa', 'ultra', ['ultra', 'high', 'medium', 'low', 'off'] as const),
     bloom: pick('bloom', 'medium', ['large', 'medium', 'small', 'off'] as const),
