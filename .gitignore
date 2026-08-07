@@ -1,5 +1,9 @@
 node_modules/
 dist/
-shots/**/*.png
+# Every probe and builder capture writes a PNG plus report.json. Generated
+# evidence is ignored by default so the free probe does not make the checkout
+# dirty merely by measuring it. PR evidence is deliberately force-added; files
+# already tracked remain tracked.
+shots/**
 .DS_Store
 *.log
