@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-08T05:23:38.014Z",
+  "issue": "kody-w/rapp-fps#29",
+  "viewport": "1920x1080",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "frameBudgetMs": 16.7,
+  "modes": {
+    "mode-a": {
+      "contactSheet": "blind/mode-a-contact.png",
+      "roiSheet": "blind/mode-a-rois.png",
+      "summary": {
+        "staticCoverageNoiseP95": 0.26528,
+        "staticEdgeEnergy": 5.130783,
+        "worstMotionCoverageNoiseP95": 12.348026,
+        "worstMotionSequence": "lateral",
+        "hardStopGhostTrailP95": 0.248986,
+        "revealGhostTrailP95": 0.183021,
+        "motionNoiseToJitterRatio": 1.243141
+      },
+      "performance": {
+        "gpuMedianOfMediansMs": 7.879,
+        "gpuWorstP95Ms": 11.076,
+        "pairedWorstP95Ms": 11.076,
+        "p95HeadroomMs": 5.624,
+        "budgetVerdict": "PASS",
+        "requirement": "3 hardware GPU trials at 1920x1080; worst paired p95 <= 16.7ms"
+      }
+    }
+  }
+}
