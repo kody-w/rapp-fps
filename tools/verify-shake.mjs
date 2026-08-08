@@ -38,6 +38,11 @@ async function open() {
 try {
   const page = await open();
   const realFrames = await page.evaluate(async () => {
+    const matrices = (value) => ({
+      matrix: value.matrix.toArray(),
+      matrixWorld: value.matrixWorld.toArray(),
+      matrixWorldInverse: value.matrixWorldInverse.toArray(),
+    });
     const engine = window.engine;
     const render = engine.get('render');
     const camera = engine.camera;
@@ -45,7 +50,9 @@ try {
     // 4.0 radians into the equivalent -2.283... and broke Euler controllers.
     camera.rotation.set(-0.17, 4.0, 0.04);
     camera.updateMatrixWorld(true);
+    camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
     const authoritative = camera.quaternion.toArray();
+    const authoritativeMatrices = matrices(camera);
     const during = [];
     const afterEachSuccessfulRender = [];
     const original = render.composer.render.bind(render.composer);
@@ -81,6 +88,8 @@ try {
       afterEachSuccessfulRender,
       after: camera.quaternion.toArray(),
       afterEuler: [camera.rotation.x, camera.rotation.y, camera.rotation.z],
+      afterMatrices: matrices(camera),
+      authoritativeMatrices,
     };
   });
   assert(
@@ -106,18 +115,31 @@ try {
       'camera Euler was not restored immediately after a successful render',
     );
   }
+  for (const key of ['matrix', 'matrixWorld', 'matrixWorldInverse']) {
+    assert(
+      distance(realFrames.afterMatrices[key], realFrames.authoritativeMatrices[key]) <= epsilon,
+      `camera ${key} drifted after successful render`,
+    );
+  }
   await page.close();
 
   const throwPage = await open();
   const throwResult = await throwPage.evaluate(() => {
+    const matrices = (value) => ({
+      matrix: value.matrix.toArray(),
+      matrixWorld: value.matrixWorld.toArray(),
+      matrixWorldInverse: value.matrixWorldInverse.toArray(),
+    });
     const engine = window.engine;
     const render = engine.get('render');
     engine.stop();
     const camera = engine.camera;
     camera.rotation.set(0.12, -0.23, 0.07);
     camera.updateMatrixWorld(true);
+    camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
     const before = camera.quaternion.toArray();
     const beforeEuler = [camera.rotation.x, camera.rotation.y, camera.rotation.z];
+    const beforeMatrices = matrices(camera);
     engine.bus.emit('camera:shake', { amplitude: 0.02, duration: 1, frequency: 18 });
     render.update(
       { dt: 1 / 60, elapsed: performance.now() / 1000, frame: 1, alpha: 0 },
@@ -137,6 +159,8 @@ try {
       beforeEuler,
       after: camera.quaternion.toArray(),
       afterEuler: [camera.rotation.x, camera.rotation.y, camera.rotation.z],
+      beforeMatrices,
+      afterMatrices: matrices(camera),
       threw,
     };
   });
@@ -149,10 +173,21 @@ try {
     distance(throwResult.afterEuler, throwResult.beforeEuler) <= epsilon,
     'composer throw canonicalized authoritative Euler state',
   );
+  for (const key of ['matrix', 'matrixWorld', 'matrixWorldInverse']) {
+    assert(
+      distance(throwResult.afterMatrices[key], throwResult.beforeMatrices[key]) <= epsilon,
+      `composer throw left ${key} shaken`,
+    );
+  }
   await throwPage.close();
 
   const quaternionPage = await open();
   const quaternionAuthored = await quaternionPage.evaluate(() => {
+    const matrices = (value) => ({
+      matrix: value.matrix.toArray(),
+      matrixWorld: value.matrixWorld.toArray(),
+      matrixWorldInverse: value.matrixWorldInverse.toArray(),
+    });
     const engine = window.engine;
     const render = engine.get('render');
     engine.stop();
@@ -164,8 +199,10 @@ try {
     );
     camera.quaternion.copy(authored);
     camera.updateMatrixWorld(true);
+    camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
     const before = camera.quaternion.toArray();
     const beforeEuler = [camera.rotation.x, camera.rotation.y, camera.rotation.z];
+    const beforeMatrices = matrices(camera);
     engine.bus.emit('camera:shake', { amplitude: 0.02, duration: 1, frequency: 18 });
     render.update(
       { dt: 1 / 60, elapsed: performance.now() / 1000, frame: 1, alpha: 0 },
@@ -177,6 +214,8 @@ try {
       beforeEuler,
       after: camera.quaternion.toArray(),
       afterEuler: [camera.rotation.x, camera.rotation.y, camera.rotation.z],
+      beforeMatrices,
+      afterMatrices: matrices(camera),
     };
   });
   assert(
@@ -187,6 +226,13 @@ try {
     distance(quaternionAuthored.afterEuler, quaternionAuthored.beforeEuler) <= epsilon,
     'quaternion-authored camera Euler representation changed',
   );
+  for (const key of ['matrix', 'matrixWorld', 'matrixWorldInverse']) {
+    assert(
+      distance(quaternionAuthored.afterMatrices[key], quaternionAuthored.beforeMatrices[key])
+        <= epsilon,
+      `quaternion-authored camera ${key} drifted`,
+    );
+  }
   await quaternionPage.close();
 
   // Negative control: the previous additive algorithm necessarily drifts.
