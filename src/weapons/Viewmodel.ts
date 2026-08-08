@@ -78,6 +78,8 @@ export class WeaponViewmodel {
     });
   }
 
+  get isFlashActive(): boolean { return this.flashRemaining > 0; }
+
   attach(camera: THREE.PerspectiveCamera, scene: THREE.Scene): void {
     if (camera.parent === null) scene.add(camera);
     camera.add(this.root);

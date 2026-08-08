@@ -14,12 +14,14 @@ import type { AimChangedPayload } from './events.js';
 
 const FIXED_STEP = 1 / 120;
 const CAPTURE_SAMPLE_TICKS = 4;
+const FIRE_EPSILON = 1e-9;
 const RANDOM_SEED = 0xd057a7;
 
 export interface WeaponCapture {
   readonly name: string;
   readonly aim: number;
   readonly ammo: number;
+  readonly shotsFired: number;
   readonly recoil: RecoilSnapshot;
 }
 
@@ -38,7 +40,9 @@ export class WeaponSystem implements System {
   private baseFov = 75;
   private ammo: number;
   private reserve: number;
-  private fireCooldown = 0;
+  private simulationTime = 0;
+  private nextShotAt = 0;
+  private shotsFired = 0;
   private previousFire = false;
   private previousReload = false;
   private adsProgress = 0;
@@ -53,6 +57,7 @@ export class WeaponSystem implements System {
   private walkPhase = 0;
 
   private captureFrozen = false;
+  private suppressCaptureVisuals = false;
 
   constructor(private readonly config: WeaponConfig = DUSKLINE_A7) {
     this.recoil = new RecoilModel(config);
@@ -85,9 +90,12 @@ export class WeaponSystem implements System {
   get magazineAmmo(): number { return this.ammo; }
   get reserveAmmo(): number { return this.reserve; }
   get isReloading(): boolean { return this.reloading; }
+  get isFlashActive(): boolean { return this.viewmodel.isFlashActive; }
+  get totalShotsFired(): number { return this.shotsFired; }
 
   fixedUpdate(step: number, ctx: EngineContext): void {
     if (this.captureFrozen) return;
+    this.simulationTime += step;
 
     const aimTarget = ctx.input.aim && !this.reloading ? 1 : 0;
     const previousAim = this.aim;
@@ -112,18 +120,23 @@ export class WeaponSystem implements System {
 
     if (this.reloading) {
       this.reloadRemaining -= step;
+      this.nextShotAt = this.simulationTime;
       if (this.reloadRemaining <= 0) this.finishReload();
     }
 
-    this.fireCooldown = Math.max(0, this.fireCooldown - step);
     const fireEdge = ctx.input.fire && !this.previousFire;
     const wantsFire = this.config.fireMode === 'auto' ? ctx.input.fire : fireEdge;
     this.previousFire = ctx.input.fire;
 
-    if (wantsFire && !this.reloading && this.fireCooldown <= 0) {
+    if (!wantsFire) this.nextShotAt = this.simulationTime;
+    if (fireEdge) this.nextShotAt = this.simulationTime;
+
+    if (wantsFire && !this.reloading && this.simulationTime + FIRE_EPSILON >= this.nextShotAt) {
       if (this.ammo > 0) {
-        this.fireOnce(currentAim, true, true);
-        this.fireCooldown += this.config.shotInterval;
+        this.fireOnce(currentAim, !this.suppressCaptureVisuals);
+        // Advance the absolute deadline, never `now + interval`: fractional
+        // residue and overdue debt survive instead of rounding the rifle down.
+        this.nextShotAt += this.config.shotInterval;
       } else {
         this.beginReload();
       }
@@ -148,25 +161,7 @@ export class WeaponSystem implements System {
       this.shells.update(dt);
     }
 
-    const recoil = this.recoil.snapshot();
-    const pose: ViewmodelPose = {
-      ads: this.aim,
-      lookX: this.lookX,
-      lookY: this.lookY,
-      moveX: this.moveX,
-      moveY: this.moveY,
-      speed: this.speed,
-      walkPhase: this.walkPhase,
-      reload: this.reloadPose(),
-      cameraPitch: recoil.cameraPitch,
-      cameraYaw: recoil.cameraYaw,
-      gunBack: recoil.gunBack,
-      gunUp: recoil.gunUp,
-      gunPitch: recoil.gunPitch,
-      gunRoll: recoil.gunRoll,
-      elapsed: this.captureFrozen ? 0 : update.elapsed,
-    };
-    this.viewmodel.applyPose(pose);
+    this.applyViewmodelPose(this.captureFrozen ? 0 : update.elapsed);
     this.applyViewProjection(ctx.camera);
   }
 
@@ -182,8 +177,8 @@ export class WeaponSystem implements System {
       this.simulateBurst(5, 1);
     } else if (name === 'shot-15') {
       this.simulateBurst(15, 1);
-    } else if (name === 'flash') {
-      this.fireOnce(0, true, false);
+    } else if (name === 'flash' || name === 'stress-fire') {
+      this.fireOnce(0, true);
       for (let tick = 0; tick < 2; tick++) this.recoil.step(FIXED_STEP);
       this.shells.update(0.028);
     } else if (name === 'sway') {
@@ -200,6 +195,7 @@ export class WeaponSystem implements System {
       name,
       aim: this.aim,
       ammo: this.ammo,
+      shotsFired: this.shotsFired,
       recoil: this.recoil.snapshot(),
     };
   }
@@ -213,7 +209,7 @@ export class WeaponSystem implements System {
     this.shells?.dispose();
   }
 
-  private fireOnce(aim: number, visuals: boolean, emitShake = false): void {
+  private fireOnce(aim: number, visuals: boolean): void {
     const camera = this.ctx.camera;
     camera.updateWorldMatrix(true, false);
     const quaternion = camera.getWorldQuaternion(new THREE.Quaternion());
@@ -225,6 +221,7 @@ export class WeaponSystem implements System {
     const recoilBeforeShot = this.recoil.snapshot();
 
     this.ammo--;
+    this.shotsFired++;
     this.ballistics.fire({
       cameraOrigin,
       muzzleOrigin,
@@ -247,13 +244,6 @@ export class WeaponSystem implements System {
         forward,
         this.random,
       );
-      if (emitShake) {
-        this.ctx.bus.emit(Events.Shake, {
-          amplitude: this.config.shakeAmplitude,
-          duration: this.config.shakeSeconds,
-          frequency: 34,
-        });
-      }
     }
   }
 
@@ -266,6 +256,7 @@ export class WeaponSystem implements System {
     if (this.reloading || this.ammo >= this.config.magazineSize || this.reserve <= 0) return;
     this.reloading = true;
     this.reloadRemaining = this.config.reloadSeconds;
+    this.nextShotAt = this.simulationTime;
     this.ctx.bus.emit(Events.ReloadStart, { weapon: this.config.id });
   }
 
@@ -276,6 +267,7 @@ export class WeaponSystem implements System {
     this.reserve -= transferred;
     this.reloading = false;
     this.reloadRemaining = 0;
+    this.nextShotAt = this.simulationTime;
     this.ctx.bus.emit(Events.ReloadEnd, { weapon: this.config.id });
   }
 
@@ -285,7 +277,29 @@ export class WeaponSystem implements System {
     return Math.sin(THREE.MathUtils.clamp(elapsed, 0, 1) * Math.PI);
   }
 
-  /** Projection-centre shift reads as camera kick without fighting player rotation ownership. */
+  private applyViewmodelPose(elapsed: number): void {
+    const recoil = this.recoil.snapshot();
+    const pose: ViewmodelPose = {
+      ads: this.aim,
+      lookX: this.lookX,
+      lookY: this.lookY,
+      moveX: this.moveX,
+      moveY: this.moveY,
+      speed: this.speed,
+      walkPhase: this.walkPhase,
+      reload: this.reloadPose(),
+      cameraPitch: recoil.cameraPitch,
+      cameraYaw: recoil.cameraYaw,
+      gunBack: recoil.gunBack,
+      gunUp: recoil.gunUp,
+      gunPitch: recoil.gunPitch,
+      gunRoll: recoil.gunRoll,
+      elapsed,
+    };
+    this.viewmodel.applyPose(pose);
+  }
+
+  /** Projection-centre shift makes the recoil state steer both view and hitscan. */
   private applyViewProjection(camera: THREE.PerspectiveCamera): void {
     camera.fov = THREE.MathUtils.lerp(this.baseFov, this.config.adsFov, this.aim);
     camera.updateProjectionMatrix();
@@ -298,26 +312,50 @@ export class WeaponSystem implements System {
     camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
   }
 
+  /** Capture recoil through the same scheduler path used by live fixedUpdate. */
   private simulateBurst(shots: number, aim: number): void {
+    const input = this.ctx.input;
+    const previous = { fire: input.fire, aim: input.aim, reload: input.reload };
     this.adsProgress = aim;
-    const intervalTicks = Math.round(this.config.shotInterval / FIXED_STEP);
-    for (let shot = 1; shot <= shots; shot++) {
-      this.fireOnce(aim, false);
-      const ticks = shot === shots ? CAPTURE_SAMPLE_TICKS : intervalTicks;
-      for (let tick = 0; tick < ticks; tick++) this.recoil.step(FIXED_STEP);
+    this.applyViewmodelPose(0);
+    input.fire = true;
+    input.aim = aim === 1;
+    input.reload = false;
+    this.suppressCaptureVisuals = true;
+
+    let guard = 0;
+    while (this.shotsFired < shots && guard++ < shots * 20 + 20) {
+      this.fixedUpdate(FIXED_STEP, this.ctx);
     }
+    if (this.shotsFired !== shots) {
+      throw new Error(`Capture scheduler produced ${this.shotsFired}/${shots} requested shots.`);
+    }
+
+    input.fire = false;
+    for (let tick = 1; tick < CAPTURE_SAMPLE_TICKS; tick++) {
+      this.fixedUpdate(FIXED_STEP, this.ctx);
+    }
+
+    this.suppressCaptureVisuals = false;
+    input.fire = previous.fire;
+    input.aim = previous.aim;
+    input.reload = previous.reload;
     this.viewmodel.clearFlash();
+    this.shells.reset();
   }
 
   private resetCapture(): void {
     this.captureFrozen = false;
+    this.suppressCaptureVisuals = false;
     this.randomSource = mulberry32(RANDOM_SEED);
     this.recoil.reset();
     this.viewmodel.clearFlash();
     this.shells.reset();
     this.ammo = this.config.magazineSize;
     this.reserve = this.config.reserveAmmo;
-    this.fireCooldown = 0;
+    this.simulationTime = 0;
+    this.nextShotAt = 0;
+    this.shotsFired = 0;
     this.previousFire = false;
     this.previousReload = false;
     this.adsProgress = 0;
@@ -329,6 +367,7 @@ export class WeaponSystem implements System {
     this.moveY = 0;
     this.speed = 0;
     this.walkPhase = 0;
+    this.applyViewmodelPose(0);
   }
 }
 

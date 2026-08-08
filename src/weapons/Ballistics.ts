@@ -1,8 +1,9 @@
 /**
  * Rifle ballistics are hitscan: across this calibration level, a supersonic
- * round's travel time is below a rendered frame. A fixed-step ray is cheaper,
- * deterministic, and gives the trigger immediate feedback. Slow/arcing weapons
- * should use a separate projectile implementation rather than weakening this one.
+ * round's travel time is below a rendered frame. The camera selects the aim
+ * point, then one authoritative ray travels from the muzzle to that point. The
+ * event origin, event direction, obstruction test and impact therefore describe
+ * the same physical line.
  */
 
 import * as THREE from 'three';
@@ -29,7 +30,9 @@ export interface BallisticResult {
 
 export class HitscanBallistics {
   private readonly raycaster = new THREE.Raycaster();
-  private readonly direction = new THREE.Vector3();
+  private readonly cameraDirection = new THREE.Vector3();
+  private readonly muzzleDirection = new THREE.Vector3();
+  private readonly aimPoint = new THREE.Vector3();
   private readonly normal = new THREE.Vector3();
 
   constructor(
@@ -38,8 +41,7 @@ export class HitscanBallistics {
     private readonly bus: EventBus,
     private readonly random: () => number,
   ) {
-    this.raycaster.near = 0.01;
-    this.raycaster.far = config.range;
+    this.raycaster.near = 0.001;
   }
 
   damageAt(distance: number): number {
@@ -60,54 +62,78 @@ export class HitscanBallistics {
     const yaw = shot.recoilYaw + Math.cos(azimuth) * radius;
     const pitch = shot.recoilPitch + Math.sin(azimuth) * radius;
 
-    this.direction.copy(shot.forward)
+    this.cameraDirection.copy(shot.forward)
       .addScaledVector(shot.right, Math.tan(yaw))
       .addScaledVector(shot.up, Math.tan(pitch))
       .normalize();
 
+    // The camera answers only "what is the player aiming at?" It does not
+    // resolve the bullet. A close wall beside the camera may block the muzzle
+    // ray even when the camera has a clear sight picture.
+    const cameraHit = this.firstHit(
+      shot.cameraOrigin,
+      this.cameraDirection,
+      this.config.range,
+    );
+    if (cameraHit) {
+      this.aimPoint.copy(cameraHit.point);
+    } else {
+      this.aimPoint.copy(shot.cameraOrigin)
+        .addScaledVector(this.cameraDirection, this.config.range);
+    }
+
+    this.muzzleDirection.copy(this.aimPoint)
+      .sub(shot.muzzleOrigin)
+      .normalize();
+    const distanceToAim = shot.muzzleOrigin.distanceTo(this.aimPoint);
+
     const fired: WeaponFiredPayload = {
       origin: shot.muzzleOrigin.clone(),
-      direction: this.direction.clone(),
+      direction: this.muzzleDirection.clone(),
       weapon: this.config.id,
       spread: shot.spread,
       ammo: shot.ammo,
     };
     this.bus.emit(Events.WeaponFired, fired);
 
-    this.raycaster.set(shot.cameraOrigin, this.direction);
-    const hit = this.raycaster.intersectObjects(this.scene.children, true)
-      .find((candidate) => this.isSolid(candidate.object));
-    if (!hit) return { direction: this.direction.clone(), impact: null };
+    const hit = this.firstHit(
+      shot.muzzleOrigin,
+      this.muzzleDirection,
+      distanceToAim + 0.01,
+    );
+    if (!hit) return { direction: this.muzzleDirection.clone(), impact: null };
 
     if (hit.face) {
       this.normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld).normalize();
     } else {
-      this.normal.copy(this.direction).negate();
+      this.normal.copy(this.muzzleDirection).negate();
     }
 
-    const distance = hit.point.distanceTo(shot.muzzleOrigin);
     const material = this.surfaceOf(hit.object);
     const impact: BulletImpactPayload = {
       point: hit.point.clone(),
       normal: this.normal.clone(),
       material,
-      distance,
-      damage: this.damageAt(distance),
+      distance: hit.distance,
+      damage: this.damageAt(hit.distance),
     };
     this.bus.emit(Events.BulletImpact, impact);
 
-    const characterId = this.characterIdOf(hit.object);
-    if (characterId !== undefined) {
-      this.bus.emit(Events.Damage, {
-        id: characterId,
-        amount: impact.damage,
-        point: impact.point.clone(),
-        direction: this.direction.clone(),
-        lethal: false,
-      });
-    }
+    // Ballistics does not own health and cannot know whether this impact is
+    // lethal. A coordinator-owned damage-request contract is required before
+    // character damage is emitted; inventing `lethal: false` is worse than no event.
+    return { direction: this.muzzleDirection.clone(), impact };
+  }
 
-    return { direction: this.direction.clone(), impact };
+  private firstHit(
+    origin: THREE.Vector3,
+    direction: THREE.Vector3,
+    far: number,
+  ): THREE.Intersection | null {
+    this.raycaster.far = far;
+    this.raycaster.set(origin, direction);
+    return this.raycaster.intersectObjects(this.scene.children, true)
+      .find((candidate) => this.isSolid(candidate.object)) ?? null;
   }
 
   private isSolid(object: THREE.Object3D): boolean {
@@ -129,15 +155,5 @@ export class HitscanBallistics {
       current = current.parent;
     }
     return 'concrete';
-  }
-
-  private characterIdOf(object: THREE.Object3D): string | number | undefined {
-    let current: THREE.Object3D | null = object;
-    while (current) {
-      const id = current.userData.characterId as string | number | undefined;
-      if (id !== undefined) return id;
-      current = current.parent;
-    }
-    return undefined;
   }
 }

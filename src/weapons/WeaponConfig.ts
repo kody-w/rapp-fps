@@ -48,8 +48,6 @@ export interface WeaponConfig {
 
   readonly flashSeconds: number;
   readonly flashLightIntensity: number;
-  readonly shakeAmplitude: number;
-  readonly shakeSeconds: number;
 }
 
 const DEG = Math.PI / 180;
@@ -117,6 +115,4 @@ export const DUSKLINE_A7: WeaponConfig = {
 
   flashSeconds: 0.045,
   flashLightIntensity: 52,
-  shakeAmplitude: 0.0025,
-  shakeSeconds: 0.07,
 };

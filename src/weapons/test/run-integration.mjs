@@ -24,6 +24,22 @@ const assert = (condition, message) => {
   assertions.push(message);
   if (!condition) failures.push(message);
 };
+const vector = (value) => [value.x, value.y, value.z];
+const subtract = (a, b) => a.map((value, index) => value - b[index]);
+const dot = (a, b) => a.reduce((sum, value, index) => sum + value * b[index], 0);
+const magnitude = (value) => Math.hypot(...value);
+const normalize = (value) => {
+  const length = magnitude(value);
+  return value.map((component) => component / length);
+};
+const distanceToRay = (pointValue, originValue, directionValue) => {
+  const point = vector(pointValue);
+  const origin = vector(originValue);
+  const direction = normalize(vector(directionValue));
+  const offset = subtract(point, origin);
+  const closest = origin.map((component, index) => component + direction[index] * dot(offset, direction));
+  return magnitude(subtract(point, closest));
+};
 
 try {
   await page.goto(url, { waitUntil: 'domcontentloaded' });
@@ -40,38 +56,123 @@ try {
   await page.waitForTimeout(50);
   const ads = await page.evaluate(() => ({
     fov: window.engine.camera.fov,
-    sensitivityScale: window.engine.get('weapon').lookSensitivityScale,
+    sensitivityScale: window.__WEAPON__.lookSensitivityScale,
   }));
   assert(Math.abs(ads.fov - 52) < 1e-6, `ADS FOV must be 52; received ${ads.fov}`);
   assert(Math.abs(ads.sensitivityScale - 0.62) < 1e-6,
     `ADS sensitivity scale must be 0.62; received ${ads.sensitivityScale}`);
 
-  const captures = {};
-  for (const [name, count] of [['shot-1', 1], ['shot-5', 5], ['shot-15', 15]]) {
+  const captureShot = async (name) => {
     await page.evaluate((shotName) => {
       window.__WEAPON_EVENTS__.length = 0;
       window.__SHOT__(shotName);
     }, name);
     await page.waitForTimeout(50);
-    captures[name] = await page.evaluate(() => ({
+    return page.evaluate(() => ({
       capture: window.__WEAPON_CAPTURE__,
+      cameraOrigin: window.engine.camera.getWorldPosition(new window.THREE.Vector3()),
       events: window.__WEAPON_EVENTS__.map(({ name: eventName, payload }) => ({
         name: eventName,
         payload,
       })),
     }));
-    const fired = captures[name].events.filter((event) => event.name === 'weapon:fired');
-    const impacts = captures[name].events.filter((event) => event.name === 'bullet:impact');
+  };
+
+  const captures = {};
+  for (const [name, count] of [['shot-1', 1], ['shot-5', 5], ['shot-15', 15]]) {
+    const captured = await captureShot(name);
+    captures[name] = captured;
+    const fired = captured.events.filter((event) => event.name === 'weapon:fired');
+    const impacts = captured.events.filter((event) => event.name === 'bullet:impact');
+    const damage = captured.events.filter((event) => event.name === 'combat:damage');
     assert(fired.length === count, `${name} must emit ${count} WeaponFired events; received ${fired.length}`);
     assert(impacts.length === count, `${name} must emit ${count} BulletImpact events; received ${impacts.length}`);
-    for (const impact of impacts) {
+    assert(damage.length === 0, `${name} ballistics must emit zero authoritative Damage events; received ${damage.length}`);
+    for (let index = 0; index < impacts.length; index++) {
+      const impact = impacts[index];
+      const shot = fired[index];
       assert(impact.payload.material === 'concrete', `${name} impact must use SurfaceKind concrete`);
       const normal = impact.payload.normal;
       const length = Math.hypot(normal.x, normal.y, normal.z);
       assert(Math.abs(length - 1) < 1e-5, `${name} impact normal must be unit length; received ${length}`);
       assert(impact.payload.damage > 0, `${name} impact damage must be positive`);
+      const miss = distanceToRay(impact.payload.point, shot.payload.origin, shot.payload.direction);
+      assert(miss < 1e-5, `${name} event ray must be collinear with impact; miss ${miss}m`);
     }
   }
+
+  const cleanFired = captures['shot-1'].events.find((event) => event.name === 'weapon:fired').payload;
+  const cleanImpact = captures['shot-1'].events.find((event) => event.name === 'bullet:impact').payload;
+  const legacyCameraDirection = normalize(subtract(
+    vector(cleanImpact.point),
+    vector(captures['shot-1'].cameraOrigin),
+  ));
+  const legacyRayMiss = distanceToRay(
+    cleanImpact.point,
+    cleanFired.origin,
+    { x: legacyCameraDirection[0], y: legacyCameraDirection[1], z: legacyCameraDirection[2] },
+  );
+  const rayNegativeFailures = legacyRayMiss < 1e-5
+    ? []
+    : [`legacy camera-direction/muzzle-origin ray misses impact by ${legacyRayMiss}m`];
+  assert(rayNegativeFailures.length > 0,
+    'legacy camera-direction/muzzle-origin negative control must fail collinearity');
+
+  const blockerSetup = await page.evaluate(({ fired, impact }) => {
+    const THREE = window.THREE;
+    const origin = new THREE.Vector3(fired.origin.x, fired.origin.y, fired.origin.z);
+    const direction = new THREE.Vector3(fired.direction.x, fired.direction.y, fired.direction.z).normalize();
+    const center = origin.clone().addScaledVector(direction, 0.12);
+    const geometry = new THREE.BoxGeometry(0.05, 0.05, 0.05);
+    const material = new THREE.MeshStandardMaterial({ color: 0x7d858e, metalness: 1, roughness: 0.3 });
+    const blocker = new THREE.Mesh(geometry, material);
+    blocker.position.copy(center);
+    blocker.userData.surfaceTag = { surface: 'metal' };
+    blocker.userData.characterId = 'authority-negative-control';
+    blocker.updateMatrixWorld(true);
+    window.engine.scene.add(blocker);
+    window.__MUZZLE_BLOCKER__ = blocker;
+
+    const camera = window.engine.camera.getWorldPosition(new THREE.Vector3());
+    const aimPoint = new THREE.Vector3(impact.point.x, impact.point.y, impact.point.z);
+    const cameraDirection = aimPoint.clone().sub(camera).normalize();
+    const cameraOffset = center.clone().sub(camera);
+    const closest = camera.clone().addScaledVector(cameraDirection, cameraOffset.dot(cameraDirection));
+    return {
+      center,
+      cameraRayClearance: center.distanceTo(closest),
+    };
+  }, { fired: cleanFired, impact: cleanImpact });
+  assert(blockerSetup.cameraRayClearance > 0.05,
+    `muzzle blocker must be clear of camera aim ray; clearance ${blockerSetup.cameraRayClearance}m`);
+
+  const blocked = await captureShot('shot-1');
+  const blockedFired = blocked.events.filter((event) => event.name === 'weapon:fired');
+  const blockedImpacts = blocked.events.filter((event) => event.name === 'bullet:impact');
+  const blockedDamage = blocked.events.filter((event) => event.name === 'combat:damage');
+  assert(blockedFired.length === 1, `blocked shot must emit one WeaponFired; received ${blockedFired.length}`);
+  assert(blockedImpacts.length === 1, `blocked shot must emit one BulletImpact; received ${blockedImpacts.length}`);
+  assert(blockedDamage.length === 0,
+    `character-tagged blocker must still emit zero authoritative Damage events; received ${blockedDamage.length}`);
+  assert(blockedImpacts[0].payload.material === 'metal',
+    `near muzzle blocker must resolve SurfaceKind metal; received ${blockedImpacts[0].payload.material}`);
+  assert(blockedImpacts[0].payload.distance < 0.2,
+    `near muzzle blocker must resolve before distant aim point; distance ${blockedImpacts[0].payload.distance}m`);
+  const blockedMiss = distanceToRay(
+    blockedImpacts[0].payload.point,
+    blockedFired[0].payload.origin,
+    blockedFired[0].payload.direction,
+  );
+  assert(blockedMiss < 1e-5,
+    `blocked event ray must be collinear with impact; miss ${blockedMiss}m`);
+
+  await page.evaluate(() => {
+    const blocker = window.__MUZZLE_BLOCKER__;
+    blocker.removeFromParent();
+    blocker.geometry.dispose();
+    blocker.material.dispose();
+    delete window.__MUZZLE_BLOCKER__;
+  });
 
   const toDegrees = (value) => value * 180 / Math.PI;
   const recoil = Object.fromEntries(Object.entries(captures).map(([name, value]) => [name, {
@@ -86,7 +187,6 @@ try {
     'camera recoil must accumulate from shot 5 to shot 15');
   assert(recoil['shot-5'].cameraYawDeg > 0 && recoil['shot-15'].cameraYawDeg < 0,
     'authored recoil must cross from right at shot 5 to left at shot 15');
-
   assert(consoleErrors.length === 0, `browser console must remain clean; received ${consoleErrors.join(' | ')}`);
 
   const result = {
@@ -100,8 +200,26 @@ try {
     eventCounts: Object.fromEntries(Object.entries(captures).map(([name, value]) => [name, {
       fired: value.events.filter((event) => event.name === 'weapon:fired').length,
       impacts: value.events.filter((event) => event.name === 'bullet:impact').length,
+      damage: value.events.filter((event) => event.name === 'combat:damage').length,
     }])),
-    sampleImpact: captures['shot-1'].events.find((event) => event.name === 'bullet:impact')?.payload ?? null,
+    authoritativeRay: {
+      cleanMissMeters: distanceToRay(cleanImpact.point, cleanFired.origin, cleanFired.direction),
+      legacyNegativeControl: {
+        expectedStatus: 'failed',
+        actualStatus: rayNegativeFailures.length > 0 ? 'failed' : 'passed',
+        assertionFailures: rayNegativeFailures,
+        collectionErrors: [],
+        missMeters: legacyRayMiss,
+      },
+      muzzleObstruction: {
+        cameraRayClearanceMeters: blockerSetup.cameraRayClearance,
+        impactDistanceMeters: blockedImpacts[0].payload.distance,
+        impactMaterial: blockedImpacts[0].payload.material,
+        eventRayMissMeters: blockedMiss,
+        damageEvents: blockedDamage.length,
+      },
+    },
+    sampleImpact: cleanImpact,
   };
   console.log(JSON.stringify(result, null, 2));
   process.exitCode = result.passed ? 0 : 1;
