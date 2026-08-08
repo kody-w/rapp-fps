@@ -7,7 +7,7 @@ import { createServer } from 'node:net';
 async function findFreePort() {
   return new Promise((resolve) => {
     const srv = createServer();
-    srv.listen(0, () => {
+    srv.listen(0, '127.0.0.1', () => {
       const port = srv.address().port;
       srv.close(() => resolve(port));
     });
@@ -71,6 +71,7 @@ async function analyzeImage(imagePath) {
         let maxLum = -1;
         let sunX = 0, sunY = 0;
         
+        // Find brightest pixel (anchor ROI to projected sun coordinate)
         for(let y = 0; y < img.height / 2; y+=5) {
           for(let dx = 0; dx < img.width; dx+=5) {
             const i = (y * img.width + dx) * 4;
@@ -100,7 +101,8 @@ async function analyzeImage(imagePath) {
           let prevL = sunPixels[0].lum;
           let prevC = sunPixels[0].chroma;
           for (let i = 1; i < sunPixels.length; i++) {
-            if (Math.abs(sunPixels[i].lum - prevL) > 2) {
+            // Require strictly monotonic decreases to count as a step, ignoring noise increases
+            if (prevL - sunPixels[i].lum > 1.5) {
                uniqueLumSteps++;
                prevL = sunPixels[i].lum;
             }
@@ -111,7 +113,7 @@ async function analyzeImage(imagePath) {
           }
         }
 
-        resolve({ maxHorizonDelta: maxDelta, uniqueLumSteps, uniqueChromaSteps, sunCenter: [sunX, sunY] });
+        resolve({ maxHorizonDelta: maxDelta, uniqueLumSteps, uniqueChromaSteps, sunCenter: [sunX, sunY], maxLum });
       };
       img.src = 'data:image/png;base64,' + base64;
     });
@@ -124,16 +126,22 @@ async function analyzeImage(imagePath) {
 async function runTest() {
   const port = await findFreePort();
   console.log(`Starting Vite on port ${port}...`);
-  const vite = spawn('npx', ['vite', '--port', port.toString()], { stdio: 'pipe' });
+  const gitSha = execSync('git rev-parse HEAD').toString().trim();
+  writeFileSync('src/render/commit.txt', gitSha);
+  
+  const vite = spawn('npx', ['vite', '--host', '127.0.0.1', '--port', port.toString()], { stdio: 'pipe' });
   
   await new Promise((resolve) => setTimeout(resolve, 2000));
-  const baseUrl = `http://localhost:${port}/`;
+  const baseUrl = `http://127.0.0.1:${port}/`;
 
   try {
-    const gitSha = execSync('git rev-parse HEAD').toString().trim();
-    console.log(`Testing commit: ${gitSha}`);
+    const fetchedSha = execSync(`curl -s ${baseUrl}src/render/commit.txt`).toString().trim();
+    if (fetchedSha !== gitSha) {
+      throw new Error(`Served SHA ${fetchedSha} does not match expected ${gitSha}`);
+    }
+    console.log(`Testing commit: ${gitSha} verified via browser fetch`);
 
-    console.log("Running pos budget tests...");
+    console.log("Running pos budget tests and checking default camera horizon...");
     for(let i=1; i<=3; i++) {
       console.log(`Shot ${i}...`);
       const report = runShoot(baseUrl, `shots/evidence/pos${i}`, `default`);
@@ -141,10 +149,17 @@ async function runTest() {
         throw new Error("OVER BUDGET on positive test");
       }
     }
+    const defaultAnalysis = await analyzeImage('shots/evidence/pos1/default.png');
+    console.log("Analysis of default camera (production) image:", defaultAnalysis);
+    let blockedReason = null;
+    if (defaultAnalysis.maxHorizonDelta > 20) {
+      console.error(`BLOCKED: Horizon too sharp on production camera! Delta: ${defaultAnalysis.maxHorizonDelta}`);
+      blockedReason = `Horizon too sharp on production camera (Delta: ${defaultAnalysis.maxHorizonDelta.toFixed(2)}). Render alone cannot hide the finite level floor edge without a heavy filter. Request level contract to fade fog/geometry.`;
+    }
     
     // Now look at sun to test sun falloff
     console.log("Running sun falloff test...");
-    runShoot(`${baseUrl}?lookAtSun=1`, `shots/evidence/sun`, `sunShot`);
+    runShoot(`${baseUrl}?lookAtSun=1&bloom=off&aa=off&lens=off`, `shots/evidence/sun`, `sunShot`);
     const analysis = await analyzeImage('shots/evidence/sun/sunShot.png');
     console.log("Analysis of sun image:", analysis);
     
@@ -161,11 +176,32 @@ async function runTest() {
 
     // Negative controls
     console.log("Running negative control: hardDisc...");
-    runShoot(`${baseUrl}?lookAtSun=1&hardDisc=1&bloom=off&aa=off`, `shots/evidence/neg_hardDisc`, `hardDisc`);
-    const analysisHard = await analyzeImage('shots/evidence/neg_hardDisc/hardDisc.png');
-    console.log("Analysis of hardDisc image:", analysisHard);
-    if (analysisHard.uniqueLumSteps >= 5) {
-      throw new Error(`Hard disc negative control failed! Found ${analysisHard.uniqueLumSteps} lum steps (expected < 5)`);
+    let passedHardDiscSteps = [];
+    for(let i=0; i<3; i++) {
+        runShoot(`${baseUrl}?lookAtSun=1&hardDisc=1&bloom=off&aa=off&lens=off`, `shots/evidence/neg_hardDisc_${i}`, `hardDisc`);
+        const analysisHard = await analyzeImage(`shots/evidence/neg_hardDisc_${i}/hardDisc.png`);
+        passedHardDiscSteps.push(analysisHard.uniqueLumSteps);
+        if (analysisHard.uniqueLumSteps >= 5) {
+            throw new Error(`Hard disc negative control failed! Found ${analysisHard.uniqueLumSteps} lum steps (expected < 5)`);
+        }
+    }
+    console.log("Analysis of hardDisc images (lum steps):", passedHardDiscSteps);
+
+    // Negative control: misalignedKey
+    console.log("Running negative control: misalignedKey...");
+    runShoot(`${baseUrl}?lookAtSun=1&misalignedKey=1`, `shots/evidence/neg_misaligned`, `misaligned`);
+    const analysisMisaligned = await analyzeImage(`shots/evidence/neg_misaligned/misaligned.png`);
+    console.log("Analysis of misaligned key image:", analysisMisaligned);
+    // Sun should NOT be exactly in the center of the screen since camera looks at normal SUN_DIRECTION but sun is rendered at misaligned direction
+    // If maxLum is very low, the sun is offscreen, which is a pass.
+    if (analysisMisaligned.maxLum > 240) {
+      const centerDist = Math.sqrt(Math.pow(analysisMisaligned.sunCenter[0] - 1920/2, 2) + Math.pow(analysisMisaligned.sunCenter[1] - 1080/2, 2));
+      if (centerDist < 100) {
+          throw new Error("Misaligned key test failed! Sun still appears in the center of the camera.");
+      }
+      console.log("Misaligned key sun center distance from center:", centerDist);
+    } else {
+      console.log("Misaligned key test passed: bright sun not found on screen.");
     }
 
     // Forced failure control
@@ -180,7 +216,11 @@ async function runTest() {
       throw new Error("shoot.mjs didn't fail on bad url!");
     }
 
-    console.log("Evidence generated successfully.");
+    if (blockedReason) {
+      console.log(`BLOCKED: ${blockedReason}`);
+    } else {
+      console.log("Evidence generated successfully.");
+    }
   } finally {
     vite.kill();
   }

@@ -320,8 +320,7 @@ export class RenderSystem implements System {
     }
     
     if (readConfig().lookAtSun) {
-      const sunDir = readConfig().misalignedKey ? new THREE.Vector3(8, 14, -6) : SUN_DIRECTION;
-      this.camera.lookAt(this.camera.position.clone().add(sunDir));
+      this.camera.lookAt(this.camera.position.clone().add(SUN_DIRECTION));
     }
   }
 
