@@ -127,7 +127,7 @@ try {
       );
       modeReports[mode] = {
         diagnostics: capture.diagnostics,
-        visual: capture.evidence,
+        visual: compactVisualEvidence(capture.evidence),
         performance,
       };
     }
@@ -558,8 +558,6 @@ async function runPerformanceTrials(
       );
       trials.push({
         trial,
-        renderer,
-        diagnostics,
         gpuFrameMs: snapshot.gpuFrameMs,
         cpuFrameMs: snapshot.cpuFrameMs,
         pairedFrameMs: snapshot.budgetFrameMs,
@@ -702,6 +700,37 @@ function samplesForMode(mode) {
   if (mode === 'msaa4') return 4;
   if (mode === 'msaa2') return 2;
   return 0;
+}
+
+function compactVisualEvidence(evidence) {
+  return {
+    methodology: evidence.methodology,
+    summary: evidence.summary,
+    sequences: Object.fromEntries(
+      Object.entries(evidence.sequences).map(([name, sequence]) => [
+        name,
+        {
+          coverageNoiseP95: {
+            all: sequence.analysis.all.coverageNoise.p95,
+            bars: sequence.analysis.bars.coverageNoise.p95,
+            specular: sequence.analysis.specular.coverageNoise.p95,
+          },
+          compensatedFrameDifferenceP95: {
+            all: sequence.analysis.all.compensatedFrameDifference.p95,
+            bars: sequence.analysis.bars.compensatedFrameDifference.p95,
+            specular: sequence.analysis.specular.compensatedFrameDifference.p95,
+          },
+          edgeEnergyMedian: {
+            all: sequence.analysis.all.edgeEnergy.median,
+            bars: sequence.analysis.bars.edgeEnergy.median,
+            specular: sequence.analysis.specular.edgeEnergy.median,
+          },
+          ghostTrailP95: sequence.ghostTrail?.trail.p95 ?? null,
+        },
+      ]),
+    ),
+    ...(evidence.controls ? { controls: evidence.controls } : {}),
+  };
 }
 
 function compareModes(modeReports) {
