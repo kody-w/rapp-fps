@@ -1,0 +1,84 @@
+{
+  "passed": true,
+  "domGrowth": {
+    "updates": 1000,
+    "before": 41,
+    "after": 41,
+    "growth": 0
+  },
+  "playerDamageFilter": {
+    "before": {
+      "health": "100",
+      "indicatorVisible": false,
+      "quadrant": "top",
+      "angle": "0.00deg"
+    },
+    "after": {
+      "health": "100",
+      "indicatorVisible": false,
+      "quadrant": "top",
+      "angle": "0.00deg"
+    }
+  },
+  "directionalMapping": {
+    "front": {
+      "angleDeg": 0,
+      "quadrant": "top"
+    },
+    "right": {
+      "angleDeg": 90,
+      "quadrant": "right"
+    },
+    "rear": {
+      "angleDeg": 180,
+      "quadrant": "bottom"
+    },
+    "left": {
+      "angleDeg": -90,
+      "quadrant": "left"
+    },
+    "yawedFront": {
+      "angleDeg": 0,
+      "quadrant": "top"
+    }
+  },
+  "ariaLive": {
+    "afterFirstElimination": 1,
+    "afterFirstEliminationFrames": 1,
+    "afterSecondElimination": 2,
+    "afterSecondEliminationFrames": 2,
+    "afterFirstReload": 3,
+    "afterFirstReloadFrames": 3,
+    "afterSecondReload": 4,
+    "afterSecondReloadFrames": 4,
+    "message": "Reloading",
+    "visible": true
+  },
+  "lifecycle": {
+    "rootCount": 1,
+    "nodeCount": 41,
+    "ammo": "05",
+    "health": "18",
+    "reticle": "ads",
+    "objective": "LIFECYCLE CHECK"
+  },
+  "debugGate": {
+    "absentWithoutFlag": true,
+    "presentWithFlag": true,
+    "fields": {
+      "exists": true,
+      "gpu": "8.05 ms",
+      "cpu": "27.10 ms",
+      "paired": "27.10 ms",
+      "draws": "80",
+      "overBudget": "true",
+      "text": "\n        FRAME / P95\n        GPU 8.05 ms\n        CPU 27.10 ms\n        PAIR 27.10 ms\n        DRAW 80\n        overBudget TRUE · 16.7 ms\n      "
+    }
+  },
+  "mutationControl": {
+    "before": 43,
+    "after": 1043,
+    "assertionFailure": "DOM node count grew from 43 to 1043 after 1,000 updates in the harness no-reuse mutation control\n\n1043 !== 43\n"
+  },
+  "consoleErrors": []
+}

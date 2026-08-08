@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Procedural audio evidence</title>
+  <style>
+    :root { color-scheme: dark; font-family: ui-monospace, monospace; }
+    body { margin: 2rem; max-width: 48rem; background: #101318; color: #e8edf5; }
+    button { font: inherit; padding: .7rem 1rem; cursor: pointer; }
+    #status { margin-top: 1rem; color: #a9c7ff; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Procedural audio evidence</h1>
+  <p>Rendering starts only after this explicit gesture.</p>
+  <button id="run" type="button">Arm audio and render evidence</button>
+  <div id="status" role="status">Ready.</div>
+  <script type="module" src="./evidence.ts"></script>
+</body>
+</html>

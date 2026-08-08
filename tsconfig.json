@@ -13,7 +13,7 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
-    "types": ["three"]
+    "types": ["three", "vite/client"]
   },
   "include": ["src"]
 }

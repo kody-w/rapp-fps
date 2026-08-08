@@ -94,6 +94,17 @@ export const Events = {
   ReloadEnd: 'weapon:reload-end',
   /** Aim-down-sights transition. `{ aiming: boolean, t: 0..1 }` */
   AimChanged: 'weapon:aim',
+  /** Canonical HUD-facing weapon state; presentation never imports weapon code. */
+  WeaponStatus: 'weapon:status',
+  /** Canonical HUD-facing player state. */
+  PlayerStatus: 'player:status',
+  /** A confirmed damage application, distinct from a requested ballistics hit. */
+  HitConfirmed: 'combat:hit-confirm',
+  /** Health authority confirmed a target was eliminated. */
+  Elimination: 'combat:elimination',
+  /** Objective and interaction presentation slots. */
+  ObjectiveChanged: 'hud:objective',
+  InteractionChanged: 'hud:interaction',
   /** Player landed after a fall. `{ impactSpeed }` — used for camera and audio. */
   Landed: 'player:landed',
   /** Footstep, for audio and AI hearing. `{ position, surface, loud }` */
@@ -101,6 +112,36 @@ export const Events = {
   /** Camera shake request. `{ amplitude, duration, frequency }` */
   Shake: 'camera:shake',
 } as const;
+
+/** Direction on Damage points from the damaged character toward the source. */
+export interface DamagePayload {
+  id: string | number;
+  amount: number;
+  point: THREE.Vector3;
+  direction: THREE.Vector3;
+  lethal: boolean;
+  health?: number;
+  maxHealth?: number;
+}
+
+export interface WeaponStatusPayload {
+  ammo?: number;
+  reserve?: number;
+  magazineSize?: number;
+  reloading?: boolean;
+  spread?: number;
+  aim?: number;
+}
+
+export interface PlayerStatusPayload {
+  health: number;
+  maxHealth?: number;
+}
+
+export interface HitConfirmedPayload { lethal?: boolean }
+export interface EliminationPayload { label?: string }
+export interface ObjectivePayload { title: string; detail?: string }
+export interface InteractionPayload { action: string; binding?: string }
 
 /** Surfaces drive impact FX, decals, footsteps and audio from ONE vocabulary. */
 export type SurfaceKind =
