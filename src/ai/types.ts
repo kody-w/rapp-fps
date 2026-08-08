@@ -30,6 +30,7 @@ export type TransitionReason =
   | 'footstep-heard'
   | 'damage-source'
   | 'visual-cue'
+  | 'target-changed'
   | 'suspicion-confirmed'
   | 'target-confirmed'
   | 'tactical-cycle'
@@ -227,8 +228,10 @@ export interface AgentDebugView {
   forward: Vec3Like;
   targetVisible: boolean;
   targetId: string;
+  confirmationTargetId: string;
   targetPosition: Vec3Like;
   hasLastKnownPosition: boolean;
+  memoryTargetId: string;
   lastKnownPosition: Vec3Like;
   memoryConfidence: number;
   hasInterestPosition: boolean;
@@ -248,6 +251,6 @@ export interface AgentStorageStats {
   maxCoverCandidatesUsed: number;
   pathRequests: number;
   coverQueries: number;
-  tickScratchObjects: number;
+  ownedSetupObjectAllocations: number;
   dynamicTickObjectAllocations: number;
 }

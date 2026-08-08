@@ -18,7 +18,8 @@ cannot enter `engage`; line of sight must survive the configured reaction delay.
 - canonical `Footstep` compatibility (`position`, shared `SurfaceKind`, `loud`);
 - reaction delay, seeded memory error, and memory decay;
 - scheduled burst, aim-error, suppression, and reposition intents without weapon imports;
-- fixed-buffer cover scoring using exposure, path cost, and flank weights;
+- fixed-buffer cover scoring using visible or remembered target position plus exposure,
+  finite path cost, and flank weights;
 - fixed-buffer path requests through `NavigationPathPort`;
 - local `ResolvedDamageInput` consumption after the host resolves health/damage;
 - deterministic xorshift decisions from an explicit seed.
@@ -35,7 +36,9 @@ authority.
 - `ResolvedDamageInput`: local adapter input, not a proposed shared authority contract.
 
 Tick scratch storage is preallocated: 16 path points and 12 cover candidates per agent.
-The evidence recorder is optional and capped at 512 events.
+Agent-owned setup allocations are counted at their allocation sites, and the dynamic
+fixed-step counter remains zero in the production class. The evidence recorder is optional
+and capped at 512 events.
 
 ## Evidence
 
@@ -49,10 +52,11 @@ node src/ai/evidence/run.mjs
 
 The strict Vite server owns `127.0.0.1:5341`.
 
-- `evidence/report.json`: deterministic timelines, assertions, 30/60/144 batching,
-  50-agent benchmark, storage bounds, and negative-control summaries.
+- `evidence/report.json`: deterministic timelines; occluded-memory, unreachable-cover,
+  burst-boundary, and target-identity regressions; fixed-frame 30/60/144 accumulator
+  coverage; the 50-agent benchmark; allocation instrumentation; and mutation summaries.
 - `evidence/visual-report.json`: hardware renderer plus the unmodified core profiler
-  fields and explicit 16.7 ms paired-budget verdict.
+  fields, explicit 16.7 ms paired-budget verdict, and an over-budget nonzero-exit fixture.
 - `evidence/{patrol,investigate,engage,search,cover}.png`: named debug shots.
 
 The harness shows the vision cone, last-known position, requested path, scored cover

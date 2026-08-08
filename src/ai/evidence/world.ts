@@ -206,7 +206,12 @@ export class ScenarioWorld implements
   occluded = true;
   readonly targetPosition = { x: 0, y: 1.45, z: 9 };
   readonly targetVelocity = { x: 0, y: 0, z: 0 };
+  readonly lastCoverTarget = { x: 0, y: 0, z: 0 };
   targetId = 'target-player';
+  coverQueryCount = 0;
+  pathEstimateOverride: ((from: Vec3Like, to: Vec3Like) => number) | null = null;
+  pathNodeCountOverride: ((from: Vec3Like, to: Vec3Like) => number) | null = null;
+  candidatePathCostSeed: ((id: string) => number) | null = null;
 
   sampleTarget(_observerId: string, out: MutableTargetSample): boolean {
     if (!this.targetPresent) return false;
@@ -227,8 +232,18 @@ export class ScenarioWorld implements
     to: Vec3Like,
     out: MutablePathBuffer,
   ): number {
-    const count = Math.min(3, MAX_AI_PATH_POINTS);
+    const requestedCount = this.pathNodeCountOverride?.(from, to) ?? 3;
+    const count = Math.max(0, Math.min(
+      Math.floor(requestedCount),
+      MAX_AI_PATH_POINTS,
+    ));
+    if (count === 0) return 0;
     copyVec3(out.points[0], from);
+    if (count === 1) return 1;
+    if (count === 2) {
+      copyVec3(out.points[1], to);
+      return 2;
+    }
     out.points[1].x = (from.x + to.x) * 0.5 + (to.x < from.x ? -0.45 : 0.45);
     out.points[1].y = (from.y + to.y) * 0.5;
     out.points[1].z = (from.z + to.z) * 0.5;
@@ -237,15 +252,18 @@ export class ScenarioWorld implements
   }
 
   estimatePathCost(_agentId: string, from: Vec3Like, to: Vec3Like): number {
+    if (this.pathEstimateOverride) return this.pathEstimateOverride(from, to);
     return distance(from, to) * 1.08;
   }
 
   collectCandidates(
     _agentId: string,
     _from: Vec3Like,
-    _target: Vec3Like,
+    target: Vec3Like,
     out: MutableCoverBuffer,
   ): number {
+    this.coverQueryCount++;
+    copyVec3(this.lastCoverTarget, target);
     const count = Math.min(COVER_TEMPLATES.length, MAX_AI_COVER_CANDIDATES);
     for (let index = 0; index < count; index++) {
       const template = COVER_TEMPLATES[index];
@@ -253,7 +271,7 @@ export class ScenarioWorld implements
       candidate.id = template.id;
       copyVec3(candidate.position, template.position);
       candidate.exposure = template.exposure;
-      candidate.pathCost = 0;
+      candidate.pathCost = this.candidatePathCostSeed?.(template.id) ?? 0;
       candidate.flank = template.flank;
       candidate.score = 0;
     }

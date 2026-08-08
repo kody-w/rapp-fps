@@ -6,6 +6,10 @@ export {
   SecurityAgent,
 } from './SecurityAgent.js';
 export { scoreCoverCandidate, type CoverScoreInput } from './cover.js';
+export {
+  FixedStepAccumulator,
+  type FixedStepAccumulatorSnapshot,
+} from './FixedStepAccumulator.js';
 export { SeededRandom } from './random.js';
 export type {
   AgentDebugView,

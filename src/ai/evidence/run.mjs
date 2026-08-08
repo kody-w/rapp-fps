@@ -6,12 +6,15 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import { chromium } from 'playwright';
+import { assertWithinFrameBudget } from './budget-verdict.mjs';
 
 const BASE_URL = process.env.AI_URL ?? 'http://127.0.0.1:5341';
 const OUTPUT = dirname(fileURLToPath(import.meta.url));
 const MACHINE_REPORT = join(OUTPUT, 'report.json');
 const VISUAL_REPORT = join(OUTPUT, 'visual-report.json');
+const BUDGET_FIXTURE = join(OUTPUT, 'budget-fixture.mjs');
 const SHOTS = ['patrol', 'investigate', 'engage', 'search', 'cover'];
 const FRAME_BUDGET_MS = 16.7;
 const EVIDENCE_PATH = 'src/ai/evidence';
@@ -20,6 +23,22 @@ mkdirSync(OUTPUT, { recursive: true });
 for (const name of SHOTS) rmSync(join(OUTPUT, `${name}.png`), { force: true });
 rmSync(MACHINE_REPORT, { force: true });
 rmSync(VISUAL_REPORT, { force: true });
+
+const budgetFixture = spawnSync(
+  process.execPath,
+  [BUDGET_FIXTURE, String(FRAME_BUDGET_MS + 1), String(FRAME_BUDGET_MS)],
+  { encoding: 'utf8' },
+);
+assert.notEqual(
+  budgetFixture.status,
+  0,
+  'over-budget fixture unexpectedly exited successfully',
+);
+const budgetFixtureSummary = budgetFixture.stderr
+  .trim()
+  .split('\n')
+  .find((line) => line.includes('exceeds'))
+  ?? `fixture exited ${String(budgetFixture.status)}`;
 
 const browser = await chromium.launch({
   args: [
@@ -111,7 +130,8 @@ try {
   );
 
   const pairedP95 = profiler.budgetFrameMs.p95;
-  const overBudget = pairedP95 > FRAME_BUDGET_MS;
+  const budgetResult = assertWithinFrameBudget(pairedP95, FRAME_BUDGET_MS);
+  const overBudget = budgetResult.overBudget;
   const expectedStates = {
     patrol: 'patrol',
     investigate: 'investigate',
@@ -162,12 +182,20 @@ try {
       budgetFrameMsP95: profiler.budgetFrameMsP95,
       pairedP95Ms: pairedP95,
       overBudget,
-      verdict: overBudget ? 'FAIL' : 'PASS',
+      verdict: budgetResult.verdict,
       note: 'budgetFrameMs is max(CPU, GPU) paired by the frame that issued the true EXT_disjoint_timer_query_webgl2 query.',
     },
     drawCalls: measured.drawCalls,
     triangles: measured.triangles,
     shots,
+    budgetNegativeControl: {
+      fixture: `${EVIDENCE_PATH}/budget-fixture.mjs`,
+      pairedP95Ms: FRAME_BUDGET_MS + 1,
+      budgetMs: FRAME_BUDGET_MS,
+      exitCode: budgetFixture.status,
+      expectedNonzeroExitObserved: budgetFixture.status !== 0,
+      failureSummary: budgetFixtureSummary,
+    },
     consoleErrors,
     caveats: measured.caveats,
   };

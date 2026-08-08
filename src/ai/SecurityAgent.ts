@@ -64,31 +64,72 @@ export const DEFAULT_SECURITY_AGENT_CONFIG: Readonly<SecurityAgentConfig> = Obje
 });
 
 const NO_TARGET = '';
-const TICK_SCRATCH_OBJECTS = 27;
+const MIN_REPOSITION_PATH_POINTS = 2;
+const NO_CONFIG_OVERRIDES: Readonly<Partial<SecurityAgentConfig>> = Object.freeze({});
 
-function mutableVec3(x = 0, y = 0, z = 0): MutableVec3 {
+function createStorageStats(): AgentStorageStats {
+  return {
+    ticks: 0,
+    pathCapacity: MAX_AI_PATH_POINTS,
+    coverCapacity: MAX_AI_COVER_CANDIDATES,
+    maxPathPointsUsed: 0,
+    maxCoverCandidatesUsed: 0,
+    pathRequests: 0,
+    coverQueries: 0,
+    ownedSetupObjectAllocations: 1,
+    dynamicTickObjectAllocations: 0,
+  };
+}
+
+function mutableVec3(
+  storage: AgentStorageStats,
+  x = 0,
+  y = 0,
+  z = 0,
+): MutableVec3 {
+  storage.ownedSetupObjectAllocations++;
   return { x, y, z };
 }
 
-function createPathBuffer(): MutablePathBuffer {
+function createPathBuffer(storage: AgentStorageStats): MutablePathBuffer {
+  storage.ownedSetupObjectAllocations++;
   const points: MutableVec3[] = [];
-  for (let index = 0; index < MAX_AI_PATH_POINTS; index++) points.push(mutableVec3());
+  for (let index = 0; index < MAX_AI_PATH_POINTS; index++) {
+    points.push(mutableVec3(storage));
+  }
+  storage.ownedSetupObjectAllocations++;
   return { points, count: 0 };
 }
 
-function createCoverBuffer(): MutableCoverBuffer {
+function createCoverBuffer(storage: AgentStorageStats): MutableCoverBuffer {
+  storage.ownedSetupObjectAllocations++;
   const candidates: MutableCoverCandidate[] = [];
   for (let index = 0; index < MAX_AI_COVER_CANDIDATES; index++) {
+    const position = mutableVec3(storage);
+    storage.ownedSetupObjectAllocations++;
     candidates.push({
       id: '',
-      position: mutableVec3(),
+      position,
       exposure: 1,
       pathCost: 0,
       flank: 0,
       score: 0,
     });
   }
+  storage.ownedSetupObjectAllocations++;
   return { candidates, count: 0 };
+}
+
+function createTargetSample(storage: AgentStorageStats): MutableTargetSample {
+  const position = mutableVec3(storage);
+  const velocity = mutableVec3(storage);
+  storage.ownedSetupObjectAllocations++;
+  return {
+    id: NO_TARGET,
+    position,
+    velocity,
+    alive: false,
+  };
 }
 
 export class SecurityAgent {
@@ -97,33 +138,18 @@ export class SecurityAgent {
   private readonly ports: SecurityAgentPorts;
   private readonly config: SecurityAgentConfig;
   private readonly random: SeededRandom;
-  private readonly position = mutableVec3();
-  private readonly forward = mutableVec3(0, 0, 1);
-  private readonly eyePosition = mutableVec3(0, 1.65, 0);
-  private readonly homePosition = mutableVec3();
-  private readonly target: MutableTargetSample = {
-    id: NO_TARGET,
-    position: mutableVec3(),
-    velocity: mutableVec3(),
-    alive: false,
-  };
-  private readonly lastKnownPosition = mutableVec3();
-  private readonly interestPosition = mutableVec3();
-  private readonly searchPosition = mutableVec3();
-  private readonly path = createPathBuffer();
-  private readonly cover = createCoverBuffer();
+  private readonly storage = createStorageStats();
+  private readonly position = mutableVec3(this.storage);
+  private readonly forward = mutableVec3(this.storage, 0, 0, 1);
+  private readonly eyePosition = mutableVec3(this.storage, 0, 1.65, 0);
+  private readonly homePosition = mutableVec3(this.storage);
+  private readonly target = createTargetSample(this.storage);
+  private readonly lastKnownPosition = mutableVec3(this.storage);
+  private readonly interestPosition = mutableVec3(this.storage);
+  private readonly searchPosition = mutableVec3(this.storage);
+  private readonly path = createPathBuffer(this.storage);
+  private readonly cover = createCoverBuffer(this.storage);
   private readonly debug: AgentDebugView;
-  private readonly storage: AgentStorageStats = {
-    ticks: 0,
-    pathCapacity: MAX_AI_PATH_POINTS,
-    coverCapacity: MAX_AI_COVER_CANDIDATES,
-    maxPathPointsUsed: 0,
-    maxCoverCandidatesUsed: 0,
-    pathRequests: 0,
-    coverQueries: 0,
-    tickScratchObjects: TICK_SCRATCH_OBJECTS,
-    dynamicTickObjectAllocations: 0,
-  };
 
   private state: AiState = 'patrol';
   private tickIndex = 0;
@@ -134,7 +160,9 @@ export class SecurityAgent {
   private nextBurstTick = 0;
   private burstId = 0;
   private targetVisible = false;
+  private confirmationTargetId = NO_TARGET;
   private hasLastKnownPosition = false;
+  private memoryTargetId = NO_TARGET;
   private hasInterestPosition = false;
   private memoryConfidence = 0;
   private selectedCoverIndex = -1;
@@ -145,20 +173,26 @@ export class SecurityAgent {
     id: string,
     seed: number,
     ports: SecurityAgentPorts,
-    overrides: Partial<SecurityAgentConfig> = {},
+    overrides?: Partial<SecurityAgentConfig>,
   ) {
+    const configOverrides = overrides ?? NO_CONFIG_OVERRIDES;
     this.id = id;
     this.ports = ports;
+    this.storage.ownedSetupObjectAllocations++;
     this.random = new SeededRandom(seed);
+    this.storage.ownedSetupObjectAllocations++;
+    const coverWeights = {
+      ...DEFAULT_SECURITY_AGENT_CONFIG.coverWeights,
+      ...configOverrides.coverWeights,
+    };
+    this.storage.ownedSetupObjectAllocations++;
     this.config = {
       ...DEFAULT_SECURITY_AGENT_CONFIG,
-      ...overrides,
-      coverWeights: {
-        ...DEFAULT_SECURITY_AGENT_CONFIG.coverWeights,
-        ...overrides.coverWeights,
-      },
+      ...configOverrides,
+      coverWeights,
     };
     this.eyePosition.y = this.config.eyeHeight;
+    this.storage.ownedSetupObjectAllocations++;
     this.debug = {
       state: this.state,
       tick: 0,
@@ -167,8 +201,10 @@ export class SecurityAgent {
       forward: this.forward,
       targetVisible: false,
       targetId: NO_TARGET,
+      confirmationTargetId: NO_TARGET,
       targetPosition: this.target.position,
       hasLastKnownPosition: false,
+      memoryTargetId: NO_TARGET,
       lastKnownPosition: this.lastKnownPosition,
       memoryConfidence: 0,
       hasInterestPosition: false,
@@ -277,6 +313,12 @@ export class SecurityAgent {
     return this.storage;
   }
 
+  /** Every future agent-owned fixed-step allocation must pass through this counter. */
+  protected ownDynamicTickObject<T extends object>(value: T): T {
+    this.storage.dynamicTickObjectAllocations++;
+    return value;
+  }
+
   private get timeSeconds(): number {
     return this.tickIndex * this.config.fixedStepSeconds;
   }
@@ -314,7 +356,31 @@ export class SecurityAgent {
 
     this.targetVisible = visible;
     if (visible) {
-      if (this.firstVisibleTick < 0) {
+      const previousTargetId = this.confirmationTargetId;
+      const targetChanged = previousTargetId !== this.target.id;
+      if (targetChanged) {
+        const hadConfirmedIdentity = previousTargetId !== NO_TARGET;
+        const wasCombatState = (
+          this.state === 'engage'
+          || this.state === 'suppress'
+          || this.state === 'reposition'
+        );
+        this.confirmationTargetId = this.target.id;
+        this.firstVisibleTick = this.tickIndex;
+        this.nextMemorySampleTick = this.tickIndex;
+        this.hasLastKnownPosition = false;
+        this.memoryTargetId = NO_TARGET;
+        this.memoryConfidence = 0;
+        if (hadConfirmedIdentity && wasCombatState) {
+          this.ports.combat.cease(this.id, 'lost-target', this.timeSeconds);
+        }
+        if (this.state !== 'suspicious') {
+          this.transition(
+            'suspicious',
+            hadConfirmedIdentity ? 'target-changed' : 'visual-cue',
+          );
+        }
+      } else if (this.firstVisibleTick < 0) {
         this.firstVisibleTick = this.tickIndex;
         if (
           this.state === 'idle'
@@ -352,7 +418,11 @@ export class SecurityAgent {
 
   private updateMemory(stepSeconds: number): void {
     if (this.targetVisible) {
-      if (!this.hasLastKnownPosition || this.tickIndex >= this.nextMemorySampleTick) {
+      if (
+        this.memoryTargetId !== this.target.id
+        || !this.hasLastKnownPosition
+        || this.tickIndex >= this.nextMemorySampleTick
+      ) {
         const confidenceBeforeRefresh = this.memoryConfidence;
         const errorScale = this.config.memoryErrorMeters
           * (0.25 + (1 - confidenceBeforeRefresh) * 0.75);
@@ -362,6 +432,7 @@ export class SecurityAgent {
         this.lastKnownPosition.z = this.target.position.z
           + this.random.range(-errorScale, errorScale);
         this.hasLastKnownPosition = true;
+        this.memoryTargetId = this.target.id;
         this.nextMemorySampleTick = this.tickIndex
           + this.secondsToTicks(this.config.memorySampleSeconds);
       }
@@ -374,7 +445,10 @@ export class SecurityAgent {
         0,
         this.memoryConfidence - this.config.memoryDecayPerSecond * stepSeconds,
       );
-      if (this.memoryConfidence === 0) this.hasLastKnownPosition = false;
+      if (this.memoryConfidence === 0) {
+        this.hasLastKnownPosition = false;
+        this.memoryTargetId = NO_TARGET;
+      }
     }
   }
 
@@ -419,16 +493,18 @@ export class SecurityAgent {
         }
         break;
       case 'engage':
-        this.updateBurstSchedule();
         if (this.stateTicks() >= this.secondsToTicks(this.config.engageDecisionSeconds)) {
           this.transition('suppress', 'tactical-cycle');
+        } else {
+          this.updateBurstSchedule();
         }
         break;
       case 'suppress':
-        this.updateBurstSchedule();
         if (this.stateTicks() >= this.secondsToTicks(this.config.suppressSeconds)) {
           if (this.selectCover()) this.transition('reposition', 'cover-selected');
           else this.transition('engage', 'no-cover');
+        } else {
+          this.updateBurstSchedule();
         }
         break;
       case 'reposition':
@@ -504,8 +580,8 @@ export class SecurityAgent {
   }
 
   private selectCover(): boolean {
-    if (!this.target.alive && !this.hasLastKnownPosition) return false;
-    const targetPoint = this.target.alive ? this.target.position : this.lastKnownPosition;
+    if (!this.targetVisible && !this.hasLastKnownPosition) return false;
+    const targetPoint = this.targetVisible ? this.target.position : this.lastKnownPosition;
     this.cover.count = clamp(
       this.ports.cover.collectCandidates(
         this.id,
@@ -522,8 +598,6 @@ export class SecurityAgent {
       this.cover.count,
     );
 
-    let bestIndex = -1;
-    let bestScore = Number.NEGATIVE_INFINITY;
     for (let index = 0; index < this.cover.count; index++) {
       const candidate = this.cover.candidates[index];
       const estimatedPathCost = this.ports.navigation.estimatePathCost(
@@ -531,7 +605,12 @@ export class SecurityAgent {
         this.position,
         candidate.position,
       );
-      if (Number.isFinite(estimatedPathCost)) candidate.pathCost = estimatedPathCost;
+      if (!Number.isFinite(estimatedPathCost) || estimatedPathCost < 0) {
+        candidate.pathCost = Number.POSITIVE_INFINITY;
+        candidate.score = Number.NEGATIVE_INFINITY;
+        continue;
+      }
+      candidate.pathCost = estimatedPathCost;
       const baseScore = scoreCoverCandidate(
         candidate,
         this.config.coverWeights,
@@ -541,31 +620,50 @@ export class SecurityAgent {
         -this.config.coverTieBreakNoise,
         this.config.coverTieBreakNoise,
       );
-      if (candidate.score > bestScore) {
-        bestScore = candidate.score;
-        bestIndex = index;
-      }
     }
-    this.selectedCoverIndex = bestIndex;
-    return bestIndex >= 0;
+
+    this.selectedCoverIndex = -1;
+    this.path.count = 0;
+    while (true) {
+      let bestIndex = -1;
+      let bestScore = Number.NEGATIVE_INFINITY;
+      for (let index = 0; index < this.cover.count; index++) {
+        const candidate = this.cover.candidates[index];
+        if (candidate.score > bestScore) {
+          bestScore = candidate.score;
+          bestIndex = index;
+        }
+      }
+      if (bestIndex < 0 || !Number.isFinite(bestScore)) {
+        this.path.count = 0;
+        return false;
+      }
+
+      const candidate = this.cover.candidates[bestIndex];
+      if (this.requestPath(candidate.position) >= MIN_REPOSITION_PATH_POINTS) {
+        this.selectedCoverIndex = bestIndex;
+        return true;
+      }
+      candidate.score = Number.NEGATIVE_INFINITY;
+    }
   }
 
-  private requestPath(destination: Vec3Like): void {
-    this.path.count = clamp(
-      this.ports.navigation.requestPath(
-        this.id,
-        this.position,
-        destination,
-        this.path,
-      ),
-      0,
-      MAX_AI_PATH_POINTS,
+  private requestPath(destination: Vec3Like): number {
+    const requestedCount = this.ports.navigation.requestPath(
+      this.id,
+      this.position,
+      destination,
+      this.path,
     );
+    this.path.count = Number.isFinite(requestedCount)
+      ? clamp(Math.floor(requestedCount), 0, MAX_AI_PATH_POINTS)
+      : 0;
     this.storage.pathRequests++;
     this.storage.maxPathPointsUsed = Math.max(
       this.storage.maxPathPointsUsed,
       this.path.count,
     );
+    return this.path.count;
   }
 
   private transition(next: AiState, reason: TransitionReason): void {
@@ -589,6 +687,7 @@ export class SecurityAgent {
       case 'patrol':
         this.hasInterestPosition = false;
         this.hasLastKnownPosition = false;
+        this.memoryTargetId = NO_TARGET;
         this.memoryConfidence = 0;
         this.selectedCoverIndex = -1;
         this.cover.count = 0;
@@ -622,7 +721,6 @@ export class SecurityAgent {
       }
       case 'reposition': {
         const candidate = this.cover.candidates[this.selectedCoverIndex];
-        this.requestPath(candidate.position);
         this.ports.combat.reposition(
           this.id,
           candidate.id,
@@ -658,6 +756,7 @@ export class SecurityAgent {
       case 'return':
         this.hasInterestPosition = false;
         this.hasLastKnownPosition = false;
+        this.memoryTargetId = NO_TARGET;
         this.memoryConfidence = 0;
         this.requestPath(this.homePosition);
         break;
@@ -665,6 +764,8 @@ export class SecurityAgent {
         this.path.count = 0;
         this.cover.count = 0;
         this.targetVisible = false;
+        this.confirmationTargetId = NO_TARGET;
+        this.memoryTargetId = NO_TARGET;
         this.ports.combat.cease(this.id, 'eliminated', this.timeSeconds);
         break;
     }
@@ -677,7 +778,9 @@ export class SecurityAgent {
     this.debug.timeSeconds = this.timeSeconds;
     this.debug.targetVisible = this.targetVisible;
     this.debug.targetId = this.target.id;
+    this.debug.confirmationTargetId = this.confirmationTargetId;
     this.debug.hasLastKnownPosition = this.hasLastKnownPosition;
+    this.debug.memoryTargetId = this.memoryTargetId;
     this.debug.memoryConfidence = this.memoryConfidence;
     this.debug.hasInterestPosition = this.hasInterestPosition;
     this.debug.selectedCoverIndex = this.selectedCoverIndex;

@@ -3,12 +3,14 @@ import {
   DEFAULT_SECURITY_AGENT_CONFIG,
   SecurityAgent,
 } from '../SecurityAgent.js';
-import { round } from '../math.js';
+import { FixedStepAccumulator } from '../FixedStepAccumulator.js';
+import { distance, round } from '../math.js';
 import type {
   AgentDebugView,
   AgentStorageStats,
   FootstepPayload,
   SecurityAgentConfig,
+  SecurityAgentPorts,
 } from '../types.js';
 import {
   NULL_COMBAT_INTENT_SINK,
@@ -50,6 +52,13 @@ interface ScenarioContext {
   trace: TraceRecorder;
 }
 
+class AllocatingSecurityAgentMutation extends SecurityAgent {
+  override fixedUpdate(stepSeconds = AI_FIXED_STEP_SECONDS): void {
+    void this.ownDynamicTickObject({ mutation: 'per-tick-allocation' });
+    super.fixedUpdate(stepSeconds);
+  }
+}
+
 function valueText(value: unknown): string {
   if (typeof value === 'string') return value;
   return JSON.stringify(value);
@@ -74,8 +83,8 @@ function check(
 function createContext(
   seed = DEFAULT_SEED,
   overrides: Partial<SecurityAgentConfig> = {},
+  world = new ScenarioWorld(),
 ): ScenarioContext {
-  const world = new ScenarioWorld();
   const trace = new TraceRecorder();
   const agent = new SecurityAgent(
     'security-01',
@@ -311,6 +320,219 @@ function runOcclusionMemory(): ScenarioResult {
   });
 }
 
+function runOccludedTargetCoverMemory(): ScenarioResult {
+  const context = createContext();
+  const occlusionTick = 250;
+  const durationTicks = 310;
+  const rememberedAtOcclusion = { x: 0, y: 0, z: 0 };
+  context.world.targetPresent = true;
+  context.world.occluded = false;
+  context.trace.stimulus(0, 'LOS-on', { position: context.world.targetPosition });
+
+  tick(context, durationTicks, (tickIndex) => {
+    if (tickIndex !== occlusionTick) return;
+    const memory = context.agent.getDebugView().lastKnownPosition;
+    rememberedAtOcclusion.x = memory.x;
+    rememberedAtOcclusion.y = memory.y;
+    rememberedAtOcclusion.z = memory.z;
+    context.trace.stimulus(tickIndex, 'occlusion-and-target-move', {
+      rememberedAtOcclusion: { ...rememberedAtOcclusion },
+      liveDestination: { x: 12, y: 1.45, z: 20 },
+    });
+    context.world.occluded = true;
+    context.world.targetPosition.x = 12;
+    context.world.targetPosition.z = 20;
+  });
+
+  const memoryDistance = distance(context.world.lastCoverTarget, rememberedAtOcclusion);
+  const liveDistance = distance(context.world.lastCoverTarget, context.world.targetPosition);
+  const reposition = context.trace.events.find((event) => event.kind === 'reposition');
+  const assertions = [
+    check('cover is evaluated during the occlusion grace window', context.world.coverQueryCount > 0, '> 0', context.world.coverQueryCount),
+    check(
+      'occluded cover scoring uses last-known target memory',
+      memoryDistance <= 1e-9,
+      rememberedAtOcclusion,
+      context.world.lastCoverTarget,
+    ),
+    check(
+      'occluded moving target does not leak live coordinates into cover scoring',
+      liveDistance > 5,
+      '> 5m from moved live target',
+      `${round(liveDistance, 6)}m`,
+    ),
+    check('memory-based cover can still produce a reposition intent', Boolean(reposition), true, Boolean(reposition)),
+  ];
+  return finishScenario(context, durationTicks / FIXED_HZ, assertions, {
+    occlusionTick,
+    rememberedAtOcclusion,
+    movedLiveTarget: { ...context.world.targetPosition },
+    coverQueryTarget: { ...context.world.lastCoverTarget },
+    memoryDistance: round(memoryDistance, 6),
+    liveDistance: round(liveDistance, 6),
+  });
+}
+
+function runMixedCoverReachability(): ScenarioResult {
+  const world = new ScenarioWorld();
+  world.candidatePathCostSeed = (id) => id === 'compressor-left' ? -1_000 : 0;
+  world.pathEstimateOverride = (_from, to) => (
+    to.x < -3
+      ? Number.NaN
+      : Math.abs(to.x) < 1
+        ? 0
+        : 17
+  );
+  world.pathNodeCountOverride = (_from, to) => (
+    Math.abs(to.x) < 1 ? 0 : 3
+  );
+  const context = createContext(DEFAULT_SEED, {}, world);
+  const durationTicks = 310;
+  context.world.targetPresent = true;
+  context.world.occluded = false;
+  context.trace.stimulus(0, 'LOS-on');
+  tick(context, durationTicks);
+
+  const reposition = context.trace.events.find((event) => event.kind === 'reposition');
+  const coverId = String(reposition?.data.coverId ?? '');
+  const stats = context.agent.getStorageStats();
+  const assertions = [
+    check(
+      'non-finite estimate rejects a candidate despite stale low path cost',
+      coverId !== 'compressor-left',
+      'not compressor-left',
+      coverId,
+    ),
+    check(
+      'zero-node candidate loses to a reachable candidate',
+      coverId === 'barrier-right',
+      'barrier-right',
+      coverId,
+    ),
+    check(
+      'reposition is emitted only with a usable staged path',
+      Boolean(reposition && context.agent.getDebugView().path.count >= 2),
+      'pathCount >= 2',
+      context.agent.getDebugView().path.count,
+    ),
+    check('cover selection probes alternate routes after rejection', stats.pathRequests >= 2, '>= 2', stats.pathRequests),
+  ];
+  return finishScenario(context, durationTicks / FIXED_HZ, assertions, {
+    selectedCover: coverId,
+    pathCount: context.agent.getDebugView().path.count,
+    pathRequests: stats.pathRequests,
+  });
+}
+
+function runAllCoverUnreachable(): ScenarioResult {
+  const world = new ScenarioWorld();
+  world.pathNodeCountOverride = () => 0;
+  const context = createContext(DEFAULT_SEED, {}, world);
+  const durationTicks = 310;
+  context.world.targetPresent = true;
+  context.world.occluded = false;
+  context.trace.stimulus(0, 'LOS-on');
+  tick(context, durationTicks);
+
+  const reposition = context.trace.events.find((event) => event.kind === 'reposition');
+  const repositionState = findTransition(context.trace.events, 'reposition');
+  const noCover = context.trace.events.find(
+    (event) => event.kind === 'transition' && event.data.reason === 'no-cover',
+  );
+  const assertions = [
+    check('all unreachable cover emits no reposition intent', !reposition, false, Boolean(reposition)),
+    check('all unreachable cover never enters reposition', !repositionState, false, Boolean(repositionState)),
+    check('all unreachable cover falls back through no-cover', Boolean(noCover), true, Boolean(noCover)),
+    check('failed cover leaves no staged path', context.agent.getDebugView().path.count === 0, 0, context.agent.getDebugView().path.count),
+  ];
+  return finishScenario(context, durationTicks / FIXED_HZ, assertions, {
+    pathRequests: context.agent.getStorageStats().pathRequests,
+  });
+}
+
+function runBurstBoundaryRegression(): ScenarioResult {
+  const context = createContext(67);
+  const durationTicks = 1_205;
+  context.world.targetPresent = true;
+  context.world.occluded = false;
+  context.trace.stimulus(0, 'LOS-on', { seed: 67 });
+  tick(context, durationTicks);
+
+  const boundary = context.trace.events.find(
+    (event) => (
+      event.kind === 'transition'
+      && event.tick === 1_192
+      && event.data.from === 'engage'
+      && event.data.to === 'suppress'
+    ),
+  );
+  const bursts = context.trace.events.filter((event) => event.kind === 'burst');
+  const boundaryBursts = bursts.filter((event) => event.tick === 1_192);
+  const duplicateTicks = bursts
+    .filter((event, index) => bursts.findIndex((other) => other.tick === event.tick) !== index)
+    .map((event) => event.tick);
+  const assertions = [
+    check('seed 67 reaches the reviewed engage-to-suppress boundary', Boolean(boundary), 'tick 1192', boundary?.tick ?? null),
+    check(
+      'tactical boundary schedules exactly one burst',
+      boundaryBursts.length === 1,
+      1,
+      boundaryBursts.map((event) => event.data.burstId),
+    ),
+    check('burst schedule has no duplicate tick emissions', duplicateTicks.length === 0, [], duplicateTicks),
+  ];
+  return finishScenario(context, durationTicks / FIXED_HZ, assertions, {
+    boundaryTick: boundary?.tick ?? null,
+    boundaryBurstIds: boundaryBursts.map((event) => event.data.burstId),
+  });
+}
+
+function runTargetIdentityReaction(): ScenarioResult {
+  const context = createContext();
+  const switchTick = 30;
+  const durationTicks = 120;
+  context.world.targetPresent = true;
+  context.world.occluded = false;
+  context.world.targetId = 'target-a';
+  context.trace.stimulus(0, 'LOS-on', { targetId: 'target-a' });
+  tick(context, durationTicks, (tickIndex) => {
+    if (tickIndex !== switchTick) return;
+    context.world.targetId = 'target-b';
+    context.world.targetPosition.x = 2;
+    context.trace.stimulus(tickIndex, 'target-identity-switch', {
+      from: 'target-a',
+      to: 'target-b',
+    });
+  });
+
+  const engage = findTransition(context.trace.events, 'engage');
+  const detectionTick = switchTick + 1;
+  const delaySeconds = engage
+    ? (engage.tick - detectionTick) * AI_FIXED_STEP_SECONDS
+    : null;
+  const firstBurst = context.trace.events.find((event) => event.kind === 'burst');
+  const debug = context.agent.getDebugView();
+  const assertions = [
+    check('target B eventually enters engage', Boolean(engage), true, Boolean(engage)),
+    check(
+      'target B receives the full reaction delay',
+      delaySeconds !== null
+        && delaySeconds + 1e-9 >= DEFAULT_SECURITY_AGENT_CONFIG.reactionDelaySeconds,
+      `>= ${DEFAULT_SECURITY_AGENT_CONFIG.reactionDelaySeconds}s`,
+      delaySeconds === null ? null : `${round(delaySeconds, 6)}s`,
+    ),
+    check('first burst after the switch targets B', firstBurst?.data.targetId === 'target-b', 'target-b', firstBurst?.data.targetId ?? null),
+    check('memory sampling resets to target B', debug.memoryTargetId === 'target-b', 'target-b', debug.memoryTargetId),
+    check('confirmation identity tracks target B', debug.confirmationTargetId === 'target-b', 'target-b', debug.confirmationTargetId),
+  ];
+  return finishScenario(context, durationTicks / FIXED_HZ, assertions, {
+    switchTick,
+    detectionTick,
+    engageTick: engage?.tick ?? null,
+    delaySeconds,
+  });
+}
+
 function runTacticalTrace(seed: number): ScenarioResult {
   const context = createContext(seed);
   const durationSeconds = 4.6;
@@ -400,55 +622,98 @@ function runSeedDeterminism(): {
   };
 }
 
-function runBatchedTimeline(renderHz: 30 | 60 | 144): {
+interface BatchingRun {
   renderHz: number;
   renderFrames: number;
   fixedTicks: number;
+  renderSeconds: number;
+  simulatedSeconds: number;
+  commonTimeSnapshot: Record<string, unknown> | null;
+  commonTimelineHash: string | null;
   timeline: readonly TraceEvent[];
   hash: string;
-} {
-  const context = createContext(DEFAULT_SEED);
-  const clockHz = 720;
-  const fixedUnits = clockHz / FIXED_HZ;
-  const renderUnits = clockHz / renderHz;
-  const fixedTicks = 6 * FIXED_HZ;
-  let accumulator = 0;
-  let completedTicks = 0;
-  let renderFrames = 0;
+}
 
-  while (completedTicks < fixedTicks) {
-    accumulator += renderUnits;
-    renderFrames++;
-    while (accumulator >= fixedUnits && completedTicks < fixedTicks) {
-      if (completedTicks === 18) {
-        const footstep: FootstepPayload = {
-          position: { x: -3, y: 0, z: 3 },
-          surface: 'concrete',
-          loud: 0.75,
-        };
-        context.trace.stimulus(completedTicks, 'Footstep', { loud: footstep.loud });
+function runBatchedTimeline(
+  renderHz: 30 | 60 | 144,
+  accumulatorRate = 1,
+): BatchingRun {
+  const context = createContext(DEFAULT_SEED);
+  const renderFrames = 180;
+  const commonTicks = 150;
+  const accumulator = new FixedStepAccumulator(AI_FIXED_STEP_SECONDS);
+  let completedTicks = 0;
+  let commonTimeSnapshot: Record<string, unknown> | null = null;
+  let commonTimelineHash: string | null = null;
+  let stimulusIndex = 0;
+  const footstep: FootstepPayload = {
+    position: { x: -3, y: 0, z: 3 },
+    surface: 'concrete',
+    loud: 0.75,
+  };
+  const stimuli = [
+    { atSeconds: 0.15, kind: 'footstep' },
+    { atSeconds: 0.55, kind: 'los' },
+    { atSeconds: 1.6, kind: 'occlusion' },
+  ] as const;
+
+  const fixedUpdate = (stepSeconds: number): void => {
+    const simulationSeconds = completedTicks * stepSeconds;
+    while (
+      stimulusIndex < stimuli.length
+      && stimuli[stimulusIndex].atSeconds <= simulationSeconds + 1e-9
+    ) {
+      const stimulus = stimuli[stimulusIndex++];
+      if (stimulus.kind === 'footstep') {
+        context.trace.stimulus(completedTicks, 'Footstep', {
+          atSeconds: stimulus.atSeconds,
+          loud: footstep.loud,
+        });
         context.agent.hearFootstep(footstep);
-      }
-      if (completedTicks === 96) {
-        context.trace.stimulus(completedTicks, 'LOS-on');
+      } else if (stimulus.kind === 'los') {
+        context.trace.stimulus(completedTicks, 'LOS-on', {
+          atSeconds: stimulus.atSeconds,
+        });
         context.world.targetPresent = true;
         context.world.occluded = false;
-      }
-      if (completedTicks === 330) {
-        context.trace.stimulus(completedTicks, 'occlusion-on');
+      } else {
+        context.trace.stimulus(completedTicks, 'occlusion-on', {
+          atSeconds: stimulus.atSeconds,
+        });
         context.world.occluded = true;
       }
-      context.agent.fixedUpdate(AI_FIXED_STEP_SECONDS);
-      accumulator -= fixedUnits;
-      completedTicks++;
     }
+    context.agent.fixedUpdate(stepSeconds);
+    completedTicks++;
+    if (completedTicks === commonTicks) {
+      const prefix = context.trace.events.filter((event) => event.tick <= commonTicks);
+      const debug = context.agent.getDebugView();
+      commonTimelineHash = fnv1a(JSON.stringify(prefix));
+      commonTimeSnapshot = {
+        tick: completedTicks,
+        state: debug.state,
+        targetVisible: debug.targetVisible,
+        memoryConfidence: round(debug.memoryConfidence, 6),
+        pathCount: debug.path.count,
+        timelineHash: commonTimelineHash,
+      };
+    }
+  };
+
+  for (let frame = 0; frame < renderFrames; frame++) {
+    accumulator.advance((1 / renderHz) * accumulatorRate, fixedUpdate);
   }
 
+  const accumulatorSnapshot = accumulator.snapshot();
   const bytes = JSON.stringify(context.trace.events);
   return {
     renderHz,
     renderFrames,
-    fixedTicks: completedTicks,
+    fixedTicks: accumulatorSnapshot.completedTicks,
+    renderSeconds: round(renderFrames / renderHz, 6),
+    simulatedSeconds: round(accumulatorSnapshot.simulatedSeconds, 6),
+    commonTimeSnapshot,
+    commonTimelineHash,
     timeline: context.trace.events,
     hash: fnv1a(bytes),
   };
@@ -457,30 +722,62 @@ function runBatchedTimeline(renderHz: 30 | 60 | 144): {
 function runBatchingDeterminism(): {
   passed: boolean;
   assertions: EvidenceAssertion[];
-  runs: ReturnType<typeof runBatchedTimeline>[];
+  runs: BatchingRun[];
+  mutationControl: Record<string, unknown>;
 } {
   const runs = [
     runBatchedTimeline(30),
     runBatchedTimeline(60),
     runBatchedTimeline(144),
   ];
-  const baseline = JSON.stringify(runs[0].timeline);
-  const assertions = runs.slice(1).map((run) => check(
-    `${run.renderHz} Hz render batching matches 30 Hz fixed-step timeline`,
-    JSON.stringify(run.timeline) === baseline,
-    runs[0].hash,
-    run.hash,
+  const expectedTicks = runs.map((run) => Math.floor(
+    run.renderFrames / run.renderHz / AI_FIXED_STEP_SECONDS + 1e-9,
   ));
-  assertions.push(check(
-    'all render batches execute exactly 720 fixed ticks',
-    runs.every((run) => run.fixedTicks === 720),
-    [720, 720, 720],
-    runs.map((run) => run.fixedTicks),
-  ));
+  const commonSnapshot = JSON.stringify(runs[0].commonTimeSnapshot);
+  const assertions = [
+    check(
+      'fixed render-frame counts produce expected differing fixed-tick coverage',
+      runs.every((run, index) => run.fixedTicks === expectedTicks[index])
+        && new Set(runs.map((run) => run.fixedTicks)).size === runs.length,
+      expectedTicks,
+      runs.map((run) => run.fixedTicks),
+    ),
+    check(
+      'render-frame runs report their actual elapsed coverage',
+      runs.every((run) => Math.abs(run.simulatedSeconds - run.fixedTicks / FIXED_HZ) <= 1e-9),
+      runs.map((run) => run.fixedTicks / FIXED_HZ),
+      runs.map((run) => run.simulatedSeconds),
+    ),
+    ...runs.slice(1).map((run) => check(
+      `${run.renderHz} Hz matches 30 Hz at the common 1.25 simulated seconds`,
+      JSON.stringify(run.commonTimeSnapshot) === commonSnapshot,
+      runs[0].commonTimeSnapshot,
+      run.commonTimeSnapshot,
+    )),
+  ];
+  const wrongRate = runBatchedTimeline(60, 0.5);
+  const wrongRateAssertion = check(
+    '60 Hz accumulator advances at the render delta rate',
+    wrongRate.fixedTicks === expectedTicks[1],
+    expectedTicks[1],
+    wrongRate.fixedTicks,
+  );
   return {
     passed: assertions.every((assertion) => assertion.passed),
     assertions,
     runs,
+    mutationControl: {
+      name: 'wrong accumulator rate',
+      mutation: 'render delta multiplied by 0.5',
+      passed: false,
+      expectedFailureObserved: !wrongRateAssertion.passed,
+      relevantAssertion: wrongRateAssertion.name,
+      failureSummary: wrongRateAssertion.summary,
+      actual: {
+        fixedTicks: wrongRate.fixedTicks,
+        simulatedSeconds: wrongRate.simulatedSeconds,
+      },
+    },
   };
 }
 
@@ -494,6 +791,7 @@ function storageSummary(stats: readonly Readonly<AgentStorageStats>[]): Record<s
     maxCoverCandidatesUsed: Math.max(...stats.map((value) => value.maxCoverCandidatesUsed)),
     pathRequests: stats.reduce((sum, value) => sum + value.pathRequests, 0),
     coverQueries: stats.reduce((sum, value) => sum + value.coverQueries, 0),
+    ownedSetupObjectAllocationsPerAgent: stats[0]?.ownedSetupObjectAllocations ?? 0,
     dynamicTickObjectAllocations: stats.reduce(
       (sum, value) => sum + value.dynamicTickObjectAllocations,
       0,
@@ -574,6 +872,7 @@ function runBenchmark(): {
     && value.coverCapacity === 12
     && value.maxPathPointsUsed <= value.pathCapacity
     && value.maxCoverCandidatesUsed <= value.coverCapacity
+    && value.ownedSetupObjectAllocations > 0
     && value.dynamicTickObjectAllocations === 0
   ));
   const assertions = [
@@ -590,11 +889,12 @@ function runBenchmark(): {
       storage.totalTicks,
     ),
     check(
-      'tick storage remains fixed-capacity with zero dynamic tick objects',
+      'instrumented owned storage remains fixed-capacity with zero dynamic fixed-step allocations',
       bounded,
       {
         pathCapacity: 16,
         coverCapacity: 12,
+        ownedSetupObjectAllocations: '> 0',
         dynamicTickObjectAllocations: 0,
       },
       storage,
@@ -622,6 +922,44 @@ function runBenchmark(): {
       verdict: cpuMsPerFixedStep <= cpuBudgetMsPerFixedStep ? 'PASS' : 'FAIL',
     },
     storage,
+  };
+}
+
+function runAllocationMutationControl(): Record<string, unknown> {
+  const world = new ScenarioWorld();
+  const trace = new TraceRecorder();
+  const ports: SecurityAgentPorts = {
+    perception: world,
+    navigation: world,
+    cover: world,
+    combat: trace,
+    observer: trace,
+  };
+  const agent = new AllocatingSecurityAgentMutation(
+    'allocation-mutation',
+    DEFAULT_SEED,
+    ports,
+  );
+  agent.setPose({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 1 });
+  for (let tickIndex = 0; tickIndex < 120; tickIndex++) {
+    agent.fixedUpdate(AI_FIXED_STEP_SECONDS);
+  }
+  const stats = agent.getStorageStats();
+  const assertion = check(
+    'agent owns zero dynamic fixed-step allocations',
+    stats.dynamicTickObjectAllocations === 0,
+    0,
+    stats.dynamicTickObjectAllocations,
+  );
+  return {
+    name: 'per-tick owned allocation',
+    mutation: 'subclass allocates and registers one object during every fixedUpdate',
+    passed: false,
+    expectedFailureObserved: !assertion.passed,
+    relevantAssertion: assertion.name,
+    failureSummary: assertion.summary,
+    setupAllocationsObserved: stats.ownedSetupObjectAllocations,
+    dynamicTickObjectAllocations: stats.dynamicTickObjectAllocations,
   };
 }
 
@@ -709,10 +1047,16 @@ export function runEvidenceSuite(): Record<string, unknown> {
   const hearingThreshold = runQuietFootstep();
   const reactionDelay = runReactionDelay();
   const occlusionMemory = runOcclusionMemory();
+  const occludedCoverMemory = runOccludedTargetCoverMemory();
+  const mixedCoverReachability = runMixedCoverReachability();
+  const allCoverUnreachable = runAllCoverUnreachable();
+  const burstBoundary = runBurstBoundaryRegression();
+  const targetIdentityReaction = runTargetIdentityReaction();
   const seedDeterminism = runSeedDeterminism();
   const batchingDeterminism = runBatchingDeterminism();
   const benchmark = runBenchmark();
   const resolvedDamage = runResolvedDamageSeam();
+  const allocationMutation = runAllocationMutationControl();
 
   const reactionMutation = runReactionDelay(
     { reactionDelaySeconds: 0 },
@@ -732,6 +1076,8 @@ export function runEvidenceSuite(): Record<string, unknown> {
       hearingMutation,
       'subthreshold Footstep leaves patrol unchanged',
     ),
+    batchingDeterminism.mutationControl,
+    allocationMutation,
   ];
   const controlsPassed = negativeControls.every(
     (control) => control.expectedFailureObserved === true,
@@ -742,6 +1088,11 @@ export function runEvidenceSuite(): Record<string, unknown> {
     hearingThreshold,
     reactionDelay,
     occlusionMemory,
+    occludedCoverMemory,
+    mixedCoverReachability,
+    allCoverUnreachable,
+    burstBoundary,
+    targetIdentityReaction,
     resolvedDamage,
   };
   const baselinePassed = Object.values(scenarios).every((scenario) => scenario.passed);
@@ -780,6 +1131,7 @@ export function runEvidenceSuite(): Record<string, unknown> {
     negativeControls,
     allocationPolicy: {
       tickScratch: 'preallocated vectors, target sample, path buffer, and cover buffer',
+      instrumentation: 'Every SecurityAgent-owned setup object is counted at its allocation site; future dynamic fixed-step objects must pass through ownDynamicTickObject.',
       tracePolicy: 'evidence-only fixed 512-event cap; production observer is optional',
       verdict: benchmark.storage.dynamicTickObjectAllocations === 0 ? 'PASS' : 'FAIL',
     },
