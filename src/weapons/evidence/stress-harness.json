@@ -1,0 +1,63 @@
+{
+  "passed": true,
+  "assertions": 13,
+  "failures": [],
+  "consoleErrors": [],
+  "profiler": {
+    "gpuSupported": true,
+    "gpuCounterBits": 64,
+    "gpuDisjointCount": 0,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 8.111,
+      "p95": 10.574,
+      "worst": 11.803
+    },
+    "cpuFrameMs": {
+      "samples": 121,
+      "median": 1.7,
+      "p95": 2.8,
+      "worst": 3.1
+    },
+    "rafIntervalMs": {
+      "samples": 121,
+      "median": 16.7,
+      "p95": 16.9,
+      "worst": 17.7
+    },
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 8.111,
+      "p95": 10.574,
+      "worst": 11.803
+    },
+    "budgetFrameMsMedian": 8.111,
+    "budgetFrameMsP95": 10.574
+  },
+  "profile": {
+    "frames": 121,
+    "flashFrames": 48,
+    "maxDrawCalls": 88,
+    "flashDrawCallsMax": 88,
+    "fired": 24,
+    "impacts": 13,
+    "reloadStarts": 0,
+    "reloadEnds": 0,
+    "shakes": 0,
+    "damageEvents": 0,
+    "startAmmo": 99981
+  },
+  "endAmmo": 99957,
+  "reloading": false,
+  "stressMode": true,
+  "stats": {
+    "drawCallsPerFrame": 84,
+    "trianglesPerFrame": 85406,
+    "textures": 28,
+    "geometries": 14,
+    "programs": 15
+  },
+  "ammoSpent": 24,
+  "flashFrameRatio": 0.39669421487603307,
+  "verdict": "PASS: 10.574ms p95 <= 16.700ms"
+}

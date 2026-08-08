@@ -85,9 +85,15 @@ try {
     const fired = captured.events.filter((event) => event.name === 'weapon:fired');
     const impacts = captured.events.filter((event) => event.name === 'bullet:impact');
     const damage = captured.events.filter((event) => event.name === 'combat:damage');
+    const statuses = captured.events.filter((event) => event.name === 'weapon:status');
     assert(fired.length === count, `${name} must emit ${count} WeaponFired events; received ${fired.length}`);
     assert(impacts.length === count, `${name} must emit ${count} BulletImpact events; received ${impacts.length}`);
     assert(damage.length === 0, `${name} ballistics must emit zero authoritative Damage events; received ${damage.length}`);
+    assert(statuses.length >= count,
+      `${name} must publish canonical WeaponStatus during fire; received ${statuses.length}`);
+    const finalStatus = statuses.at(-1)?.payload;
+    assert(finalStatus?.ammo === 30 - count,
+      `${name} final WeaponStatus ammo must be ${30 - count}; received ${finalStatus?.ammo}`);
     for (let index = 0; index < impacts.length; index++) {
       const impact = impacts[index];
       const shot = fired[index];
@@ -201,6 +207,7 @@ try {
       fired: value.events.filter((event) => event.name === 'weapon:fired').length,
       impacts: value.events.filter((event) => event.name === 'bullet:impact').length,
       damage: value.events.filter((event) => event.name === 'combat:damage').length,
+      status: value.events.filter((event) => event.name === 'weapon:status').length,
     }])),
     authoritativeRay: {
       cleanMissMeters: distanceToRay(cleanImpact.point, cleanFired.origin, cleanFired.direction),

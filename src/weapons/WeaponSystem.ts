@@ -4,7 +4,13 @@
  */
 
 import * as THREE from 'three';
-import { Events, type EngineContext, type System, type UpdateContext } from '../core/contracts.js';
+import {
+  Events,
+  type EngineContext,
+  type System,
+  type UpdateContext,
+  type WeaponStatusPayload,
+} from '../core/contracts.js';
 import { HitscanBallistics } from './Ballistics.js';
 import { DUSKLINE_A7, type WeaponConfig } from './WeaponConfig.js';
 import { RecoilModel, type RecoilSnapshot } from './Recoil.js';
@@ -81,6 +87,7 @@ export class WeaponSystem implements System {
       ctx.bus,
       this.random,
     );
+    this.emitStatus();
   }
 
   get aim(): number { return smoothstep(this.adsProgress); }
@@ -112,6 +119,7 @@ export class WeaponSystem implements System {
         sensitivityScale: this.lookSensitivityScale,
       };
       ctx.bus.emit(Events.AimChanged, payload);
+      this.emitStatus();
     }
 
     const reloadEdge = ctx.input.reload && !this.previousReload;
@@ -222,6 +230,7 @@ export class WeaponSystem implements System {
 
     this.ammo--;
     this.shotsFired++;
+    this.emitStatus();
     this.ballistics.fire({
       cameraOrigin,
       muzzleOrigin,
@@ -258,6 +267,7 @@ export class WeaponSystem implements System {
     this.reloadRemaining = this.config.reloadSeconds;
     this.nextShotAt = this.simulationTime;
     this.ctx.bus.emit(Events.ReloadStart, { weapon: this.config.id });
+    this.emitStatus();
   }
 
   private finishReload(): void {
@@ -269,6 +279,19 @@ export class WeaponSystem implements System {
     this.reloadRemaining = 0;
     this.nextShotAt = this.simulationTime;
     this.ctx.bus.emit(Events.ReloadEnd, { weapon: this.config.id });
+    this.emitStatus();
+  }
+
+  private emitStatus(): void {
+    const status: WeaponStatusPayload = {
+      ammo: this.ammo,
+      reserve: this.reserve,
+      magazineSize: this.config.magazineSize,
+      reloading: this.reloading,
+      spread: this.currentSpread(this.aim),
+      aim: this.aim,
+    };
+    this.ctx.bus.emit(Events.WeaponStatus, status);
   }
 
   private reloadPose(): number {

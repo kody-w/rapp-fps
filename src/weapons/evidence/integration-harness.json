@@ -1,7 +1,7 @@
 {
   "passed": true,
   "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
-  "assertions": 76,
+  "assertions": 114,
   "failures": [],
   "consoleErrors": [],
   "ads": {
@@ -31,22 +31,47 @@
   "eventCounts": {
     "shot-1": {
       "fired": 1,
-      "impacts": 1
+      "impacts": 1,
+      "damage": 0,
+      "status": 1
     },
     "shot-5": {
       "fired": 5,
-      "impacts": 5
+      "impacts": 5,
+      "damage": 0,
+      "status": 5
     },
     "shot-15": {
       "fired": 15,
-      "impacts": 15
+      "impacts": 15,
+      "damage": 0,
+      "status": 15
+    }
+  },
+  "authoritativeRay": {
+    "cleanMissMeters": 1.1102230246251565e-16,
+    "legacyNegativeControl": {
+      "expectedStatus": "failed",
+      "actualStatus": "failed",
+      "assertionFailures": [
+        "legacy camera-direction/muzzle-origin ray misses impact by 0.08647585569001474m"
+      ],
+      "collectionErrors": [],
+      "missMeters": 0.08647585569001474
+    },
+    "muzzleObstruction": {
+      "cameraRayClearanceMeters": 0.08576986087137896,
+      "impactDistanceMeters": 0.09496472448686573,
+      "impactMaterial": "metal",
+      "eventRayMissMeters": 0,
+      "damageEvents": 0
     }
   },
   "sampleImpact": {
     "point": {
       "x": 0.5859128493567884,
       "y": 0.6936520142439917,
-      "z": -12.799999997019771
+      "z": -12.799999997019768
     },
     "normal": {
       "x": 0,
@@ -54,7 +79,7 @@
       "z": 1
     },
     "material": "concrete",
-    "distance": 14.69855359966245,
+    "distance": 14.698553599662446,
     "damage": 28
   }
 }

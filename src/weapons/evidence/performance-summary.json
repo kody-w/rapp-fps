@@ -1,4 +1,5 @@
 {
+  "measuredAgainstMain": "b566972",
   "baseline": {
     "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
     "viewport": "1920x1080",
@@ -6,21 +7,21 @@
     "overBudget": false,
     "gpuFrameMs": {
       "samples": 120,
-      "median": 7.862,
-      "p95": 10.623,
-      "worst": 12.441
+      "median": 9.572,
+      "p95": 11.694,
+      "worst": 13.647
     },
     "cpuFrameMs": {
       "samples": 122,
-      "median": 1.2,
-      "p95": 1.7,
-      "worst": 1.9
+      "median": 1.4,
+      "p95": 2,
+      "worst": 2.2
     },
     "budgetFrameMs": {
       "samples": 120,
-      "median": 7.862,
-      "p95": 10.623,
-      "worst": 12.441
+      "median": 9.572,
+      "p95": 11.694,
+      "worst": 13.647
     },
     "drawCallsPerFrame": 80,
     "trianglesPerFrame": 84442,
@@ -37,21 +38,21 @@
     "overBudget": false,
     "gpuFrameMs": {
       "samples": 120,
-      "median": 8.472,
-      "p95": 10.129,
-      "worst": 12.081
+      "median": 9.888,
+      "p95": 12.096,
+      "worst": 14.786
     },
     "cpuFrameMs": {
       "samples": 122,
-      "median": 1.3,
-      "p95": 2,
-      "worst": 2.3
+      "median": 1.5,
+      "p95": 2.2,
+      "worst": 2.6
     },
     "budgetFrameMs": {
       "samples": 120,
-      "median": 8.472,
-      "p95": 10.129,
-      "worst": 12.081
+      "median": 9.888,
+      "p95": 12.096,
+      "worst": 14.786
     },
     "drawCallsPerFrame": 84,
     "trianglesPerFrame": 85406,
@@ -61,28 +62,28 @@
     "gpuDisjointCount": 0,
     "consoleErrors": []
   },
-  "sustainedFire": {
+  "trueSustainedFire": {
     "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
     "viewport": "1920x1080",
     "budgetMs": 16.7,
     "overBudget": false,
     "gpuFrameMs": {
       "samples": 121,
-      "median": 7.969,
-      "p95": 10.174,
-      "worst": 12.395
+      "median": 9.18,
+      "p95": 12.264,
+      "worst": 13.021
     },
     "cpuFrameMs": {
       "samples": 122,
-      "median": 1.5,
-      "p95": 2.6,
-      "worst": 2.9
+      "median": 1.8,
+      "p95": 2.5,
+      "worst": 3.3
     },
     "budgetFrameMs": {
       "samples": 121,
-      "median": 7.969,
-      "p95": 10.174,
-      "worst": 12.395
+      "median": 9.18,
+      "p95": 12.264,
+      "worst": 13.021
     },
     "drawCallsPerFrame": 84,
     "trianglesPerFrame": 85406,
@@ -92,19 +93,67 @@
     "gpuDisjointCount": 0,
     "consoleErrors": []
   },
-  "observedDeltaFromBaseline": {
-    "idleGpuMedianMs": 0.61,
-    "idleGpuP95Ms": -0.494,
-    "idleCpuP95Ms": 0.3,
-    "sustainedGpuMedianMs": 0.107,
-    "sustainedGpuP95Ms": -0.449,
-    "sustainedCpuP95Ms": 0.9,
-    "drawCalls": 4,
-    "triangles": 964
+  "sustainedWindowProof": {
+    "profiler": {
+      "gpuSupported": true,
+      "gpuCounterBits": 64,
+      "gpuDisjointCount": 0,
+      "gpuFrameMs": {
+        "samples": 120,
+        "median": 8.111,
+        "p95": 10.574,
+        "worst": 11.803
+      },
+      "cpuFrameMs": {
+        "samples": 121,
+        "median": 1.7,
+        "p95": 2.8,
+        "worst": 3.1
+      },
+      "rafIntervalMs": {
+        "samples": 121,
+        "median": 16.7,
+        "p95": 16.9,
+        "worst": 17.7
+      },
+      "budgetFrameMs": {
+        "samples": 120,
+        "median": 8.111,
+        "p95": 10.574,
+        "worst": 11.803
+      },
+      "budgetFrameMsMedian": 8.111,
+      "budgetFrameMsP95": 10.574
+    },
+    "shotsFired": 24,
+    "ammoSpent": 24,
+    "frames": 121,
+    "flashFrames": 48,
+    "flashFrameRatio": 0.39669421487603307,
+    "maxDrawCalls": 88,
+    "flashDrawCallsMax": 88,
+    "reloadStarts": 0,
+    "reloadEnds": 0,
+    "shakeEvents": 0,
+    "damageEvents": 0,
+    "assertionCount": 13,
+    "failures": []
+  },
+  "observedDeltaFromSameHarnessBaseline": {
+    "idleGpuMedianMs": 0.316,
+    "idleGpuP95Ms": 0.402,
+    "idleCpuP95Ms": 0.2,
+    "sustainedGpuMedianMs": -0.392,
+    "sustainedGpuP95Ms": 0.57,
+    "sustainedCpuP95Ms": 0.5,
+    "idleDrawCalls": 4,
+    "activeFlashDrawCalls": 8,
+    "idleTriangles": 964
   },
   "verdict": {
-    "idle": "PASS: 10.129ms p95 <= 16.700ms (6.571ms headroom)",
-    "sustainedFire": "PASS: 10.174ms p95 <= 16.700ms (6.526ms headroom)",
-    "costInterpretation": "The weapon adds 4 draw calls and 964 triangles. Single-run GPU p95 deltas are inside run-to-run variance; do not interpret a negative observed delta as a speedup. CPU p95 rose 0.3ms idle and 0.9ms under sustained fire."
+    "idle": "PASS: 12.096ms p95 <= 16.700ms (4.604ms headroom)",
+    "sustainedFire": "PASS: 12.264ms p95 <= 16.700ms (4.436ms headroom)",
+    "activityVerified": "24 shots, 48/121 flash-active frames, 88 max/flash draw calls, 0 reloads",
+    "interpretation": "Same-harness single runs show small positive deltas, but GPU run-to-run variance remains material. The defensible claims are the measured distributions, +4 idle draw calls, +8 active-flash draw calls, +964 idle triangles, and both p95 windows below 16.7ms."
   }
 }

@@ -29,7 +29,7 @@ class HarnessInput implements System {
   private readonly pendingLook = new THREE.Vector2();
 
   constructor(
-    private readonly weapon: WeaponSystem,
+    private readonly weapon: WeaponSystem | null,
     private readonly stress: boolean,
   ) {
     this.state = {
@@ -74,7 +74,7 @@ class HarnessInput implements System {
   }
 
   update(_update: UpdateContext, ctx: EngineContext): void {
-    const sensitivity = 0.0018 * this.weapon.lookSensitivityScale;
+    const sensitivity = 0.0018 * (this.weapon?.lookSensitivityScale ?? 1);
     this.state.look.x = this.pendingLook.x * sensitivity;
     this.state.look.y = this.pendingLook.y * sensitivity;
     ctx.camera.rotation.y -= this.state.look.x;
@@ -90,6 +90,7 @@ class HarnessInput implements System {
 
 const query = new URLSearchParams(location.search);
 const stressMode = query.get('stress') === '1';
+const baselineMode = query.get('weapon') === '0';
 const canvas = document.querySelector('#game') as HTMLCanvasElement;
 const engine = new Engine(canvas);
 // The profiler stress page must never enter reload during its observation
@@ -97,7 +98,7 @@ const engine = new Engine(canvas);
 const stressConfig = stressMode
   ? { ...DUSKLINE_A7, magazineSize: 100_000, reserveAmmo: 0 }
   : DUSKLINE_A7;
-const weapon = new WeaponSystem(stressConfig);
+const weapon = baselineMode ? null : new WeaponSystem(stressConfig);
 const input = new HarnessInput(weapon, stressMode);
 const render = new RenderSystem();
 engine.input = input.state;
@@ -106,7 +107,7 @@ engine.input = input.state;
 // writes base look, weapon adds view presentation, then render owns presentation.
 engine.add(new TestLevel());
 engine.add(input);
-engine.add(weapon);
+if (weapon) engine.add(weapon);
 engine.add(render);
 await engine.init();
 
@@ -128,7 +129,7 @@ const profile: WeaponProfileTelemetry = {
   reloadEnds: 0,
   shakes: 0,
   damageEvents: 0,
-  startAmmo: weapon.magazineAmmo,
+  startAmmo: weapon?.magazineAmmo ?? 0,
 };
 const resetProfile = (): void => {
   profile.frames = 0;
@@ -141,7 +142,7 @@ const resetProfile = (): void => {
   profile.reloadEnds = 0;
   profile.shakes = 0;
   profile.damageEvents = 0;
-  profile.startAmmo = weapon.magazineAmmo;
+  profile.startAmmo = weapon?.magazineAmmo ?? 0;
 };
 
 for (const name of [
@@ -149,6 +150,7 @@ for (const name of [
   Events.BulletImpact,
   Events.Damage,
   Events.AimChanged,
+  Events.WeaponStatus,
   Events.ReloadStart,
   Events.ReloadEnd,
   Events.Shake,
@@ -167,7 +169,7 @@ for (const name of [
 
 engine.renderer.info.autoReset = false;
 engine.present = () => {
-  const flashActive = weapon.isFlashActive;
+  const flashActive = weapon?.isFlashActive ?? false;
   profile.frames++;
   if (flashActive) profile.flashFrames++;
   const info = engine.renderer.info;
@@ -193,7 +195,9 @@ Object.assign(window as unknown as Record<string, unknown>, {
   __WEAPON_PROFILE__: profile,
   __RESET_WEAPON_PROFILE__: resetProfile,
   __STRESS_MODE__: stressMode,
+  __BASELINE_MODE__: baselineMode,
   __SHOT__: (name: string) => {
+    if (!weapon) return;
     const capture = weapon.capture(name);
     (window as unknown as Record<string, unknown>).__WEAPON_CAPTURE__ = capture;
   },
