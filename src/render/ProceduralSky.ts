@@ -81,32 +81,31 @@ const FRAGMENT = /* glsl */ `
     float y = d.y;
     float up = clamp(y, 0.0, 1.0);
 
-    // Vertical gradient. The exponent keeps most of the sky the zenith colour
-    // and compresses the brightening into a band near the horizon, which is how
-    // a real sky reads — not a linear ramp.
+    // Vertical gradient.
     vec3 sky = mix(uHorizon, uZenith, pow(up, 0.42));
 
-    // Below the horizon fades to a dark ground so reflections in the floor and
-    // the underside of the metals do not sample bright sky.
+    // Below the horizon fades to a dark ground softly to remove abrupt seam
     float below = clamp(-y * 4.0, 0.0, 1.0);
     vec3 col = mix(sky, uGround, below);
 
     float mu = dot(d, s);
+    
+    // Smoothly fade out sun and haze at the very horizon to perfectly match the ground fog
+    float horizonBlend = smoothstep(0.0, 0.1, up);
 
-    // Two-lobe sun glow: a wide soft halo plus a tighter core. This is what
-    // sells an overcast-dusk sun without a hard cutout.
+    // Two-lobe sun glow: a wide soft halo plus a tighter core.
     float glow = pow(max(mu, 0.0), 5.0) * 0.16
                + pow(max(mu, 0.0), 90.0) * 0.5;
-    col += uSunColor * glow;
+    col += uSunColor * glow * horizonBlend;
 
-    // The disc itself, soft-edged, pushed into HDR so bloom selects it and the
-    // PMREM has genuine energy to light the scene with.
-    float disc = smoothstep(0.9968, 0.9990, mu);
-    col += uSunColor * disc * uSunIntensity;
+    // Sun angular core with gradual roll-off, no flat clipped disk
+    float core = pow(max(mu, 0.0), 400.0) * (uSunIntensity * 0.3);
+    float center = pow(max(mu, 0.0), 3000.0) * (uSunIntensity * 0.7);
+    col += (uSunColor * core + uSunColor * center) * horizonBlend;
 
     // Warm haze piled up along the horizon toward the sun's azimuth.
     float haze = pow(1.0 - up, 6.0) * smoothstep(-0.35, 1.0, mu);
-    col += uSunColor * haze * 0.22;
+    col += uSunColor * haze * 0.22 * horizonBlend;
 
     gl_FragColor = vec4(max(col, vec3(0.0)), 1.0);
   }
@@ -128,9 +127,9 @@ export function generateSky(renderer: THREE.WebGLRenderer, params: SkyParams): S
     uniforms: {
       uSunDir: { value: params.sunDirection.clone().normalize() },
       uSunColor: { value: params.sunColor ?? new THREE.Color(1.0, 0.74, 0.5) },
-      uZenith: { value: params.zenith ?? new THREE.Color(0.035, 0.075, 0.17) },
-      uHorizon: { value: params.horizon ?? new THREE.Color(0.16, 0.2, 0.27) },
-      uGround: { value: params.ground ?? new THREE.Color(0.02, 0.018, 0.016) },
+      uZenith: { value: params.zenith ?? new THREE.Color(0.01, 0.02, 0.05) },
+      uHorizon: { value: params.horizon ?? new THREE.Color(0x0b0e13).convertSRGBToLinear() },
+      uGround: { value: params.ground ?? new THREE.Color(0x0b0e13).convertSRGBToLinear() },
       uSunIntensity: { value: params.sunIntensity ?? 26.0 },
     },
     vertexShader: VERTEX,

@@ -187,9 +187,9 @@ export class RenderSystem implements System {
       this.sky = generateSky(renderer, {
         sunDirection: SUN_DIRECTION,
         sunColor: new THREE.Color(1.0, 0.74, 0.5),
-        zenith: new THREE.Color(0.035, 0.075, 0.17),
-        horizon: new THREE.Color(0.16, 0.2, 0.27),
-        ground: new THREE.Color(0.02, 0.018, 0.016),
+        zenith: new THREE.Color(0.01, 0.02, 0.05).convertSRGBToLinear(),
+        horizon: new THREE.Color(0x0b0e13).convertSRGBToLinear(),
+        ground: new THREE.Color(0x0b0e13).convertSRGBToLinear(),
         sunIntensity: 26.0,
         resolution: 512,
       });
