@@ -147,6 +147,7 @@ export interface CombatIntentSink {
     yawErrorRadians: number,
     pitchErrorRadians: number,
     burstId: number,
+    nextBurstNotBeforeSeconds: number,
   ): void;
   suppress(
     agentId: string,

@@ -16,8 +16,9 @@ cannot enter `engage`; line of sight must survive the configured reaction delay.
 
 - distance/FOV vision with `PerceptionRaycastPort.isOccluded`;
 - canonical `Footstep` compatibility (`position`, shared `SurfaceKind`, `loud`);
-- reaction delay, seeded memory error, and memory decay;
-- scheduled burst, aim-error, suppression, and reposition intents without weapon imports;
+- reaction delay plus seeded, decaying target memory that keeps identity paired with position;
+- scheduled burst, aim-error, suppression, and reposition intents without weapon imports,
+  preserving final-shot-plus-cooldown deadlines across tactical transitions;
 - fixed-buffer cover scoring using visible or remembered target position plus exposure,
   finite path cost, and flank weights;
 - fixed-buffer path requests through `NavigationPathPort`;
@@ -26,6 +27,9 @@ cannot enter `engage`; line of sight must survive the configured reaction delay.
 
 The AI never resolves hits, emits final Damage events, owns a nav mesh, or claims health
 authority.
+
+Terminal resolved damage bypasses alert transitions. A surviving sourced hit during search
+restarts investigation and replaces the search path with the supplied source position.
 
 ## Local ports
 
@@ -53,7 +57,8 @@ node src/ai/evidence/run.mjs
 The strict Vite server owns `127.0.0.1:5341`.
 
 - `evidence/report.json`: deterministic timelines; occluded-memory, unreachable-cover,
-  burst-boundary, and target-identity regressions; fixed-frame 30/60/144 accumulator
+  burst-deadline, memory-identity, target-reaction, and damage-priority regressions;
+  fixed-frame 30/60/144 accumulator
   coverage; the 50-agent benchmark; allocation instrumentation; and mutation summaries.
 - `evidence/visual-report.json`: hardware renderer plus the unmodified core profiler
   fields, explicit 16.7 ms paired-budget verdict, and an over-budget nonzero-exit fixture.

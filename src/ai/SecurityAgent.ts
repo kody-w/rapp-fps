@@ -263,15 +263,24 @@ export class SecurityAgent {
 
     this.maxHealth = input.maxHealth;
     this.health = clamp(input.remainingHealth, 0, input.maxHealth);
+    if (input.eliminated || this.health <= 0) {
+      this.transition('eliminated', 'resolved-damage-eliminated');
+      this.syncDebug();
+      return true;
+    }
+
     if (input.sourcePosition) {
       copyVec3(this.interestPosition, input.sourcePosition);
       this.hasInterestPosition = true;
-      if (this.state === 'idle' || this.state === 'patrol' || this.state === 'return') {
+      if (this.state === 'search') {
+        this.transition('investigate', 'damage-source');
+      } else if (
+        this.state === 'idle'
+        || this.state === 'patrol'
+        || this.state === 'return'
+      ) {
         this.transition('suspicious', 'damage-source');
       }
-    }
-    if (input.eliminated || this.health <= 0) {
-      this.transition('eliminated', 'resolved-damage-eliminated');
     }
     this.syncDebug();
     return true;
@@ -547,8 +556,18 @@ export class SecurityAgent {
       * this.config.aimErrorRadians
       * confidencePenalty;
     const firstShotAt = this.timeSeconds + 0.05;
-    const targetId = this.target.id || 'unknown-target';
-    const aimPoint = this.hasLastKnownPosition ? this.lastKnownPosition : this.target.position;
+    const usesMemory = this.hasLastKnownPosition;
+    const targetId = usesMemory
+      ? this.memoryTargetId || this.confirmationTargetId || 'unknown-target'
+      : this.target.id || this.confirmationTargetId || 'unknown-target';
+    const aimPoint = usesMemory ? this.lastKnownPosition : this.target.position;
+    const burstDuration = (shotCount - 1) * shotInterval;
+    const finalShotAt = firstShotAt + burstDuration;
+    const cooldown = this.random.range(
+      this.config.burstCooldownMinSeconds,
+      this.config.burstCooldownMaxSeconds,
+    );
+    const nextBurstNotBefore = finalShotAt + cooldown;
 
     this.ports.combat.aim(
       this.id,
@@ -568,13 +587,9 @@ export class SecurityAgent {
       yawError,
       pitchError,
       ++this.burstId,
+      nextBurstNotBefore,
     );
 
-    const burstDuration = (shotCount - 1) * shotInterval;
-    const cooldown = this.random.range(
-      this.config.burstCooldownMinSeconds,
-      this.config.burstCooldownMaxSeconds,
-    );
     this.nextBurstTick = this.tickIndex
       + this.secondsToTicks(0.05 + burstDuration + cooldown);
   }
@@ -700,14 +715,16 @@ export class SecurityAgent {
         else if (this.hasLastKnownPosition) this.requestPath(this.lastKnownPosition);
         break;
       case 'engage':
-        this.nextBurstTick = this.tickIndex;
-        if (this.targetVisible) this.scheduleBurst();
+        if (this.targetVisible && this.tickIndex >= this.nextBurstTick) {
+          this.scheduleBurst();
+        }
         break;
       case 'suppress': {
-        const targetId = this.target.id || 'unknown-target';
-        const aimPoint = this.hasLastKnownPosition
-          ? this.lastKnownPosition
-          : this.target.position;
+        const usesMemory = this.hasLastKnownPosition;
+        const targetId = usesMemory
+          ? this.memoryTargetId || this.confirmationTargetId || 'unknown-target'
+          : this.target.id || this.confirmationTargetId || 'unknown-target';
+        const aimPoint = usesMemory ? this.lastKnownPosition : this.target.position;
         this.ports.combat.suppress(
           this.id,
           targetId,
@@ -715,8 +732,9 @@ export class SecurityAgent {
           this.config.suppressSeconds,
           this.timeSeconds,
         );
-        this.nextBurstTick = this.tickIndex;
-        if (this.targetVisible) this.scheduleBurst();
+        if (this.targetVisible && this.tickIndex >= this.nextBurstTick) {
+          this.scheduleBurst();
+        }
         break;
       }
       case 'reposition': {

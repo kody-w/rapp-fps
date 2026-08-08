@@ -471,19 +471,97 @@ function runBurstBoundaryRegression(): ScenarioResult {
   const duplicateTicks = bursts
     .filter((event, index) => bursts.findIndex((other) => other.tick === event.tick) !== index)
     .map((event) => event.tick);
+  const deadlineViolations = bursts.slice(1).flatMap((event, index) => {
+    const previous = bursts[index];
+    const deadline = Number(previous.data.nextBurstNotBeforeSeconds);
+    return event.atSeconds + 1e-6 < deadline
+      ? [{
+        previousBurstId: previous.data.burstId,
+        nextBurstId: event.data.burstId,
+        nextScheduledAt: event.atSeconds,
+        requiredDeadline: deadline,
+      }]
+      : [];
+  });
   const assertions = [
     check('seed 67 reaches the reviewed engage-to-suppress boundary', Boolean(boundary), 'tick 1192', boundary?.tick ?? null),
     check(
-      'tactical boundary schedules exactly one burst',
-      boundaryBursts.length === 1,
-      1,
+      'tactical boundary schedules at most one burst',
+      boundaryBursts.length <= 1,
+      '0..1',
       boundaryBursts.map((event) => event.data.burstId),
     ),
     check('burst schedule has no duplicate tick emissions', duplicateTicks.length === 0, [], duplicateTicks),
+    check(
+      'every burst waits for the previous final-shot plus cooldown deadline',
+      deadlineViolations.length === 0,
+      [],
+      deadlineViolations,
+    ),
   ];
   return finishScenario(context, durationTicks / FIXED_HZ, assertions, {
     boundaryTick: boundary?.tick ?? null,
     boundaryBurstIds: boundaryBursts.map((event) => event.data.burstId),
+    deadlineViolations,
+  });
+}
+
+function runBurstCooldownDeadline(): ScenarioResult {
+  const context = createContext(DEFAULT_SEED);
+  const durationTicks = 340;
+  context.world.targetPresent = true;
+  context.world.occluded = false;
+  context.trace.stimulus(0, 'LOS-on');
+  tick(context, durationTicks);
+
+  const transition = context.trace.events.find(
+    (event) => (
+      event.kind === 'transition'
+      && event.data.from === 'engage'
+      && event.data.to === 'suppress'
+    ),
+  );
+  const bursts = context.trace.events.filter((event) => event.kind === 'burst');
+  const priorBurst = transition
+    ? bursts.filter((event) => event.tick < transition.tick).at(-1)
+    : undefined;
+  const nextBurst = priorBurst
+    ? bursts.find((event) => event.sequence > priorBurst.sequence)
+    : undefined;
+  const priorFinalShot = Number(priorBurst?.data.finalShotAtSeconds);
+  const priorDeadline = Number(priorBurst?.data.nextBurstNotBeforeSeconds);
+  const nextScheduledAt = nextBurst?.atSeconds ?? null;
+  const assertions = [
+    check('reviewed engage-to-suppress transition is present', Boolean(transition), true, Boolean(transition)),
+    check(
+      'transition occurs while the prior burst still has scheduled shots',
+      Boolean(transition && priorBurst && transition.atSeconds < priorFinalShot),
+      `transition before ${round(priorFinalShot, 6)}s final shot`,
+      transition?.atSeconds ?? null,
+    ),
+    check(
+      'next burst waits through prior final shot and cooldown',
+      Boolean(nextBurst && nextScheduledAt !== null && nextScheduledAt + 1e-6 >= priorDeadline),
+      `>= ${round(priorDeadline, 6)}s`,
+      nextScheduledAt,
+    ),
+  ];
+  return finishScenario(context, durationTicks / FIXED_HZ, assertions, {
+    transitionAtSeconds: transition?.atSeconds ?? null,
+    priorBurst: priorBurst
+      ? {
+        burstId: priorBurst.data.burstId,
+        scheduledAtSeconds: priorBurst.atSeconds,
+        finalShotAtSeconds: priorFinalShot,
+        nextBurstNotBeforeSeconds: priorDeadline,
+      }
+      : null,
+    nextBurst: nextBurst
+      ? {
+        burstId: nextBurst.data.burstId,
+        scheduledAtSeconds: nextBurst.atSeconds,
+      }
+      : null,
   });
 }
 
@@ -530,6 +608,69 @@ function runTargetIdentityReaction(): ScenarioResult {
     detectionTick,
     engageTick: engage?.tick ?? null,
     delaySeconds,
+  });
+}
+
+function runOccludedRetargetMemoryIdentity(): ScenarioResult {
+  const context = createContext();
+  const switchTick = 180;
+  const durationTicks = 210;
+  const rememberedA = { x: 0, y: 0, z: 0 };
+  context.world.targetPresent = true;
+  context.world.occluded = false;
+  context.world.targetId = 'target-a';
+  context.trace.stimulus(0, 'LOS-on', { targetId: 'target-a' });
+
+  tick(context, durationTicks, (tickIndex) => {
+    if (tickIndex !== switchTick) return;
+    const memory = context.agent.getDebugView().lastKnownPosition;
+    rememberedA.x = memory.x;
+    rememberedA.y = memory.y;
+    rememberedA.z = memory.z;
+    context.world.occluded = true;
+    context.world.targetId = 'target-b';
+    context.world.targetPosition.x = 12;
+    context.world.targetPosition.z = 20;
+    context.trace.stimulus(tickIndex, 'occluded-retarget', {
+      memoryTargetId: 'target-a',
+      sampledTargetId: 'target-b',
+      rememberedA: { ...rememberedA },
+    });
+  });
+
+  const suppression = context.trace.events.find(
+    (event) => event.kind === 'suppress' && event.tick >= switchTick,
+  );
+  const suppressionPoint = suppression?.data.aimPoint as
+    | { x: number; y: number; z: number }
+    | undefined;
+  const memoryDistance = suppressionPoint
+    ? distance(suppressionPoint, rememberedA)
+    : Number.POSITIVE_INFINITY;
+  const mismatchedMemoryEvents = context.trace.events.filter((event) => {
+    if (
+      event.tick < switchTick
+      || (event.kind !== 'aim' && event.kind !== 'burst' && event.kind !== 'suppress')
+      || event.data.targetId !== 'target-b'
+    ) return false;
+    const point = event.data.aimPoint as
+      | { x: number; y: number; z: number }
+      | undefined;
+    return point !== undefined && distance(point, rememberedA) < 0.01;
+  });
+  const assertions = [
+    check('occluded retarget reaches suppression during A memory grace', Boolean(suppression), true, Boolean(suppression)),
+    check('suppression at A memory keeps target A identity', suppression?.data.targetId === 'target-a', 'target-a', suppression?.data.targetId ?? null),
+    check('suppression coordinates remain at A memory', memoryDistance < 0.001, '< 0.001m', `${round(memoryDistance, 6)}m`),
+    check('no combat intent labels A memory as target B', mismatchedMemoryEvents.length === 0, [], mismatchedMemoryEvents),
+  ];
+  return finishScenario(context, durationTicks / FIXED_HZ, assertions, {
+    switchTick,
+    rememberedA,
+    sampledTargetB: { ...context.world.targetPosition },
+    suppressionTargetId: suppression?.data.targetId ?? null,
+    suppressionPoint: suppressionPoint ?? null,
+    memoryDistance: round(memoryDistance, 6),
   });
 }
 
@@ -1010,6 +1151,112 @@ function runResolvedDamageSeam(): ScenarioResult {
   return finishScenario(context, 1.1, assertions);
 }
 
+function runLethalDamagePriority(): ScenarioResult {
+  const context = createContext();
+  const accepted = context.agent.consumeResolvedDamage({
+    id: 'security-01',
+    remainingHealth: 0,
+    maxHealth: 100,
+    eliminated: true,
+    sourcePosition: { x: 5, y: 1, z: -2 },
+    appliedDamage: 100,
+  });
+  const transitions = context.trace.events.filter((event) => event.kind === 'transition');
+  const assertions = [
+    check('lethal resolved damage input is accepted', accepted, true, accepted),
+    check(
+      'lethal damage produces one direct patrol-to-eliminated transition',
+      transitions.length === 1
+        && transitions[0]?.data.from === 'patrol'
+        && transitions[0]?.data.to === 'eliminated',
+      [{ from: 'patrol', to: 'eliminated' }],
+      transitions.map((event) => ({ from: event.data.from, to: event.data.to })),
+    ),
+    check(
+      'lethal damage never emits an intermediate suspicious transition',
+      !transitions.some((event) => event.data.to === 'suspicious'),
+      false,
+      transitions.some((event) => event.data.to === 'suspicious'),
+    ),
+  ];
+  return finishScenario(context, 0, assertions);
+}
+
+function runSearchDamageRefresh(): ScenarioResult {
+  const context = createContext();
+  const footstep: FootstepPayload = {
+    position: { x: 3, y: 0, z: 4 },
+    surface: 'metal',
+    loud: 0.9,
+  };
+  context.agent.hearFootstep(footstep);
+  let guardTicks = 0;
+  while (context.agent.getDebugView().state !== 'search' && guardTicks < 600) {
+    context.agent.fixedUpdate(AI_FIXED_STEP_SECONDS);
+    guardTicks++;
+  }
+  const searchEntry = findTransition(context.trace.events, 'search');
+  const searchDurationTicks = Math.ceil(
+    DEFAULT_SECURITY_AGENT_CONFIG.searchSeconds / AI_FIXED_STEP_SECONDS,
+  );
+  tick(context, searchDurationTicks - 1);
+
+  const source = { x: 7, y: 0, z: -3 };
+  const damageTick = context.agent.getDebugView().tick;
+  const accepted = context.agent.consumeResolvedDamage({
+    id: 'security-01',
+    remainingHealth: 65,
+    maxHealth: 100,
+    eliminated: false,
+    sourcePosition: source,
+    appliedDamage: 35,
+  });
+  const immediate = context.agent.getDebugView();
+  const pathEnd = immediate.path.count > 0
+    ? immediate.path.points[immediate.path.count - 1]
+    : null;
+  const immediateState = immediate.state;
+  const immediatePathDistance = pathEnd
+    ? distance(pathEnd, source)
+    : Number.POSITIVE_INFINITY;
+  context.agent.fixedUpdate(AI_FIXED_STEP_SECONDS);
+  const nextTickState = context.agent.getDebugView().state;
+  const damageTransition = context.trace.events.find(
+    (event) => (
+      event.kind === 'transition'
+      && event.tick === damageTick
+      && event.data.from === 'search'
+      && event.data.to === 'investigate'
+      && event.data.reason === 'damage-source'
+    ),
+  );
+  const prematureReturn = context.trace.events.find(
+    (event) => (
+      event.kind === 'transition'
+      && event.data.to === 'return'
+      && event.tick >= damageTick
+      && event.tick <= damageTick + 1
+    ),
+  );
+  const assertions = [
+    check('search state is reached before the sourced hit', Boolean(searchEntry), true, Boolean(searchEntry)),
+    check('surviving sourced damage is accepted', accepted, true, accepted),
+    check('search hit immediately restarts investigate', immediateState === 'investigate', 'investigate', immediateState),
+    check('search hit replaces the path with the damage source', immediatePathDistance <= 1e-9, source, pathEnd),
+    check('refreshed investigate persists through the next fixed tick', nextTickState === 'investigate', 'investigate', nextTickState),
+    check('search hit does not immediately expire to return', !prematureReturn, false, Boolean(prematureReturn)),
+    check('search hit records a damage-source transition', Boolean(damageTransition), true, Boolean(damageTransition)),
+  ];
+  return finishScenario(context, context.agent.getDebugView().timeSeconds, assertions, {
+    searchEntryTick: searchEntry?.tick ?? null,
+    damageTick,
+    immediateState,
+    nextTickState,
+    pathEnd,
+    pathDistance: round(immediatePathDistance, 6),
+  });
+}
+
 function negativeControl(
   name: string,
   mutation: string,
@@ -1051,11 +1298,15 @@ export function runEvidenceSuite(): Record<string, unknown> {
   const mixedCoverReachability = runMixedCoverReachability();
   const allCoverUnreachable = runAllCoverUnreachable();
   const burstBoundary = runBurstBoundaryRegression();
+  const burstCooldownDeadline = runBurstCooldownDeadline();
   const targetIdentityReaction = runTargetIdentityReaction();
+  const occludedRetargetMemoryIdentity = runOccludedRetargetMemoryIdentity();
   const seedDeterminism = runSeedDeterminism();
   const batchingDeterminism = runBatchingDeterminism();
   const benchmark = runBenchmark();
   const resolvedDamage = runResolvedDamageSeam();
+  const lethalDamagePriority = runLethalDamagePriority();
+  const searchDamageRefresh = runSearchDamageRefresh();
   const allocationMutation = runAllocationMutationControl();
 
   const reactionMutation = runReactionDelay(
@@ -1092,8 +1343,12 @@ export function runEvidenceSuite(): Record<string, unknown> {
     mixedCoverReachability,
     allCoverUnreachable,
     burstBoundary,
+    burstCooldownDeadline,
     targetIdentityReaction,
+    occludedRetargetMemoryIdentity,
     resolvedDamage,
+    lethalDamagePriority,
+    searchDamageRefresh,
   };
   const baselinePassed = Object.values(scenarios).every((scenario) => scenario.passed);
   const passed = baselinePassed

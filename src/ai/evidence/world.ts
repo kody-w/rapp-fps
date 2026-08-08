@@ -86,8 +86,11 @@ export class TraceRecorder implements AiObserver, CombatIntentSink {
     yawErrorRadians: number,
     pitchErrorRadians: number,
     burstId: number,
+    nextBurstNotBeforeSeconds: number,
   ): void {
     const atSeconds = firstShotAtSeconds - 0.05;
+    const finalShotAtSeconds = firstShotAtSeconds
+      + (shotCount - 1) * shotIntervalSeconds;
     this.record(Math.round(atSeconds * 120), atSeconds, 'burst', {
       agentId,
       targetId,
@@ -98,6 +101,9 @@ export class TraceRecorder implements AiObserver, CombatIntentSink {
       yawErrorRadians: round(yawErrorRadians, 6),
       pitchErrorRadians: round(pitchErrorRadians, 6),
       burstId,
+      finalShotAtSeconds: round(finalShotAtSeconds, 6),
+      cooldownSeconds: round(nextBurstNotBeforeSeconds - finalShotAtSeconds, 6),
+      nextBurstNotBeforeSeconds: round(nextBurstNotBeforeSeconds, 6),
     });
   }
 
