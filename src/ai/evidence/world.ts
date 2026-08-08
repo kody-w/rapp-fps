@@ -1,0 +1,262 @@
+import {
+  MAX_AI_COVER_CANDIDATES,
+  MAX_AI_PATH_POINTS,
+} from '../SecurityAgent.js';
+import { copyVec3, distance, round } from '../math.js';
+import type {
+  AiObserver,
+  AiState,
+  CombatIntentSink,
+  CoverCandidatePort,
+  MutableCoverBuffer,
+  MutablePathBuffer,
+  MutableTargetSample,
+  NavigationPathPort,
+  PerceptionRaycastPort,
+  TransitionReason,
+  Vec3Like,
+} from '../types.js';
+
+export interface TraceEvent {
+  sequence: number;
+  tick: number;
+  atSeconds: number;
+  kind: 'stimulus' | 'transition' | 'aim' | 'burst' | 'suppress' | 'reposition' | 'cease';
+  data: Record<string, unknown>;
+}
+
+function vector(value: Vec3Like): { x: number; y: number; z: number } {
+  return {
+    x: round(value.x),
+    y: round(value.y),
+    z: round(value.z),
+  };
+}
+
+export class TraceRecorder implements AiObserver, CombatIntentSink {
+  readonly events: TraceEvent[] = [];
+  private sequence = 0;
+
+  constructor(private readonly capacity = 512) {}
+
+  stimulus(tick: number, label: string, data: Record<string, unknown> = {}): void {
+    this.record(tick, tick / 120, 'stimulus', { label, ...data });
+  }
+
+  transition(
+    agentId: string,
+    from: AiState,
+    to: AiState,
+    reason: TransitionReason,
+    tick: number,
+    atSeconds: number,
+  ): void {
+    this.record(tick, atSeconds, 'transition', {
+      agentId,
+      from,
+      to,
+      reason,
+    });
+  }
+
+  aim(
+    agentId: string,
+    targetId: string,
+    aimPoint: Vec3Like,
+    yawErrorRadians: number,
+    pitchErrorRadians: number,
+    atSeconds: number,
+  ): void {
+    this.record(Math.round(atSeconds * 120), atSeconds, 'aim', {
+      agentId,
+      targetId,
+      aimPoint: vector(aimPoint),
+      yawErrorRadians: round(yawErrorRadians, 6),
+      pitchErrorRadians: round(pitchErrorRadians, 6),
+    });
+  }
+
+  burst(
+    agentId: string,
+    targetId: string,
+    aimPoint: Vec3Like,
+    shotCount: number,
+    shotIntervalSeconds: number,
+    firstShotAtSeconds: number,
+    yawErrorRadians: number,
+    pitchErrorRadians: number,
+    burstId: number,
+  ): void {
+    const atSeconds = firstShotAtSeconds - 0.05;
+    this.record(Math.round(atSeconds * 120), atSeconds, 'burst', {
+      agentId,
+      targetId,
+      aimPoint: vector(aimPoint),
+      shotCount,
+      shotIntervalSeconds: round(shotIntervalSeconds, 6),
+      firstShotAtSeconds: round(firstShotAtSeconds, 6),
+      yawErrorRadians: round(yawErrorRadians, 6),
+      pitchErrorRadians: round(pitchErrorRadians, 6),
+      burstId,
+    });
+  }
+
+  suppress(
+    agentId: string,
+    targetId: string,
+    aimPoint: Vec3Like,
+    durationSeconds: number,
+    atSeconds: number,
+  ): void {
+    this.record(Math.round(atSeconds * 120), atSeconds, 'suppress', {
+      agentId,
+      targetId,
+      aimPoint: vector(aimPoint),
+      durationSeconds: round(durationSeconds),
+    });
+  }
+
+  reposition(
+    agentId: string,
+    coverId: string,
+    destination: Vec3Like,
+    score: number,
+    atSeconds: number,
+  ): void {
+    this.record(Math.round(atSeconds * 120), atSeconds, 'reposition', {
+      agentId,
+      coverId,
+      destination: vector(destination),
+      score: round(score, 6),
+    });
+  }
+
+  cease(
+    agentId: string,
+    reason: 'lost-target' | 'eliminated',
+    atSeconds: number,
+  ): void {
+    this.record(Math.round(atSeconds * 120), atSeconds, 'cease', {
+      agentId,
+      reason,
+    });
+  }
+
+  private record(
+    tick: number,
+    atSeconds: number,
+    kind: TraceEvent['kind'],
+    data: Record<string, unknown>,
+  ): void {
+    if (this.events.length >= this.capacity) {
+      throw new Error(`AI evidence trace exceeded its fixed ${this.capacity}-event capacity`);
+    }
+    this.events.push({
+      sequence: this.sequence++,
+      tick,
+      atSeconds: round(atSeconds, 6),
+      kind,
+      data,
+    });
+  }
+}
+
+export const NULL_COMBAT_INTENT_SINK: CombatIntentSink = {
+  aim: () => {},
+  burst: () => {},
+  suppress: () => {},
+  reposition: () => {},
+  cease: () => {},
+};
+
+interface CoverTemplate {
+  id: string;
+  position: Vec3Like;
+  exposure: number;
+  flank: number;
+}
+
+const COVER_TEMPLATES: readonly CoverTemplate[] = [
+  {
+    id: 'compressor-left',
+    position: { x: -3.8, y: 0, z: 4.6 },
+    exposure: 0.2,
+    flank: 0.55,
+  },
+  {
+    id: 'barrier-right',
+    position: { x: 3.4, y: 0, z: 4.8 },
+    exposure: 0.22,
+    flank: 0.7,
+  },
+  {
+    id: 'crate-center',
+    position: { x: 0.4, y: 0, z: 3.7 },
+    exposure: 0.18,
+    flank: 0.4,
+  },
+];
+
+export class ScenarioWorld implements
+  PerceptionRaycastPort,
+  NavigationPathPort,
+  CoverCandidatePort {
+  targetPresent = false;
+  targetAlive = true;
+  occluded = true;
+  readonly targetPosition = { x: 0, y: 1.45, z: 9 };
+  readonly targetVelocity = { x: 0, y: 0, z: 0 };
+  targetId = 'target-player';
+
+  sampleTarget(_observerId: string, out: MutableTargetSample): boolean {
+    if (!this.targetPresent) return false;
+    out.id = this.targetId;
+    out.alive = this.targetAlive;
+    copyVec3(out.position, this.targetPosition);
+    copyVec3(out.velocity, this.targetVelocity);
+    return true;
+  }
+
+  isOccluded(_origin: Vec3Like, _target: Vec3Like, _targetId: string): boolean {
+    return this.occluded;
+  }
+
+  requestPath(
+    _agentId: string,
+    from: Vec3Like,
+    to: Vec3Like,
+    out: MutablePathBuffer,
+  ): number {
+    const count = Math.min(3, MAX_AI_PATH_POINTS);
+    copyVec3(out.points[0], from);
+    out.points[1].x = (from.x + to.x) * 0.5 + (to.x < from.x ? -0.45 : 0.45);
+    out.points[1].y = (from.y + to.y) * 0.5;
+    out.points[1].z = (from.z + to.z) * 0.5;
+    copyVec3(out.points[2], to);
+    return count;
+  }
+
+  estimatePathCost(_agentId: string, from: Vec3Like, to: Vec3Like): number {
+    return distance(from, to) * 1.08;
+  }
+
+  collectCandidates(
+    _agentId: string,
+    _from: Vec3Like,
+    _target: Vec3Like,
+    out: MutableCoverBuffer,
+  ): number {
+    const count = Math.min(COVER_TEMPLATES.length, MAX_AI_COVER_CANDIDATES);
+    for (let index = 0; index < count; index++) {
+      const template = COVER_TEMPLATES[index];
+      const candidate = out.candidates[index];
+      candidate.id = template.id;
+      copyVec3(candidate.position, template.position);
+      candidate.exposure = template.exposure;
+      candidate.pathCost = 0;
+      candidate.flank = template.flank;
+      candidate.score = 0;
+    }
+    return count;
+  }
+}

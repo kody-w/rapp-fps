@@ -1,0 +1,155 @@
+{
+  "capturedAt": "2026-08-08T00:51:34.198Z",
+  "url": "http://127.0.0.1:5341/harness.html",
+  "vitePort": 5341,
+  "viewport": "1920x1080",
+  "hardware": {
+    "webgl2": true,
+    "vendor": "Google Inc. (Apple)",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)"
+  },
+  "profiler": {
+    "gpuSupported": true,
+    "gpuCounterBits": 64,
+    "gpuDisjointCount": 0,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 1.706,
+      "p95": 1.925,
+      "worst": 2.247
+    },
+    "cpuFrameMs": {
+      "samples": 121,
+      "median": 1,
+      "p95": 1.3,
+      "worst": 1.4
+    },
+    "rafIntervalMs": {
+      "samples": 121,
+      "median": 16.7,
+      "p95": 16.7,
+      "worst": 16.8
+    },
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 1.706,
+      "p95": 1.925,
+      "worst": 2.247
+    },
+    "budgetFrameMsMedian": 1.706,
+    "budgetFrameMsP95": 1.925
+  },
+  "performance": {
+    "frameBudgetMs": 16.7,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 1.706,
+      "p95": 1.925,
+      "worst": 2.247
+    },
+    "cpuFrameMs": {
+      "samples": 121,
+      "median": 1,
+      "p95": 1.3,
+      "worst": 1.4
+    },
+    "rafIntervalMs": {
+      "samples": 121,
+      "median": 16.7,
+      "p95": 16.7,
+      "worst": 16.8
+    },
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 1.706,
+      "p95": 1.925,
+      "worst": 2.247
+    },
+    "budgetFrameMsMedian": 1.706,
+    "budgetFrameMsP95": 1.925,
+    "pairedP95Ms": 1.925,
+    "overBudget": false,
+    "verdict": "PASS",
+    "note": "budgetFrameMs is max(CPU, GPU) paired by the frame that issued the true EXT_disjoint_timer_query_webgl2 query."
+  },
+  "drawCalls": 37,
+  "triangles": 3332,
+  "shots": [
+    {
+      "name": "patrol",
+      "state": {
+        "shot": "patrol",
+        "state": "patrol",
+        "tick": 30,
+        "targetVisible": false,
+        "memoryConfidence": 0,
+        "pathCount": 0,
+        "coverCount": 0,
+        "selectedCoverIndex": -1
+      },
+      "path": "src/ai/evidence/patrol.png"
+    },
+    {
+      "name": "investigate",
+      "state": {
+        "shot": "investigate",
+        "state": "investigate",
+        "tick": 42,
+        "targetVisible": false,
+        "memoryConfidence": 0,
+        "pathCount": 3,
+        "coverCount": 0,
+        "selectedCoverIndex": -1
+      },
+      "path": "src/ai/evidence/investigate.png"
+    },
+    {
+      "name": "engage",
+      "state": {
+        "shot": "engage",
+        "state": "engage",
+        "tick": 110,
+        "targetVisible": true,
+        "memoryConfidence": 1,
+        "pathCount": 0,
+        "coverCount": 0,
+        "selectedCoverIndex": -1
+      },
+      "path": "src/ai/evidence/engage.png"
+    },
+    {
+      "name": "search",
+      "state": {
+        "shot": "search",
+        "state": "search",
+        "tick": 162,
+        "targetVisible": false,
+        "memoryConfidence": 0.878667,
+        "pathCount": 3,
+        "coverCount": 0,
+        "selectedCoverIndex": -1
+      },
+      "path": "src/ai/evidence/search.png"
+    },
+    {
+      "name": "cover",
+      "state": {
+        "shot": "cover",
+        "state": "reposition",
+        "tick": 290,
+        "targetVisible": true,
+        "memoryConfidence": 1,
+        "pathCount": 3,
+        "coverCount": 3,
+        "selectedCoverIndex": 2
+      },
+      "path": "src/ai/evidence/cover.png"
+    }
+  ],
+  "consoleErrors": [],
+  "caveats": {
+    "characterArt": "No character model or animation is provided; the gold shape is an abstract debug proxy.",
+    "combatFeel": "Subjective combat feel remains unverified.",
+    "integration": "No production player, weapon, authored level, collision, navigation, or health authority is connected."
+  }
+}

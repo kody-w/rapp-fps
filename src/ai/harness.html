@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Industrial security AI debug harness</title>
+  <link rel="stylesheet" href="./harness.css" />
+</head>
+<body>
+  <canvas id="ai-debug-canvas"></canvas>
+  <main class="debug-ui" aria-label="AI debug evidence">
+    <header class="debug-header">
+      <div>
+        <p class="eyebrow">DETERMINISTIC SUBSYSTEM / DEBUG GEOMETRY</p>
+        <h1>INDUSTRIAL SECURITY AI</h1>
+      </div>
+      <div class="state-block">
+        <span>CURRENT STATE</span>
+        <strong data-state>patrol</strong>
+      </div>
+    </header>
+
+    <aside class="legend panel">
+      <h2>READOUT</h2>
+      <dl>
+        <div><dt>SHOT</dt><dd data-shot>patrol</dd></div>
+        <div><dt>TICK</dt><dd data-tick>0</dd></div>
+        <div><dt>LOS</dt><dd data-los>false</dd></div>
+        <div><dt>MEMORY</dt><dd data-memory>0.000</dd></div>
+        <div><dt>PATH NODES</dt><dd data-path-count>0</dd></div>
+      </dl>
+      <div class="key"><i class="cone"></i><span>vision distance / FOV</span></div>
+      <div class="key"><i class="memory"></i><span>last-known position</span></div>
+      <div class="key"><i class="path"></i><span>navigation request path</span></div>
+      <div class="key"><i class="cover"></i><span>cover score / selected point</span></div>
+    </aside>
+
+    <aside class="covers panel">
+      <h2>COVER SCORING</h2>
+      <div data-cover-list class="cover-list">No scored candidates in this shot.</div>
+    </aside>
+
+    <aside class="profiler panel">
+      <h2>TRUE FRAME PROFILER</h2>
+      <dl>
+        <div><dt>gpuSupported</dt><dd data-gpu-supported>—</dd></div>
+        <div><dt>gpuCounterBits</dt><dd data-gpu-bits>—</dd></div>
+        <div><dt>gpuDisjointCount</dt><dd data-gpu-disjoint>—</dd></div>
+        <div><dt>gpuFrameMs.p95</dt><dd data-gpu>—</dd></div>
+        <div><dt>cpuFrameMs.p95</dt><dd data-cpu>—</dd></div>
+        <div><dt>rafIntervalMs.p95</dt><dd data-raf>—</dd></div>
+        <div><dt>budgetFrameMs.p95</dt><dd data-budget>—</dd></div>
+        <div><dt>budgetFrameMsMedian</dt><dd data-budget-median>—</dd></div>
+        <div><dt>budgetFrameMsP95</dt><dd data-budget-p95>—</dd></div>
+      </dl>
+      <strong data-verdict class="verdict">UNVERIFIED</strong>
+    </aside>
+
+    <section class="timeline panel">
+      <h2>STATE / INTENT TRACE</h2>
+      <ol data-timeline></ol>
+    </section>
+
+    <footer>
+      <strong>ABSTRACT DEBUG PROXY</strong>
+      <span>No character model or animation is provided. Subjective combat feel remains unverified.</span>
+    </footer>
+  </main>
+  <script type="module" src="./harness.ts"></script>
+</body>
+</html>
