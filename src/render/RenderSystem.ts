@@ -139,6 +139,11 @@ export class RenderSystem implements System {
   private ao?: N8AOPostPass;
   private ca?: ChromaticAberrationEffect;
   private sky?: SkyResult;
+  private camera!: THREE.PerspectiveCamera;
+  private readonly authoritativeCamera = new THREE.Quaternion();
+  private readonly authoritativeEuler = new THREE.Euler();
+  private readonly shakeQuaternion = new THREE.Quaternion();
+  private readonly shakeEuler = new THREE.Euler(0, 0, 0, 'YXZ');
 
   /** Background set here, applied on the first frame — the level's init runs after ours. */
   private pendingBackground: THREE.CubeTexture | null = null;
@@ -149,9 +154,13 @@ export class RenderSystem implements System {
   private shakeFreq = 24;
   private shakeDecay = 0;
   private shakeT = 0;
+  private shakePitch = 0;
+  private shakeYaw = 0;
+  private shakeRoll = 0;
 
   async init(ctx: EngineContext): Promise<void> {
     const { renderer, scene, camera } = ctx;
+    this.camera = camera;
     const cfg = readConfig();
 
     this.composer = new EffectComposer(renderer, {
@@ -298,16 +307,57 @@ export class RenderSystem implements System {
       this.shakeT += u.dt;
       const a = this.shakeAmp;
       // Two incommensurate frequencies so the motion never reads as a loop.
-      ctx.camera.rotation.z += Math.sin(this.shakeT * this.shakeFreq) * a * 0.6;
-      ctx.camera.rotation.x += Math.sin(this.shakeT * this.shakeFreq * 1.7) * a;
-      ctx.camera.rotation.y += Math.cos(this.shakeT * this.shakeFreq * 1.3) * a * 0.8;
+      this.shakeRoll = Math.sin(this.shakeT * this.shakeFreq) * a * 0.6;
+      this.shakePitch = Math.sin(this.shakeT * this.shakeFreq * 1.7) * a;
+      this.shakeYaw = Math.cos(this.shakeT * this.shakeFreq * 1.3) * a * 0.8;
       this.shakeAmp = Math.max(0, this.shakeAmp - this.shakeDecay * u.dt * this.shakeAmp * 4);
+    } else {
+      this.shakePitch = 0;
+      this.shakeYaw = 0;
+      this.shakeRoll = 0;
     }
   }
 
   /** Called by the engine instead of a bare renderer.render. */
   render(): void {
-    this.composer.render();
+    if (this.shakePitch === 0 && this.shakeYaw === 0 && this.shakeRoll === 0) {
+      this.composer.render();
+      return;
+    }
+
+    // Shake is presentation, not camera state. Apply it only while render
+    // commands are submitted, then restore even if a pass throws. This ordering
+    // also layers after every gameplay system regardless of registration order.
+    this.authoritativeCamera.copy(this.camera.quaternion);
+    this.authoritativeEuler.copy(this.camera.rotation);
+    this.shakeEuler.set(
+      this.shakePitch,
+      this.shakeYaw,
+      this.shakeRoll,
+      this.camera.rotation.order,
+    );
+    this.shakeQuaternion.setFromEuler(this.shakeEuler);
+    this.camera.quaternion.multiply(this.shakeQuaternion);
+    this.camera.updateMatrixWorld(true);
+    try {
+      this.composer.render();
+    } finally {
+      // Public quaternion/Euler setters synchronize each other. Restoring
+      // either one last necessarily perturbs the other: quaternion-last
+      // canonicalizes unbounded Euler yaw, while Euler-last can round-trip and
+      // alter a quaternion-authored pose near a singularity. Restore the exact
+      // quaternion through its public setter, then restore Euler's stored
+      // scalar representation without firing its onChange callback.
+      this.camera.quaternion.copy(this.authoritativeCamera);
+      const rotation = this.camera.rotation as THREE.Euler & {
+        _x: number; _y: number; _z: number; _order: THREE.EulerOrder;
+      };
+      rotation._x = this.authoritativeEuler.x;
+      rotation._y = this.authoritativeEuler.y;
+      rotation._z = this.authoritativeEuler.z;
+      rotation._order = this.authoritativeEuler.order;
+      this.camera.updateMatrixWorld(true);
+    }
   }
 
   dispose(): void {
