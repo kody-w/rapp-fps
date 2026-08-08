@@ -1,7 +1,28 @@
 import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { execSync } from 'node:child_process';
+import { spawn, execSync } from 'node:child_process';
+import { createServer } from 'node:net';
+
+async function findFreePort() {
+  return new Promise((resolve) => {
+    const srv = createServer();
+    srv.listen(0, () => {
+      const port = srv.address().port;
+      srv.close(() => resolve(port));
+    });
+  });
+}
+
+function runShoot(url, outDir, name, extraArgs = '') {
+  try {
+    execSync(`node tools/shoot.mjs --url "${url}" --out "${outDir}" --shots "${name}" --budgetMs 16.7 ${extraArgs}`, { stdio: 'inherit' });
+    return JSON.parse(readFileSync(`${outDir}/report.json`, 'utf-8'));
+  } catch (err) {
+    console.error(`Shoot failed for ${name}!`);
+    throw err;
+  }
+}
 
 async function analyzeImage(imagePath) {
   const browser = await chromium.launch();
@@ -20,8 +41,15 @@ async function analyzeImage(imagePath) {
         ctx.drawImage(img, 0, 0);
         const data = ctx.getImageData(0, 0, img.width, img.height).data;
         
+        const lum = (rgb) => 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+        const chroma = (rgb) => {
+          const r = rgb[0]/255, g = rgb[1]/255, b = rgb[2]/255;
+          const max = Math.max(r,g,b), min = Math.min(r,g,b);
+          return max - min;
+        };
+
         // 1. Horizon sample
-        // Sample vertical strip near left edge to avoid floor objects
+        // Sample vertical strip near center
         const x = 50; 
         const horizonPixels = [];
         for(let y = 0; y < img.height; y++) {
@@ -29,21 +57,21 @@ async function analyzeImage(imagePath) {
           horizonPixels.push([data[i], data[i+1], data[i+2]]);
         }
         
-        const lum = (rgb) => 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
         let maxDelta = 0;
-        let deltaLoc = 0;
         for(let i = 1; i < horizonPixels.length; i++) {
+          if (i > img.height - 100) continue;
+
           const delta = Math.abs(lum(horizonPixels[i]) - lum(horizonPixels[i-1]));
           if (delta > maxDelta) {
              maxDelta = delta;
-             deltaLoc = i;
           }
         }
 
         // 2. Sun corona test
-        let maxLum = 0;
+        let maxLum = -1;
         let sunX = 0, sunY = 0;
-        for(let y = 0; y < img.height; y+=5) {
+        
+        for(let y = 0; y < img.height / 2; y+=5) {
           for(let dx = 0; dx < img.width; dx+=5) {
             const i = (y * img.width + dx) * 4;
             const l = lum([data[i], data[i+1], data[i+2]]);
@@ -56,21 +84,34 @@ async function analyzeImage(imagePath) {
         }
         
         const sunPixels = [];
-        for(let dx = 0; dx < 200; dx += 10) {
+        for(let dx = 0; dx < 200; dx += 1) {
+          if (sunX + dx >= img.width) break;
           const i = (sunY * img.width + (sunX + dx)) * 4;
-          sunPixels.push([data[i], data[i+1], data[i+2], lum([data[i], data[i+1], data[i+2]])]);
+          sunPixels.push({
+            lum: lum([data[i], data[i+1], data[i+2]]),
+            chroma: chroma([data[i], data[i+1], data[i+2]])
+          });
         }
         
-        let uniqueSteps = 0;
-        let prevL = sunPixels[0][3];
-        for (let i = 1; i < sunPixels.length; i++) {
-          if (Math.abs(sunPixels[i][3] - prevL) > 2) {
-             uniqueSteps++;
-             prevL = sunPixels[i][3];
+        let uniqueLumSteps = 0;
+        let uniqueChromaSteps = 0;
+        
+        if (sunPixels.length > 0) {
+          let prevL = sunPixels[0].lum;
+          let prevC = sunPixels[0].chroma;
+          for (let i = 1; i < sunPixels.length; i++) {
+            if (Math.abs(sunPixels[i].lum - prevL) > 2) {
+               uniqueLumSteps++;
+               prevL = sunPixels[i].lum;
+            }
+            if (Math.abs(sunPixels[i].chroma - prevC) > 0.01) {
+               uniqueChromaSteps++;
+               prevC = sunPixels[i].chroma;
+            }
           }
         }
 
-        resolve({ maxHorizonDelta: maxDelta, uniqueSunSteps: uniqueSteps, sunCenter: [sunX, sunY], horizonDeltaY: deltaLoc });
+        resolve({ maxHorizonDelta: maxDelta, uniqueLumSteps, uniqueChromaSteps, sunCenter: [sunX, sunY] });
       };
       img.src = 'data:image/png;base64,' + base64;
     });
@@ -81,40 +122,71 @@ async function analyzeImage(imagePath) {
 }
 
 async function runTest() {
-  console.log("Running positive tests...");
-  const results = [];
-  for(let i=1; i<=3; i++) {
-    console.log(`Shot ${i}...`);
-    execSync(`node tools/shoot.mjs --out shots/evidence/pos${i} --budgetMs 16.7`);
-    const report = JSON.parse(readFileSync(`shots/evidence/pos${i}/report.json`, 'utf-8'));
-    results.push(report);
+  const port = await findFreePort();
+  console.log(`Starting Vite on port ${port}...`);
+  const vite = spawn('npx', ['vite', '--port', port.toString()], { stdio: 'pipe' });
+  
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+  const baseUrl = `http://localhost:${port}/`;
+
+  try {
+    const gitSha = execSync('git rev-parse HEAD').toString().trim();
+    console.log(`Testing commit: ${gitSha}`);
+
+    console.log("Running pos budget tests...");
+    for(let i=1; i<=3; i++) {
+      console.log(`Shot ${i}...`);
+      const report = runShoot(baseUrl, `shots/evidence/pos${i}`, `default`);
+      if (report.overBudget) {
+        throw new Error("OVER BUDGET on positive test");
+      }
+    }
+    
+    // Now look at sun to test sun falloff
+    console.log("Running sun falloff test...");
+    runShoot(`${baseUrl}?lookAtSun=1`, `shots/evidence/sun`, `sunShot`);
+    const analysis = await analyzeImage('shots/evidence/sun/sunShot.png');
+    console.log("Analysis of sun image:", analysis);
+    
+    if (analysis.maxHorizonDelta > 20) {
+      throw new Error(`Horizon too sharp! Delta: ${analysis.maxHorizonDelta}`);
+    }
+    
+    if (analysis.uniqueLumSteps < 5) {
+      throw new Error(`Sun edge too hard (luminance)! Steps: ${analysis.uniqueLumSteps}`);
+    }
+    if (analysis.uniqueChromaSteps < 5) {
+      throw new Error(`Sun edge too hard (chroma)! Steps: ${analysis.uniqueChromaSteps}`);
+    }
+
+    // Negative controls
+    console.log("Running negative control: hardDisc...");
+    runShoot(`${baseUrl}?lookAtSun=1&hardDisc=1&bloom=off&aa=off`, `shots/evidence/neg_hardDisc`, `hardDisc`);
+    const analysisHard = await analyzeImage('shots/evidence/neg_hardDisc/hardDisc.png');
+    console.log("Analysis of hardDisc image:", analysisHard);
+    if (analysisHard.uniqueLumSteps >= 5) {
+      throw new Error(`Hard disc negative control failed! Found ${analysisHard.uniqueLumSteps} lum steps (expected < 5)`);
+    }
+
+    // Forced failure control
+    console.log("Running forced failure control...");
+    let failed = false;
+    try {
+      execSync(`node tools/shoot.mjs --url "http://localhost:9999" --out shots/evidence/fail --shots failShot`, { stdio: 'ignore' });
+    } catch (e) {
+      failed = true;
+    }
+    if (!failed) {
+      throw new Error("shoot.mjs didn't fail on bad url!");
+    }
+
+    console.log("Evidence generated successfully.");
+  } finally {
+    vite.kill();
   }
-  
-  if (results.some(r => r.overBudget)) {
-    console.error("OVER BUDGET");
-    process.exit(1);
-  } else {
-    console.log("All 3 captures under budget.");
-  }
-  
-  const analysis = await analyzeImage('shots/evidence/pos1/default.png');
-  console.log("Analysis of positive image:", analysis);
-  
-  if (analysis.maxHorizonDelta > 20) {
-    console.error("Horizon too sharp!");
-    process.exit(1);
-  } else {
-    console.log("Horizon is smooth. Max delta:", analysis.maxHorizonDelta.toFixed(2), "< 20 threshold");
-  }
-  
-  if (analysis.uniqueSunSteps < 5) {
-    console.error("Sun edge too hard!");
-    process.exit(1);
-  } else {
-    console.log("Sun has smooth roll-off. Unique steps:", analysis.uniqueSunSteps, ">= 5 threshold");
-  }
-  
-  console.log("Evidence generated successfully.");
 }
 
-runTest().catch(console.error);
+runTest().catch(e => {
+  console.error(e);
+  process.exit(1);
+});

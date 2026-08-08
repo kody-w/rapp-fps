@@ -42,6 +42,7 @@ export interface SkyParams {
   sunIntensity?: number;
   /** Cube face resolution for the baked background. */
   resolution?: number;
+  hardDisc?: boolean;
 }
 
 export interface SkyResult {
@@ -74,6 +75,7 @@ const FRAGMENT = /* glsl */ `
   uniform vec3 uHorizon;
   uniform vec3 uGround;
   uniform float uSunIntensity;
+  uniform float uHardDisc;
 
   void main() {
     vec3 d = normalize(vDir);
@@ -93,19 +95,25 @@ const FRAGMENT = /* glsl */ `
     // Smoothly fade out sun and haze at the very horizon to perfectly match the ground fog
     float horizonBlend = smoothstep(0.0, 0.1, up);
 
-    // Two-lobe sun glow: a wide soft halo plus a tighter core.
-    float glow = pow(max(mu, 0.0), 5.0) * 0.16
-               + pow(max(mu, 0.0), 90.0) * 0.5;
-    col += uSunColor * glow * horizonBlend;
+    if (uHardDisc > 0.5) {
+      // Old disc itself, flat and hard-edged. Disabled glow and haze for negative control.
+      float disc = step(0.9990, mu);
+      col += uSunColor * disc * uSunIntensity;
+    } else {
+      // Two-lobe sun glow: a wide soft halo plus a tighter core.
+      float glow = pow(max(mu, 0.0), 5.0) * 0.16
+                 + pow(max(mu, 0.0), 90.0) * 0.5;
+      col += uSunColor * glow * horizonBlend;
 
-    // Sun angular core with gradual roll-off, no flat clipped disk
-    float core = pow(max(mu, 0.0), 400.0) * (uSunIntensity * 0.3);
-    float center = pow(max(mu, 0.0), 3000.0) * (uSunIntensity * 0.7);
-    col += (uSunColor * core + uSunColor * center) * horizonBlend;
+      // Sun angular core with gradual roll-off, no flat clipped disk
+      float core = pow(max(mu, 0.0), 400.0) * (uSunIntensity * 0.3);
+      float center = pow(max(mu, 0.0), 3000.0) * (uSunIntensity * 0.7);
+      col += (uSunColor * core + uSunColor * center) * horizonBlend;
 
-    // Warm haze piled up along the horizon toward the sun's azimuth.
-    float haze = pow(1.0 - up, 6.0) * smoothstep(-0.35, 1.0, mu);
-    col += uSunColor * haze * 0.22 * horizonBlend;
+      // Warm haze piled up along the horizon toward the sun's azimuth.
+      float haze = pow(1.0 - up, 6.0) * smoothstep(-0.35, 1.0, mu);
+      col += uSunColor * haze * 0.22 * horizonBlend;
+    }
 
     gl_FragColor = vec4(max(col, vec3(0.0)), 1.0);
   }
@@ -128,9 +136,10 @@ export function generateSky(renderer: THREE.WebGLRenderer, params: SkyParams): S
       uSunDir: { value: params.sunDirection.clone().normalize() },
       uSunColor: { value: params.sunColor ?? new THREE.Color(1.0, 0.74, 0.5) },
       uZenith: { value: params.zenith ?? new THREE.Color(0.01, 0.02, 0.05) },
-      uHorizon: { value: params.horizon ?? new THREE.Color(0x0b0e13).convertSRGBToLinear() },
-      uGround: { value: params.ground ?? new THREE.Color(0x0b0e13).convertSRGBToLinear() },
+      uHorizon: { value: params.horizon ?? new THREE.Color(0x0b0e13) },
+      uGround: { value: params.ground ?? new THREE.Color(0x0b0e13) },
       uSunIntensity: { value: params.sunIntensity ?? 26.0 },
+      uHardDisc: { value: params.hardDisc ? 1.0 : 0.0 },
     },
     vertexShader: VERTEX,
     fragmentShader: FRAGMENT,

@@ -65,6 +65,9 @@ interface RenderConfig {
   bloom: BloomMode;
   /** Chromatic aberration + vignette + grain, together — the lens character. */
   lens: boolean;
+  lookAtSun: boolean;
+  hardDisc: boolean;
+  misalignedKey: boolean;
 }
 
 /**
@@ -95,17 +98,14 @@ function readConfig(): RenderConfig {
   return {
     env: bool('env', true),
     bg: pick('bg', 'sky', ['sky', 'dark'] as const),
-    // True GPU timer queries show even half-resolution N8AO costs ~7ms on the
-    // M4 and pushes the empty calibration frame to 24ms p95. In this view the
-    // denoised on/off captures are visually indistinguishable; direct/VSM
-    // shadows and IBL already provide the contact cues. Keep AO available for
-    // controlled tests, but do not spend nearly half the 60fps budget on it by
-    // default. #1
     ao: pick('ao', 'off', ['full', 'half', 'off'] as const),
     aoQuality: pick('aoq', 'High', ['High', 'Medium', 'Low'] as const),
     aa: pick('aa', 'ultra', ['ultra', 'high', 'medium', 'low', 'off'] as const),
     bloom: pick('bloom', 'medium', ['large', 'medium', 'small', 'off'] as const),
     lens: bool('lens', true),
+    lookAtSun: bool('lookAtSun', false),
+    hardDisc: bool('hardDisc', false),
+    misalignedKey: bool('misalignedKey', false),
   };
 }
 
@@ -184,14 +184,16 @@ export class RenderSystem implements System {
     // while retaining the same sky background, so the benchmark changes one
     // axis rather than changing both lighting and background geometry.
     if (cfg.env || cfg.bg === 'sky') {
+      const sunDir = cfg.misalignedKey ? new THREE.Vector3(8, 14, -6) : SUN_DIRECTION;
       this.sky = generateSky(renderer, {
-        sunDirection: SUN_DIRECTION,
+        sunDirection: sunDir,
         sunColor: new THREE.Color(1.0, 0.74, 0.5),
-        zenith: new THREE.Color(0.01, 0.02, 0.05).convertSRGBToLinear(),
-        horizon: new THREE.Color(0x0b0e13).convertSRGBToLinear(),
-        ground: new THREE.Color(0x0b0e13).convertSRGBToLinear(),
+        zenith: new THREE.Color(0.01, 0.02, 0.05),
+        horizon: new THREE.Color(0x0b0e13),
+        ground: new THREE.Color(0x0b0e13),
         sunIntensity: 26.0,
         resolution: 512,
+        hardDisc: cfg.hardDisc,
       });
       if (cfg.env) {
         scene.environment = this.sky.environment;
@@ -315,6 +317,11 @@ export class RenderSystem implements System {
       this.shakePitch = 0;
       this.shakeYaw = 0;
       this.shakeRoll = 0;
+    }
+    
+    if (readConfig().lookAtSun) {
+      const sunDir = readConfig().misalignedKey ? new THREE.Vector3(8, 14, -6) : SUN_DIRECTION;
+      this.camera.lookAt(this.camera.position.clone().add(sunDir));
     }
   }
 
