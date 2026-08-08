@@ -141,6 +141,7 @@ export class RenderSystem implements System {
   private sky?: SkyResult;
   private camera!: THREE.PerspectiveCamera;
   private readonly authoritativeCamera = new THREE.Quaternion();
+  private readonly authoritativeEuler = new THREE.Euler();
   private readonly shakeQuaternion = new THREE.Quaternion();
   private readonly shakeEuler = new THREE.Euler(0, 0, 0, 'YXZ');
 
@@ -328,6 +329,7 @@ export class RenderSystem implements System {
     // commands are submitted, then restore even if a pass throws. This ordering
     // also layers after every gameplay system regardless of registration order.
     this.authoritativeCamera.copy(this.camera.quaternion);
+    this.authoritativeEuler.copy(this.camera.rotation);
     this.shakeEuler.set(
       this.shakePitch,
       this.shakeYaw,
@@ -340,7 +342,14 @@ export class RenderSystem implements System {
     try {
       this.composer.render();
     } finally {
+      // Quaternion writes synchronize Euler angles into their canonical range.
+      // Restore both representations so an unbounded Euler controller (yaw=4,
+      // for example) does not jump to the equivalent -2.283... after rendering.
       this.camera.quaternion.copy(this.authoritativeCamera);
+      // Euler last: copying the quaternion synchronizes/canonicalizes Euler.
+      // Copying the original Euler afterward reconstructs the same quaternion
+      // while preserving the controller's unbounded angle representation.
+      this.camera.rotation.copy(this.authoritativeEuler);
       this.camera.updateMatrixWorld(true);
     }
   }
