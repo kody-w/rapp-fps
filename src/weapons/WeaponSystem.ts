@@ -64,6 +64,7 @@ export class WeaponSystem implements System {
 
   private captureFrozen = false;
   private suppressCaptureVisuals = false;
+  private lastStatusKey = '';
 
   constructor(private readonly config: WeaponConfig = DUSKLINE_A7) {
     this.recoil = new RecoilModel(config);
@@ -119,7 +120,7 @@ export class WeaponSystem implements System {
         sensitivityScale: this.lookSensitivityScale,
       };
       ctx.bus.emit(Events.AimChanged, payload);
-      this.emitStatus();
+      this.maybeEmitStatus();
     }
 
     const reloadEdge = ctx.input.reload && !this.previousReload;
@@ -132,12 +133,21 @@ export class WeaponSystem implements System {
       if (this.reloadRemaining <= 0) this.finishReload();
     }
 
-    const fireEdge = ctx.input.fire && !this.previousFire;
-    const wantsFire = this.config.fireMode === 'auto' ? ctx.input.fire : fireEdge;
-    this.previousFire = ctx.input.fire;
+    const triggerHeld = ctx.input.fire;
+    const fireEdge = triggerHeld && !this.previousFire;
+    const wantsFire = this.config.fireMode === 'auto' ? triggerHeld : fireEdge;
+    this.previousFire = triggerHeld;
 
-    if (!wantsFire) this.nextShotAt = this.simulationTime;
-    if (fireEdge) this.nextShotAt = this.simulationTime;
+    // The outstanding deadline is preserved across trigger edges. A fresh pull
+    // on a COLD action — the previous shot's deadline has already elapsed —
+    // re-anchors the schedule to the round it is about to fire, so a burst's
+    // first round is instant and the cadence that follows is exact. A pull
+    // while a shot is still PENDING (rapid tapping, or a mashed semi trigger)
+    // must not re-anchor: the deadline survives and the round waits, so no fire
+    // mode can out-run its configured interval by cycling the trigger.
+    if (fireEdge && this.simulationTime + FIRE_EPSILON >= this.nextShotAt) {
+      this.nextShotAt = this.simulationTime;
+    }
 
     if (wantsFire && !this.reloading && this.simulationTime + FIRE_EPSILON >= this.nextShotAt) {
       if (this.ammo > 0) {
@@ -151,6 +161,9 @@ export class WeaponSystem implements System {
     }
 
     this.recoil.step(step);
+    // Fixed-step covers ammo, reload and ADS state transitions. Movement-driven
+    // spread is quantised and published from the per-frame path instead.
+    this.maybeEmitStatus();
   }
 
   update(update: UpdateContext, ctx: EngineContext): void {
@@ -167,6 +180,10 @@ export class WeaponSystem implements System {
       this.walkPhase += this.speed * 9.2 * dt;
       this.viewmodel.updateFlash(dt);
       this.shells.update(dt);
+      // Movement changes spread but not ammo/aim; publish the normalised value
+      // when its quantised bucket moves, so the HUD reticle tracks strafing
+      // without emitting a status on every rendered frame.
+      this.maybeEmitStatus();
     }
 
     this.applyViewmodelPose(this.captureFrozen ? 0 : update.elapsed);
@@ -230,7 +247,6 @@ export class WeaponSystem implements System {
 
     this.ammo--;
     this.shotsFired++;
-    this.emitStatus();
     this.ballistics.fire({
       cameraOrigin,
       muzzleOrigin,
@@ -256,18 +272,12 @@ export class WeaponSystem implements System {
     }
   }
 
-  private currentSpread(aim: number): number {
-    const still = THREE.MathUtils.lerp(this.config.hipSpread, this.config.adsSpread, aim);
-    return still + this.config.moveSpread * this.speed * (1 - aim * 0.68);
-  }
-
   private beginReload(): void {
     if (this.reloading || this.ammo >= this.config.magazineSize || this.reserve <= 0) return;
     this.reloading = true;
     this.reloadRemaining = this.config.reloadSeconds;
     this.nextShotAt = this.simulationTime;
     this.ctx.bus.emit(Events.ReloadStart, { weapon: this.config.id });
-    this.emitStatus();
   }
 
   private finishReload(): void {
@@ -279,16 +289,55 @@ export class WeaponSystem implements System {
     this.reloadRemaining = 0;
     this.nextShotAt = this.simulationTime;
     this.ctx.bus.emit(Events.ReloadEnd, { weapon: this.config.id });
-    this.emitStatus();
+  }
+
+  /** Radian cone half-angle the ballistics solver samples for this shot. */
+  private currentSpread(aim: number): number {
+    const still = THREE.MathUtils.lerp(this.config.hipSpread, this.config.adsSpread, aim);
+    return still + this.config.moveSpread * this.speed * (1 - aim * 0.68);
+  }
+
+  /**
+   * HUD-facing spread, normalised 0 (tightest) → 1 (widest) as the shared
+   * WeaponStatus contract documents. The raw radian cone stays with ballistics;
+   * only presentation is normalised. 0 is a still ADS shot (adsSpread); 1 is a
+   * hip shot at full movement (hipSpread + moveSpread).
+   */
+  private normalizedSpread(): number {
+    const minSpread = this.config.adsSpread;
+    const maxSpread = this.config.hipSpread + this.config.moveSpread;
+    const t = (this.currentSpread(this.aim) - minSpread) / (maxSpread - minSpread);
+    return THREE.MathUtils.clamp(t, 0, 1);
+  }
+
+  /**
+   * Quantised signature of everything the HUD renders from a status. Emitting
+   * only when a bucket changes keeps strafe-driven spread live without spamming
+   * a status on every rendered frame as damped values drift by a hair.
+   */
+  private statusKey(spread: number): string {
+    return [
+      this.ammo,
+      this.reserve,
+      this.reloading ? 1 : 0,
+      Math.round(this.aim * 20),
+      Math.round(spread * 25),
+    ].join(':');
+  }
+
+  private maybeEmitStatus(): void {
+    if (this.statusKey(this.normalizedSpread()) !== this.lastStatusKey) this.emitStatus();
   }
 
   private emitStatus(): void {
+    const spread = this.normalizedSpread();
+    this.lastStatusKey = this.statusKey(spread);
     const status: WeaponStatusPayload = {
       ammo: this.ammo,
       reserve: this.reserve,
       magazineSize: this.config.magazineSize,
       reloading: this.reloading,
-      spread: this.currentSpread(this.aim),
+      spread,
       aim: this.aim,
     };
     this.ctx.bus.emit(Events.WeaponStatus, status);
@@ -374,6 +423,7 @@ export class WeaponSystem implements System {
     this.recoil.reset();
     this.viewmodel.clearFlash();
     this.shells.reset();
+    this.lastStatusKey = '';
     this.ammo = this.config.magazineSize;
     this.reserve = this.config.reserveAmmo;
     this.simulationTime = 0;

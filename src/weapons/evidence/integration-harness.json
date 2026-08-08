@@ -1,7 +1,7 @@
 {
   "passed": true,
   "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
-  "assertions": 114,
+  "assertions": 120,
   "failures": [],
   "consoleErrors": [],
   "ads": {
@@ -66,6 +66,16 @@
       "eventRayMissMeters": 0,
       "damageEvents": 0
     }
+  },
+  "ballisticInclusion": {
+    "convention": "opt-in: userData.ballisticCollider===true OR surfaceTag; opt-out noHit/ballisticCollider===false wins",
+    "decalDistanceMeters": 3.627,
+    "wallDistanceMeters": 14.698553599662446,
+    "untaggedDecalImpactMeters": 14.698553599662446,
+    "untaggedDecalImpactMaterial": "concrete",
+    "taggedDecalImpactMeters": 3.581892015177609,
+    "decalIgnoredWhenUntagged": true,
+    "decalStopsRoundWhenTagged": true
   },
   "sampleImpact": {
     "point": {

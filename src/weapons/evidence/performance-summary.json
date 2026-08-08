@@ -38,21 +38,21 @@
     "overBudget": false,
     "gpuFrameMs": {
       "samples": 120,
-      "median": 9.888,
-      "p95": 12.096,
-      "worst": 14.786
+      "median": 8.532,
+      "p95": 9.491,
+      "worst": 10.71
     },
     "cpuFrameMs": {
       "samples": 122,
-      "median": 1.5,
-      "p95": 2.2,
-      "worst": 2.6
+      "median": 0.3,
+      "p95": 0.5,
+      "worst": 0.6
     },
     "budgetFrameMs": {
       "samples": 120,
-      "median": 9.888,
-      "p95": 12.096,
-      "worst": 14.786
+      "median": 8.532,
+      "p95": 9.491,
+      "worst": 10.71
     },
     "drawCallsPerFrame": 84,
     "trianglesPerFrame": 85406,
@@ -68,22 +68,22 @@
     "budgetMs": 16.7,
     "overBudget": false,
     "gpuFrameMs": {
-      "samples": 121,
-      "median": 9.18,
-      "p95": 12.264,
-      "worst": 13.021
+      "samples": 120,
+      "median": 8.272,
+      "p95": 10.408,
+      "worst": 12.867
     },
     "cpuFrameMs": {
       "samples": 122,
-      "median": 1.8,
-      "p95": 2.5,
-      "worst": 3.3
+      "median": 1.7,
+      "p95": 2.6,
+      "worst": 3.1
     },
     "budgetFrameMs": {
-      "samples": 121,
-      "median": 9.18,
-      "p95": 12.264,
-      "worst": 13.021
+      "samples": 120,
+      "median": 8.272,
+      "p95": 10.408,
+      "worst": 12.867
     },
     "drawCallsPerFrame": 84,
     "trianglesPerFrame": 85406,
@@ -100,38 +100,39 @@
       "gpuDisjointCount": 0,
       "gpuFrameMs": {
         "samples": 120,
-        "median": 8.111,
-        "p95": 10.574,
-        "worst": 11.803
+        "median": 9.538,
+        "p95": 12.521,
+        "worst": 13.614
       },
       "cpuFrameMs": {
-        "samples": 121,
+        "samples": 122,
         "median": 1.7,
-        "p95": 2.8,
-        "worst": 3.1
+        "p95": 2.7,
+        "worst": 3.2
       },
       "rafIntervalMs": {
-        "samples": 121,
+        "samples": 122,
         "median": 16.7,
-        "p95": 16.9,
-        "worst": 17.7
+        "p95": 18.3,
+        "worst": 18.6
       },
       "budgetFrameMs": {
         "samples": 120,
-        "median": 8.111,
-        "p95": 10.574,
-        "worst": 11.803
+        "median": 9.538,
+        "p95": 12.521,
+        "worst": 13.614
       },
-      "budgetFrameMsMedian": 8.111,
-      "budgetFrameMsP95": 10.574
+      "budgetFrameMsMedian": 9.538,
+      "budgetFrameMsP95": 12.521
     },
     "shotsFired": 24,
     "ammoSpent": 24,
-    "frames": 121,
+    "frames": 122,
     "flashFrames": 48,
-    "flashFrameRatio": 0.39669421487603307,
+    "flashFrameRatio": 0.39344262295081966,
     "maxDrawCalls": 88,
     "flashDrawCallsMax": 88,
+    "impacts": 13,
     "reloadStarts": 0,
     "reloadEnds": 0,
     "shakeEvents": 0,
@@ -140,20 +141,21 @@
     "failures": []
   },
   "observedDeltaFromSameHarnessBaseline": {
-    "idleGpuMedianMs": 0.316,
-    "idleGpuP95Ms": 0.402,
-    "idleCpuP95Ms": 0.2,
-    "sustainedGpuMedianMs": -0.392,
-    "sustainedGpuP95Ms": 0.57,
-    "sustainedCpuP95Ms": 0.5,
     "idleDrawCalls": 4,
-    "activeFlashDrawCalls": 8,
-    "idleTriangles": 964
+    "activeFlashDrawCalls": 4,
+    "idleTriangles": 964,
+    "note": "Draw-call and triangle deltas are weapon-attributable and stable across runs; GPU-ms deltas are within run-to-run variance."
   },
   "verdict": {
-    "idle": "PASS: 12.096ms p95 <= 16.700ms (4.604ms headroom)",
-    "sustainedFire": "PASS: 12.264ms p95 <= 16.700ms (4.436ms headroom)",
-    "activityVerified": "24 shots, 48/121 flash-active frames, 88 max/flash draw calls, 0 reloads",
-    "interpretation": "Same-harness single runs show small positive deltas, but GPU run-to-run variance remains material. The defensible claims are the measured distributions, +4 idle draw calls, +8 active-flash draw calls, +964 idle triangles, and both p95 windows below 16.7ms."
+    "idle": "PASS: 9.491ms p95 <= 16.700ms (7.209ms headroom)",
+    "sustainedFireShotTool": "PASS: 10.408ms p95 <= 16.700ms (6.292ms headroom)",
+    "sustainedWindowProof": "PASS: 12.521ms p95 <= 16.700ms (4.179ms headroom)",
+    "activityVerified": "24 shots, 48/122 flash-active frames, 88 max/flash draw calls, 0 reloads, 0 shakes, 0 damage events",
+    "interpretation": "Round-4 recapture. Weapon adds +4 idle draw calls and +4 during muzzle flash. GPU p95 varies run-to-run (idle 9.491ms, shot-tool sustained 10.408ms, window-proof 12.521ms) but every window stays well under the 16.7ms budget."
+  },
+  "round4Recapture": {
+    "measuredAgainstMain": "b566972",
+    "capturedAt": "2026-08-08T01:58:54.575Z",
+    "note": "All p95 windows re-measured after the trigger-edge, ballistic-inclusion, and normalized-spread fixes. No console errors in any capture."
   }
 }

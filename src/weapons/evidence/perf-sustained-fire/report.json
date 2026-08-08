@@ -1,5 +1,5 @@
 {
-  "at": "2026-08-08T01:00:46.790Z",
+  "at": "2026-08-08T01:54:40.939Z",
   "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
   "viewport": "1920x1080",
   "cpuThrottleRate": 1,
@@ -10,30 +10,30 @@
     "gpuSupported": true,
     "gpuCounterBits": 64,
     "gpuFrameMs": {
-      "samples": 121,
-      "median": 9.18,
-      "p95": 12.264,
-      "worst": 13.021
+      "samples": 120,
+      "median": 8.272,
+      "p95": 10.408,
+      "worst": 12.867
     },
     "cpuFrameMs": {
       "samples": 122,
-      "median": 1.8,
-      "p95": 2.5,
-      "worst": 3.3
+      "median": 1.7,
+      "p95": 2.6,
+      "worst": 3.1
     },
     "rafIntervalMs": {
       "samples": 122,
       "median": 16.7,
-      "p95": 18.3,
-      "worst": 18.7
+      "p95": 16.9,
+      "worst": 17.1
     },
-    "budgetFrameMsMedian": 9.18,
-    "budgetFrameMsP95": 12.264,
+    "budgetFrameMsMedian": 8.272,
+    "budgetFrameMsP95": 10.408,
     "budgetFrameMs": {
-      "samples": 121,
-      "median": 9.18,
-      "p95": 12.264,
-      "worst": 13.021
+      "samples": 120,
+      "median": 8.272,
+      "p95": 10.408,
+      "worst": 12.867
     },
     "gpuDisjointCount": 0,
     "note": "budget uses max(CPU, GPU); rAF interval is scheduler cadence only",

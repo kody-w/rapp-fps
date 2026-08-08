@@ -198,17 +198,185 @@
     "disposition": "Recoil remains deterministic weapon state and projection offset. No claim is made that destructive RenderSystem shake is part of authoritative recoil."
   },
   "sustainedFire": {
-    "shotToolBudgetP95Ms": 12.264,
-    "activityHarnessBudgetP95Ms": 10.574,
+    "shotToolBudgetP95Ms": 10.408,
+    "activityHarnessBudgetP95Ms": 12.521,
     "shots": 24,
     "flashFrames": 48,
-    "frames": 121,
+    "frames": 122,
     "maxDrawCalls": 88,
     "reloadStarts": 0,
     "reloadEnds": 0,
     "screenshot": "perf-sustained-fire/stress-fire.png",
-    "inspected": "Visible muzzle flash; weapon is firing, not in reload pose."
+    "inspected": "Recaptured round-4: visible muzzle flash and dynamic muzzle light on nearby geometry; weapon firing, not in reload pose. Frame opened and inspected directly."
   },
   "productionScope": "Subsystem library and isolated harness only. Root main.ts is not modified by weapon commits; coordinator integration remains required.",
-  "artScope": "Procedural blockout viewmodel, not finished art."
+  "artScope": "Procedural blockout viewmodel, not finished art.",
+  "round4": {
+    "note": "Final correction round. Three items addressed with fixedUpdate end-to-end tests and negative controls that fail via assertions, not collection errors.",
+    "triggerEdgeCadence": {
+      "problem": "Old logic reset the absolute deadline on every trigger release AND press, so alternating fire every 2 ticks produced 3600 RPM (auto) and semi-auto ignored shotInterval entirely.",
+      "fix": "Deadline (nextShotAt) is preserved across trigger edges; a cold fire-edge (simTime >= nextShotAt) re-anchors to now, a warm edge does not. Firing advances nextShotAt += shotInterval, preserving fractional debt.",
+      "autoTapTicks": [
+        1,
+        11,
+        21,
+        31,
+        41,
+        51,
+        61,
+        71,
+        81,
+        91,
+        101,
+        111,
+        121,
+        131,
+        141,
+        151,
+        161,
+        171,
+        181,
+        191,
+        201,
+        211,
+        221,
+        231,
+        241,
+        251,
+        261,
+        271,
+        281,
+        291
+      ],
+      "autoTapRpm": 720,
+      "semiTapTicks": [
+        1,
+        11,
+        21,
+        31,
+        41
+      ],
+      "semiTapRpm": 720,
+      "semiHoldTicks": [
+        1
+      ],
+      "semiHoldInterpretation": "Holding the trigger in semi-auto fires exactly once (tick 1), then never again until release+repress. shotInterval respected on tap.",
+      "negativeControl": {
+        "expectedStatus": "failed",
+        "actualStatus": "failed",
+        "assertionFailures": [
+          "reset-on-edge scheduler fired 30 rounds at intervals 2,2,2,2.. (3600 RPM), not 720"
+        ],
+        "collectionErrors": [],
+        "resetTicks": [
+          1,
+          3,
+          5,
+          7,
+          9,
+          11,
+          13,
+          15,
+          17,
+          19,
+          21,
+          23,
+          25,
+          27,
+          29,
+          31,
+          33,
+          35,
+          37,
+          39,
+          41,
+          43,
+          45,
+          47,
+          49,
+          51,
+          53,
+          55,
+          57,
+          59
+        ],
+        "resetIntervals": [
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2
+        ],
+        "resetRpm": 3600
+      }
+    },
+    "ballisticInclusion": {
+      "problem": "Ballistics treated any mesh without noHit as solid, so cosmetic decals/particles (which lack that flag) would intercept later bullets. A decal at 3.627m would block a wall at 14.845m.",
+      "fix": "opt-in: userData.ballisticCollider===true OR surfaceTag; opt-out noHit/ballisticCollider===false wins",
+      "decalDistanceMeters": 3.627,
+      "wallDistanceMeters": 14.698553599662446,
+      "untaggedDecalIgnored": true,
+      "untaggedShotHitsWallAtMeters": 14.698553599662446,
+      "untaggedShotMaterial": "concrete",
+      "taggedControlStopsRoundAtMeters": 3.581892015177609,
+      "coordinatorRequest": "Promote the opt-in ballisticCollider/surfaceTag convention into the shared level so world geometry is tagged at authoring time rather than by the weapon dev harness traverse."
+    },
+    "normalizedSpread": {
+      "problem": "WeaponStatus emitted spread in radians while the HUD (CombatHud.ts) expects a normalized 0..1 value; movement also changed spread without emitting status.",
+      "fix": "WeaponStatus.spread is normalized to 0..1 = (currentSpread - adsSpread) / (hipSpread + moveSpread - adsSpread), clamped. Status is emitted only when a quantized key (ammo/reserve/reloading/aim/spread) changes, preventing per-frame spam.",
+      "reference": {
+        "adsStill": 0,
+        "hipStill": 0.33862433862433866,
+        "hipFullMove": 1,
+        "rawRadianFullMove": 0.03438298626428829
+      },
+      "fullMovementNormalized": 0.9825740867629308,
+      "hipStillNormalized": 0.3399503819867629,
+      "adsStillNormalized": 0.0038029100821186405,
+      "idleFramesWithNoEmission": 120,
+      "idleStatusEmitted": 0,
+      "allInUnitRange": true,
+      "negativeControl": {
+        "expectedStatus": "failed",
+        "actualStatus": "failed",
+        "assertionFailures": [
+          "raw radian spread 0.0344 at full movement reads as ~0 (tightest) under the HUD 0..1 contract"
+        ],
+        "collectionErrors": [],
+        "rawRadianFullMove": 0.03438298626428829
+      },
+      "coordinatorRequest": "None outstanding for spread — the HUD 0..1 contract is now satisfied by the weapon side."
+    }
+  },
+  "round4HarnessAssertions": {
+    "recoil": 96,
+    "system": 28,
+    "integration": 120,
+    "status": 11,
+    "stress": 13
+  }
 }

@@ -82,6 +82,101 @@ try {
       `${renderHz} Hz 30-shot cadence window must not enter reload; received ${run.reloadStarts}`);
   }
 
+  // ── End-to-end trigger-edge behaviour through WeaponSystem.fixedUpdate ──
+  // The outstanding deadline must survive trigger release. Tapping an auto
+  // trigger, holding it, and mashing a semi trigger must all obey shotInterval;
+  // a held semi trigger must fire exactly once. Everything below drives the
+  // real fixedUpdate on real WeaponSystem instances, not a re-implementation.
+  const triggerModes = await page.evaluate(() => {
+    const step = 1 / 120;
+    const ctx = window.engine.context;
+    const input = window.__WEAPON_INPUT__;
+    const rpmOf = (ticks) => (ticks.length > 1
+      ? 60 / (((ticks.at(-1) - ticks[0]) / (ticks.length - 1)) * step)
+      : 0);
+
+    const drive = (weapon, firePattern, cap) => {
+      input.fire = false; input.aim = false; input.reload = false;
+      weapon.capture('hip');
+      weapon.resume();
+      const ticks = [];
+      for (let tick = 1; tick <= 320 && ticks.length < cap; tick++) {
+        input.fire = firePattern(tick);
+        const before = weapon.totalShotsFired;
+        weapon.fixedUpdate(step, ctx);
+        if (weapon.totalShotsFired > before) ticks.push(tick);
+      }
+      input.fire = false;
+      return ticks;
+    };
+
+    // Auto weapon (the harness instance) — tapping press/release every 2 ticks.
+    const autoTapTicks = drive(window.__WEAPON__, (tick) => tick % 2 === 1, 30);
+
+    // A branch-local semi-auto instance shares the live scene/camera/bus.
+    const semi = new window.WeaponSystem({ ...window.DUSKLINE_A7, fireMode: 'semi' });
+    semi.init(ctx);
+    const semiHoldTicks = drive(semi, () => true, 30);
+    const semiTapTicks = drive(semi, (tick) => tick % 2 === 1, 5);
+    input.fire = false;
+    semi.dispose();
+
+    return {
+      autoTap: { ticks: autoTapTicks, intervals: autoTapTicks.slice(1).map((t, i) => t - autoTapTicks[i]), rpm: rpmOf(autoTapTicks) },
+      semiHold: { ticks: semiHoldTicks },
+      semiTap: { ticks: semiTapTicks, intervals: semiTapTicks.slice(1).map((t, i) => t - semiTapTicks[i]), rpm: rpmOf(semiTapTicks) },
+    };
+  });
+
+  assert(JSON.stringify(triggerModes.autoTap.ticks) === JSON.stringify(expectedTicks),
+    `auto tap must obey 10-tick interval (1,11..291); received ${triggerModes.autoTap.ticks.join(',')}`);
+  assert(triggerModes.autoTap.intervals.every((ticks) => ticks === 10),
+    `auto tap must not out-run interval; received intervals ${triggerModes.autoTap.intervals.join(',')}`);
+  assert(Math.abs(triggerModes.autoTap.rpm - 720) < 1e-9,
+    `auto tap must hold 720 RPM, not 3600; received ${triggerModes.autoTap.rpm}`);
+  assert(JSON.stringify(triggerModes.semiHold.ticks) === JSON.stringify([1]),
+    `held semi trigger must fire exactly once at tick 1; received ${triggerModes.semiHold.ticks.join(',')}`);
+  assert(JSON.stringify(triggerModes.semiTap.ticks) === JSON.stringify([1, 11, 21, 31, 41]),
+    `semi taps must obey shotInterval (1,11,21,31,41); received ${triggerModes.semiTap.ticks.join(',')}`);
+  assert(triggerModes.semiTap.intervals.every((ticks) => ticks === 10),
+    `semi taps must not out-run interval; received intervals ${triggerModes.semiTap.intervals.join(',')}`);
+  assert(Math.abs(triggerModes.semiTap.rpm - 720) < 1e-9,
+    `semi taps must hold 720 RPM; received ${triggerModes.semiTap.rpm}`);
+
+  // Negative control: the removed reset-on-edge / reset-on-release scheduler.
+  // Fed the same auto-tap pattern it fires every 2 ticks (3600 RPM), proving
+  // the old code let a cycled trigger out-run the configured cadence.
+  const interval = 60 / 720;
+  let resetSimTime = 0;
+  let resetNext = 0;
+  let resetPrevFire = false;
+  const resetTicks = [];
+  for (let tick = 1; tick <= expectedTicks.at(-1) && resetTicks.length < 30; tick++) {
+    resetSimTime += 1 / 120;
+    const fire = tick % 2 === 1;
+    const fireEdge = fire && !resetPrevFire;
+    const wantsFire = fire; // auto
+    resetPrevFire = fire;
+    if (!wantsFire) resetNext = resetSimTime;
+    if (fireEdge) resetNext = resetSimTime;
+    if (wantsFire && resetSimTime + 1e-9 >= resetNext) {
+      resetTicks.push(tick);
+      resetNext += interval;
+    }
+  }
+  const resetIntervals = resetTicks.slice(1).map((tick, index) => tick - resetTicks[index]);
+  const resetRpm = resetIntervals.length > 0 ? 60 / ((resetIntervals[0] / 120)) : 0;
+  const triggerResetNegativeFailures = [];
+  if (JSON.stringify(resetTicks) === JSON.stringify(expectedTicks)) {
+    triggerResetNegativeFailures.push('reset-on-edge scheduler unexpectedly matched exact 720 cadence');
+  } else {
+    triggerResetNegativeFailures.push(
+      `reset-on-edge scheduler fired ${resetTicks.length} rounds at intervals ${resetIntervals.slice(0, 4).join(',')}.. (${resetRpm} RPM), not 720`,
+    );
+  }
+  assert(triggerResetNegativeFailures.length > 0 && resetRpm > 720,
+    `trigger-reset negative control must fail exact cadence; measured ${resetRpm} RPM`);
+
   // Exact negative control for the removed clamp/residue algorithm.
   let legacyCooldown = 0;
   const legacyTicks = [];
@@ -152,6 +247,16 @@ try {
       legacyTicks,
       legacyIntervals: legacyTicks.slice(1).map((tick, index) => tick - legacyTicks[index]),
       legacyRpm: 60 / (11 / 120),
+    },
+    triggerModes,
+    triggerResetNegativeControl: {
+      expectedStatus: 'failed',
+      actualStatus: triggerResetNegativeFailures.length > 0 ? 'failed' : 'passed',
+      assertionFailures: triggerResetNegativeFailures,
+      collectionErrors: [],
+      resetTicks,
+      resetIntervals,
+      resetRpm,
     },
     destructiveShakeProbe: destructiveShake,
     weaponShakeEventsAcrossRuns: Object.fromEntries(

@@ -112,7 +112,18 @@ engine.add(render);
 await engine.init();
 
 engine.scene.traverse((object) => {
-  if ((object as THREE.Mesh).isMesh && object.userData.surfaceTag === undefined) {
+  if ((object as THREE.Mesh).isMesh !== true) return;
+  // Cosmetic viewmodel and ejected brass opt out of ballistics via `noHit`;
+  // never promote them to colliders.
+  let node: THREE.Object3D | null = object;
+  while (node) {
+    if (node.userData.noHit === true) return;
+    node = node.parent;
+  }
+  // Promote calibration world geometry to a ballistic collider — the opt-in the
+  // coordinator would bake into the real level — and give it a default surface.
+  object.userData.ballisticCollider = true;
+  if (object.userData.surfaceTag === undefined) {
     object.userData.surfaceTag = { surface: 'concrete' };
   }
 });
@@ -189,6 +200,8 @@ engine.present = () => {
 Object.assign(window as unknown as Record<string, unknown>, {
   engine,
   THREE,
+  WeaponSystem,
+  DUSKLINE_A7,
   __WEAPON__: weapon,
   __WEAPON_INPUT__: input.state,
   __WEAPON_EVENTS__: events,

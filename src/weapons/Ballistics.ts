@@ -133,16 +133,35 @@ export class HitscanBallistics {
     this.raycaster.far = far;
     this.raycaster.set(origin, direction);
     return this.raycaster.intersectObjects(this.scene.children, true)
-      .find((candidate) => this.isSolid(candidate.object)) ?? null;
+      .find((candidate) => this.isBallisticCollider(candidate.object)) ?? null;
   }
 
-  private isSolid(object: THREE.Object3D): boolean {
+  /**
+   * Ballistics resolves against world geometry only, by explicit OPT-IN. A mesh
+   * stops a round when it (or an ancestor) is tagged `ballisticCollider === true`
+   * or carries the level's `surfaceTag`/`surface` material vocabulary. Cosmetic
+   * meshes — impact decals, tracers, particles, the viewmodel, ejected brass —
+   * carry none of these and are transparent to bullets, so an InstancedMesh of
+   * decals cannot silently intercept later rounds. An explicit opt-out
+   * (`noHit === true` or `ballisticCollider === false`) always wins, so a
+   * collider may still parent cosmetic children.
+   *
+   * This convention is LOCAL to ballistics today. Coordinator promotion is
+   * requested so the calibration/art level and any destructible props are
+   * tagged at the source rather than by the weapon harness.
+   */
+  private isBallisticCollider(object: THREE.Object3D): boolean {
+    if ((object as THREE.Mesh).isMesh !== true) return false;
+    let optIn = false;
     let current: THREE.Object3D | null = object;
     while (current) {
-      if (current.userData.noHit === true) return false;
+      const data = current.userData;
+      if (data.noHit === true || data.ballisticCollider === false) return false;
+      if (data.ballisticCollider === true) optIn = true;
+      if (data.surfaceTag || data.surface) optIn = true;
       current = current.parent;
     }
-    return (object as THREE.Mesh).isMesh === true;
+    return optIn;
   }
 
   private surfaceOf(object: THREE.Object3D): SurfaceKind {

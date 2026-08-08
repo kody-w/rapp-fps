@@ -180,6 +180,81 @@ try {
     delete window.__MUZZLE_BLOCKER__;
   });
 
+  // ── Ballistic inclusion: cosmetic FX must be transparent to bullets ──────
+  // A CombatFX particle/decal InstancedMesh carries no ballistic tag. It must
+  // not intercept a round even when it sits squarely on the muzzle ray in front
+  // of the world geometry the player is shooting. This reproduces the reported
+  // failure — a decal at 3.627m in front of the 14.698m wall — through the real
+  // ballistics path, then tags the same mesh as a control to prove the ignore
+  // was the inclusion convention, not a raycast miss.
+  const inclusion = await page.evaluate(({ fired, cleanDistance }) => {
+    const THREE = window.THREE;
+    const origin = new THREE.Vector3(fired.origin.x, fired.origin.y, fired.origin.z);
+    const direction = new THREE.Vector3(fired.direction.x, fired.direction.y, fired.direction.z).normalize();
+    const nearDistance = Math.min(cleanDistance * 0.5, 3.627);
+    const center = origin.clone().addScaledVector(direction, nearDistance);
+
+    // A debris burst shaped exactly like a cosmetic FX emitter: an InstancedMesh
+    // of small quads. Deliberately NO ballisticCollider, surfaceTag or noHit.
+    const geometry = new THREE.BoxGeometry(0.14, 0.14, 0.02);
+    const material = new THREE.MeshBasicMaterial({ color: 0xffaa66 });
+    const count = 12;
+    const decals = new THREE.InstancedMesh(geometry, material, count);
+    const dummy = new THREE.Object3D();
+    const facing = window.engine.camera.getWorldQuaternion(new THREE.Quaternion());
+    for (let i = 0; i < count; i++) {
+      // Instance 0 sits exactly on the muzzle ray; the rest are a fixed splatter.
+      const ring = i === 0 ? 0 : 0.12 + (i % 3) * 0.06;
+      const angle = i * 0.7;
+      dummy.position.copy(center).add(new THREE.Vector3(
+        Math.cos(angle) * ring, Math.sin(angle) * ring, ((i % 5) - 2) * 0.03,
+      ));
+      dummy.quaternion.copy(facing);
+      dummy.updateMatrix();
+      decals.setMatrixAt(i, dummy.matrix);
+    }
+    decals.instanceMatrix.needsUpdate = true;
+    decals.updateMatrixWorld(true);
+    window.engine.scene.add(decals);
+    window.__FX_DECALS__ = decals;
+
+    return {
+      nearDistance,
+      wallDistance: cleanDistance,
+      hasBallisticTag: decals.userData.ballisticCollider === true,
+      hasSurfaceTag: decals.userData.surfaceTag !== undefined,
+      hasNoHit: decals.userData.noHit === true,
+    };
+  }, { fired: cleanFired, cleanDistance: cleanImpact.distance });
+
+  assert(!inclusion.hasBallisticTag && !inclusion.hasSurfaceTag && !inclusion.hasNoHit,
+    'cosmetic decal InstancedMesh must carry no ballistic tag for a valid inclusion test');
+
+  const ignoredShot = await captureShot('shot-1');
+  const ignoredImpact = ignoredShot.events.find((event) => event.name === 'bullet:impact')?.payload;
+  assert(ignoredImpact !== undefined,
+    'a round through untagged cosmetic decals must still resolve on world geometry');
+  assert(Math.abs(ignoredImpact.distance - cleanImpact.distance) < 1e-3,
+    `untagged decals must be ignored; impact ${ignoredImpact?.distance}m must match the ${cleanImpact.distance}m wall, not the ${inclusion.nearDistance}m decal`);
+  assert(ignoredImpact.material === 'concrete',
+    `ignored-decal round must resolve the tagged concrete wall; received ${ignoredImpact?.material}`);
+
+  await page.evaluate(() => { window.__FX_DECALS__.userData.ballisticCollider = true; });
+  const taggedShot = await captureShot('shot-1');
+  const taggedImpact = taggedShot.events.find((event) => event.name === 'bullet:impact')?.payload;
+  assert(taggedImpact !== undefined && taggedImpact.distance < cleanImpact.distance - 0.5,
+    `tagging the decal ballisticCollider must stop the round early; impact ${taggedImpact?.distance}m must precede the ${cleanImpact.distance}m wall`);
+  assert(taggedImpact !== undefined && Math.abs(taggedImpact.distance - inclusion.nearDistance) < 0.2,
+    `tagged decal must be struck at ~${inclusion.nearDistance}m; received ${taggedImpact?.distance}m`);
+
+  await page.evaluate(() => {
+    const decals = window.__FX_DECALS__;
+    decals.removeFromParent();
+    decals.geometry.dispose();
+    decals.material.dispose();
+    delete window.__FX_DECALS__;
+  });
+
   const toDegrees = (value) => value * 180 / Math.PI;
   const recoil = Object.fromEntries(Object.entries(captures).map(([name, value]) => [name, {
     cameraPitchDeg: toDegrees(value.capture.recoil.cameraPitch),
@@ -225,6 +300,16 @@ try {
         eventRayMissMeters: blockedMiss,
         damageEvents: blockedDamage.length,
       },
+    },
+    ballisticInclusion: {
+      convention: 'opt-in: userData.ballisticCollider===true OR surfaceTag; opt-out noHit/ballisticCollider===false wins',
+      decalDistanceMeters: inclusion.nearDistance,
+      wallDistanceMeters: inclusion.wallDistance,
+      untaggedDecalImpactMeters: ignoredImpact?.distance,
+      untaggedDecalImpactMaterial: ignoredImpact?.material,
+      taggedDecalImpactMeters: taggedImpact?.distance,
+      decalIgnoredWhenUntagged: Math.abs((ignoredImpact?.distance ?? 0) - cleanImpact.distance) < 1e-3,
+      decalStopsRoundWhenTagged: (taggedImpact?.distance ?? Infinity) < cleanImpact.distance - 0.5,
     },
     sampleImpact: cleanImpact,
   };

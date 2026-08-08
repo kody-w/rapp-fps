@@ -9,33 +9,33 @@
     "gpuDisjointCount": 0,
     "gpuFrameMs": {
       "samples": 120,
-      "median": 8.111,
-      "p95": 10.574,
-      "worst": 11.803
+      "median": 9.538,
+      "p95": 12.521,
+      "worst": 13.614
     },
     "cpuFrameMs": {
-      "samples": 121,
+      "samples": 122,
       "median": 1.7,
-      "p95": 2.8,
-      "worst": 3.1
+      "p95": 2.7,
+      "worst": 3.2
     },
     "rafIntervalMs": {
-      "samples": 121,
+      "samples": 122,
       "median": 16.7,
-      "p95": 16.9,
-      "worst": 17.7
+      "p95": 18.3,
+      "worst": 18.6
     },
     "budgetFrameMs": {
       "samples": 120,
-      "median": 8.111,
-      "p95": 10.574,
-      "worst": 11.803
+      "median": 9.538,
+      "p95": 12.521,
+      "worst": 13.614
     },
-    "budgetFrameMsMedian": 8.111,
-    "budgetFrameMsP95": 10.574
+    "budgetFrameMsMedian": 9.538,
+    "budgetFrameMsP95": 12.521
   },
   "profile": {
-    "frames": 121,
+    "frames": 122,
     "flashFrames": 48,
     "maxDrawCalls": 88,
     "flashDrawCallsMax": 88,
@@ -58,6 +58,6 @@
     "programs": 15
   },
   "ammoSpent": 24,
-  "flashFrameRatio": 0.39669421487603307,
-  "verdict": "PASS: 10.574ms p95 <= 16.700ms"
+  "flashFrameRatio": 0.39344262295081966,
+  "verdict": "PASS: 12.521ms p95 <= 16.700ms"
 }
