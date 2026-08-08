@@ -8,21 +8,21 @@ The final ANGLE Metal / Apple M4 matrix used three true-GPU trials per mode:
 
 | Profile | SMAA p95 | 2× MSAA p95 | 4× MSAA p95 |
 | --- | ---: | ---: | ---: |
-| 1920×1080 drawing buffer | 10.831 ms | 11.592 ms | 12.553 ms |
-| 1512×982 CSS / DPR 2 (3024×1964) | 21.677 ms | 25.092 ms | 26.784 ms |
-| Retina production cap (2268×1473) | 15.748 ms | 15.271 ms | 18.540 ms |
+| 1920×1080 drawing buffer | 10.789 ms | 11.117 ms | 15.641 ms |
+| 1512×982 CSS / DPR 2 (3024×1964) | 25.906 ms | 23.363 ms | 30.472 ms |
+| Retina production cap (2268×1473) | 15.793 ms | 14.845 ms | 18.580 ms |
 
 At DPR 1, 4× MSAA still improves the worst normal-motion metric by about 15%
 with negligible static sharpness loss. That result does not generalize to
 Retina: uncapped DPR 2 misses 60 fps for every tested mode. Under the production
-cap, 2× MSAA makes temporal noise 1.3% worse and 4× improves it only 4.8% while
+cap, 2× MSAA makes temporal noise 1.1% worse and 4× improves it only 5.2% while
 still failing p95. Neither clears the predeclared 10% temporal gate.
 
 The shipping safeguard caps auto DPR at 1.5 and about 3.34 million
 drawing-buffer pixels, then keeps SMAA Ultra. Relative to uncapped Retina SMAA,
-the cap reduces pixels by 43.75%, lowers worst paired p95 from 21.677 to
-15.748 ms, and measures 0.59% lower static edge energy. Temporal noise rises
-5.49%, so the cap is a budget safeguard—not claimed as a temporal improvement.
+the cap reduces pixels by 43.75%, lowers worst paired p95 from 25.906 to
+15.793 ms, and measures 0.58% lower static edge energy. Temporal noise rises
+4.89%, so the cap is a budget safeguard—not claimed as a temporal improvement.
 The anonymized cap sheets retain that visual tradeoff.
 
 A separate no-query production-main run used the same 1512×982 CSS Retina
