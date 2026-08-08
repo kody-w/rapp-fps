@@ -4,6 +4,7 @@ import {
   type EngineContext,
   type EventBus,
   type System,
+  type UpdateContext,
 } from '../core/contracts.js';
 import type { ProfilerSnapshot } from '../core/profiler.js';
 import './hud.css';
@@ -277,7 +278,6 @@ export class CombatHud implements System {
   private debugElements: DebugElements | null = null;
   private camera: EngineContext['camera'] | null = null;
   private dirty = DIRTY_ALL;
-  private rafId = 0;
   private renderedDamageActive = false;
   private renderedHitActive = false;
   private renderedEliminationActive = false;
@@ -296,7 +296,15 @@ export class CombatHud implements System {
     this.camera = ctx.camera;
     this.mount(this.options.parent ?? document.body);
     this.subscribe(ctx.bus);
-    this.rafId = requestAnimationFrame(this.present);
+  }
+
+  /**
+   * HUD work stays inside Engine.loop's CPU profiler bracket. A private rAF
+   * made the paired frame budget blind to DOM work: a synthetic 22ms HUD stall
+   * left reported CPU p95 at 0.2ms. #21
+   */
+  update(update: UpdateContext): void {
+    this.present(update.elapsed * 1000);
   }
 
   setWeaponStatus(status: WeaponHudStatus): void {
@@ -379,8 +387,6 @@ export class CombatHud implements System {
   }
 
   dispose(): void {
-    cancelAnimationFrame(this.rafId);
-    this.rafId = 0;
     for (const unsubscribe of this.subscriptions.splice(0)) unsubscribe();
     this.root?.remove();
     this.root = null;
@@ -571,8 +577,7 @@ export class CombatHud implements System {
     this.dirty |= mask;
   }
 
-  private present = (now: number): void => {
-    this.rafId = requestAnimationFrame(this.present);
+  private present(now: number): void {
     const elements = this.elements;
     const root = this.root;
     if (!elements || !root) return;
@@ -627,7 +632,7 @@ export class CombatHud implements System {
       this.lastDebugAt = now;
       this.renderDebug(this.debugElements);
     }
-  };
+  }
 
   private resetPresentationState(): void {
     this.dirty = DIRTY_ALL;

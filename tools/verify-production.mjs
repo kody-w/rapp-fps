@@ -63,6 +63,24 @@ try {
   const registered = await snapshot(page);
   assertRegistered(registered);
 
+  const bfcache = await page.evaluate(async () => {
+    const before = {
+      hudRoots: document.querySelectorAll('[data-hud-root]').length,
+      audioState: window.engine.get('audio').status.state,
+    };
+    dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+    dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    return {
+      before,
+      after: {
+        hudRoots: document.querySelectorAll('[data-hud-root]').length,
+        audioState: window.engine.get('audio').status.state,
+      },
+    };
+  });
+  assert.deepEqual(bfcache.after, bfcache.before, 'BFCache cycle disposed the live app');
+
   const preArm = await page.evaluate(() => {
     const { engine, THREE } = window;
     const audio = engine.get('audio');
@@ -85,6 +103,24 @@ try {
   assert(preArm.flashIntensity > 0, 'WeaponFired did not reach CombatFX');
 
   await page.locator('#game').click({ position: { x: 40, y: 40 } });
+  await page.waitForFunction(() => window.engine.get('audio').status.state === 'armed', null, {
+    timeout: 10_000,
+  });
+
+  const suspended = await page.evaluate(async () => {
+    const audio = window.__INTEGRATION__.audio;
+    // Private in TypeScript, intentionally reached only by this black-box
+    // lifecycle verifier to simulate a browser interruption.
+    await audio.context.suspend();
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    return {
+      state: audio.status.state,
+      prompt: document.querySelector('.hud-interaction-action')?.textContent,
+    };
+  });
+  assert.equal(suspended.state, 'suspended');
+  assert.equal(suspended.prompt, 'RESUME AUDIO');
+  await page.locator('#game').click({ position: { x: 42, y: 42 } });
   await page.waitForFunction(() => window.engine.get('audio').status.state === 'armed', null, {
     timeout: 10_000,
   });
@@ -161,7 +197,7 @@ try {
       particles: fx.getParticleCount(),
       decals: fx.getDecalCount(),
     };
-    window.engine.dispose();
+    window.__INTEGRATION__.dispose();
     window.engine.bus.emit('bullet:impact', {
       point: new window.THREE.Vector3(),
       normal: new window.THREE.Vector3(0, 1, 0),
@@ -180,6 +216,13 @@ try {
   assert.equal(disposed.hudRoots, 0);
   assert.equal(disposed.audioState, 'closed');
   assert.deepEqual(disposed.countsAfter, disposed.countsBefore);
+  await page.locator('#game').click({ position: { x: 20, y: 20 } });
+  await page.waitForTimeout(50);
+  const afterDisposedClick = await page.evaluate(() => ({
+    audioState: window.__INTEGRATION__.audio.status.state,
+    hudRoots: document.querySelectorAll('[data-hud-root]').length,
+  }));
+  assert.deepEqual(afterDisposedClick, { audioState: 'closed', hudRoots: 0 });
   await page.close();
 
   const mutationFailures = {};
@@ -197,6 +240,19 @@ try {
       || (name === 'hud' && mutationFailures[name]?.includes('hud registration missing')),
       `${name} omission did not fail the production registration assertion`,
     );
+    if (name === 'audio') {
+      await mutationPage.locator('#game').click({ position: { x: 20, y: 20 } });
+      await mutationPage.waitForTimeout(50);
+      const omittedAudio = await mutationPage.evaluate(() => ({
+        internalState: window.__INTEGRATION__.audio.status.state,
+        documentState: document.documentElement.dataset.audio,
+      }));
+      assert.deepEqual(
+        omittedAudio,
+        { internalState: 'unarmed', documentState: 'omitted' },
+        'omitted audio still installed gesture behavior',
+      );
+    }
     await mutationPage.close();
   }
 
@@ -205,8 +261,11 @@ try {
     passed: true,
     registered,
     preArm,
+    suspended,
     eventResult,
+    bfcache,
     disposed,
+    afterDisposedClick,
     mutationFailures,
     consoleErrors: errors,
   }, null, 2));

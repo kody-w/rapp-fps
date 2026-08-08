@@ -27,8 +27,13 @@ engine.input = {
   fire: false, aim: false, reload: false,
   pressed: (a: string) => edge.has(a),
 };
-addEventListener('keydown', (e) => { if (!held.has(e.code)) edge.add(e.code); held.add(e.code); });
-addEventListener('keyup', (e) => held.delete(e.code));
+const onKeyDown = (event: KeyboardEvent): void => {
+  if (!held.has(event.code)) edge.add(event.code);
+  held.add(event.code);
+};
+const onKeyUp = (event: KeyboardEvent): void => { held.delete(event.code); };
+addEventListener('keydown', onKeyDown);
+addEventListener('keyup', onKeyUp);
 
 const render = new RenderSystem();
 const fx = new CombatFX();
@@ -86,54 +91,111 @@ engine.present = () => {
 engine.start();
 
 // Web Audio may only start from a real user gesture. Keep the listeners until
-// arming actually succeeds; a suspended/interrupted context is retryable.
-hud.setInteraction({ action: 'ENABLE AUDIO', binding: 'CLICK' });
+// arming actually succeeds; reattach them if the context later becomes
+// suspended/interrupted. The whole composition is gated when audio is omitted
+// by the integration mutation, not only its engine registration.
+let audioArmListenersAttached = false;
 const removeAudioArmListeners = (): void => {
+  if (!audioArmListenersAttached) return;
   removeEventListener('pointerdown', armAudio);
   removeEventListener('keydown', armAudio);
+  audioArmListenersAttached = false;
+};
+const addAudioArmListeners = (): void => {
+  if (audioArmListenersAttached || !enabled('audio')) return;
+  addEventListener('pointerdown', armAudio);
+  addEventListener('keydown', armAudio);
+  audioArmListenersAttached = true;
 };
 const armAudio = (): void => {
+  if (!enabled('audio')) return;
   void audio.arm().then((armed) => {
     document.documentElement.dataset.audio = audio.status.state;
     if (armed) {
-      hud.setInteraction(null);
+      if (enabled('hud')) hud.setInteraction(null);
       removeAudioArmListeners();
     }
   });
 };
-addEventListener('pointerdown', armAudio);
-addEventListener('keydown', armAudio);
-audio.subscribeStatus((status) => {
-  document.documentElement.dataset.audio = status.state;
-  if (status.state === 'unavailable') {
-    hud.setInteraction({ action: 'AUDIO UNAVAILABLE', binding: '' });
-  }
-});
+
+let unsubscribeAudioStatus = (): void => {};
+if (enabled('audio')) {
+  if (enabled('hud')) hud.setInteraction({ action: 'ENABLE AUDIO', binding: 'CLICK' });
+  addAudioArmListeners();
+  unsubscribeAudioStatus = audio.subscribeStatus((status) => {
+    document.documentElement.dataset.audio = status.state;
+    if (status.state === 'armed') {
+      removeAudioArmListeners();
+      if (enabled('hud')) hud.setInteraction(null);
+      return;
+    }
+    if (
+      status.state === 'unarmed'
+      || status.state === 'suspended'
+      || status.state === 'interrupted'
+    ) {
+      addAudioArmListeners();
+      if (enabled('hud')) {
+        hud.setInteraction({
+          action: status.state === 'unarmed' ? 'ENABLE AUDIO' : 'RESUME AUDIO',
+          binding: 'CLICK',
+        });
+      }
+      return;
+    }
+    if (status.state === 'unavailable' || status.state === 'closed') {
+      removeAudioArmListeners();
+      if (enabled('hud')) hud.setInteraction({ action: 'AUDIO UNAVAILABLE', binding: '' });
+    }
+  });
+} else {
+  document.documentElement.dataset.audio = 'omitted';
+}
 
 // Clear edge-triggered input after every frame, once, in one place.
-const clearEdges = () => { edge.clear(); requestAnimationFrame(clearEdges); };
-requestAnimationFrame(clearEdges);
+let clearEdgesRaf = 0;
+const clearEdges = () => {
+  edge.clear();
+  clearEdgesRaf = requestAnimationFrame(clearEdges);
+};
+clearEdgesRaf = requestAnimationFrame(clearEdges);
 
 // A screenshot harness needs to know the first real frame has been presented,
 // not merely that the page loaded — otherwise it captures an empty buffer and
 // a critic reviews a black rectangle.
 let framesSeen = 0;
+let readyRaf = 0;
 const markReady = () => {
   if (++framesSeen >= 12) {
     (window as unknown as { __FRAME_READY__: boolean }).__FRAME_READY__ = true;
+    readyRaf = 0;
     return;
   }
-  requestAnimationFrame(markReady);
+  readyRaf = requestAnimationFrame(markReady);
 };
-requestAnimationFrame(markReady);
+readyRaf = requestAnimationFrame(markReady);
+
+let disposed = false;
+const disposeApp = (): void => {
+  if (disposed) return;
+  disposed = true;
+  removeAudioArmListeners();
+  unsubscribeAudioStatus();
+  removeEventListener('keydown', onKeyDown);
+  removeEventListener('keyup', onKeyUp);
+  if (clearEdgesRaf) cancelAnimationFrame(clearEdgesRaf);
+  if (readyRaf) cancelAnimationFrame(readyRaf);
+  engine.dispose();
+};
 
 Object.assign(window as unknown as Record<string, unknown>, {
   engine,
   THREE,
-  __INTEGRATION__: { fx, audio, hud },
+  __INTEGRATION__: { fx, audio, hud, dispose: disposeApp },
 });
 
-addEventListener('pagehide', () => {
-  removeAudioArmListeners();
-  engine.dispose();
-}, { once: true });
+addEventListener('pagehide', (event) => {
+  // A persisted pagehide enters BFCache. Disposing here returns a dead app on
+  // pageshow; the browser freezes/resumes the existing object graph for us.
+  if (!event.persisted) disposeApp();
+});
