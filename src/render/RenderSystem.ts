@@ -36,6 +36,7 @@ import {
   ChromaticAberrationEffect,
   EffectComposer,
   EffectPass,
+  FXAAEffect,
   NoiseEffect,
   RenderPass,
   SMAAEffect,
@@ -51,7 +52,8 @@ import type { EngineContext, System, UpdateContext } from '../core/contracts.js'
 import { generateSky, type SkyResult } from './ProceduralSky.js';
 
 type AoMode = 'full' | 'half' | 'off';
-type AaMode = 'ultra' | 'high' | 'medium' | 'low' | 'off';
+type SmaaMode = 'ultra' | 'high' | 'medium' | 'low';
+type AaMode = SmaaMode | 'fxaa' | 'msaa2' | 'msaa4' | 'msaa2-smaa' | 'off';
 type BloomMode = 'large' | 'medium' | 'small' | 'off';
 
 interface RenderConfig {
@@ -103,7 +105,25 @@ function readConfig(): RenderConfig {
     // default. #1
     ao: pick('ao', 'off', ['full', 'half', 'off'] as const),
     aoQuality: pick('aoq', 'High', ['High', 'Medium', 'Low'] as const),
-    aa: pick('aa', 'ultra', ['ultra', 'high', 'medium', 'low', 'off'] as const),
+    // #29's deterministic motion harness measured 4x render-target MSAA as
+    // the only tested alternative that materially lowered both thin-bar and
+    // specular edge instability without a meaningful sharpness loss. Keep the
+    // former SMAA path available as `aa=ultra` for the committed A/B evidence.
+    aa: pick(
+      'aa',
+      'msaa4',
+      [
+        'ultra',
+        'high',
+        'medium',
+        'low',
+        'fxaa',
+        'msaa2',
+        'msaa4',
+        'msaa2-smaa',
+        'off',
+      ] as const,
+    ),
     bloom: pick('bloom', 'medium', ['large', 'medium', 'small', 'off'] as const),
     lens: bool('lens', true),
   };
@@ -122,13 +142,17 @@ function bloomFor(mode: Exclude<BloomMode, 'off'>): { radius: number; levels: nu
   }
 }
 
-function presetFor(mode: Exclude<AaMode, 'off'>): SMAAPreset {
+function presetFor(mode: SmaaMode): SMAAPreset {
   switch (mode) {
     case 'ultra': return SMAAPreset.ULTRA;
     case 'high': return SMAAPreset.HIGH;
     case 'medium': return SMAAPreset.MEDIUM;
     case 'low': return SMAAPreset.LOW;
   }
+}
+
+function isSmaaMode(mode: AaMode): mode is SmaaMode {
+  return mode === 'ultra' || mode === 'high' || mode === 'medium' || mode === 'low';
 }
 
 export class RenderSystem implements System {
@@ -168,7 +192,10 @@ export class RenderSystem implements System {
       // bloom thresholds mean something and bright surfaces roll off instead
       // of clipping to paper white.
       frameBufferType: THREE.HalfFloatType,
-      multisampling: 0,
+      multisampling:
+        cfg.aa === 'msaa4' ? 4
+          : cfg.aa === 'msaa2' || cfg.aa === 'msaa2-smaa' ? 2
+            : 0,
     });
 
     this.composer.addPass(new RenderPass(scene, camera));
@@ -262,18 +289,24 @@ export class RenderSystem implements System {
     });
     effects.push(tone);
 
-    const smaa = cfg.aa !== 'off' ? new SMAAEffect({ preset: presetFor(cfg.aa) }) : null;
+    const aa = isSmaaMode(cfg.aa) || cfg.aa === 'msaa2-smaa'
+      ? new SMAAEffect({
+        preset: cfg.aa === 'msaa2-smaa' ? SMAAPreset.ULTRA : presetFor(cfg.aa),
+      })
+      : cfg.aa === 'fxaa'
+        ? new FXAAEffect()
+        : null;
 
-    // SMAA is a convolution effect and must stay in its own pass. An earlier
-    // debug knob exposed `?merge=1` and claimed the composer could reorder it;
-    // the actual runtime correctly refused with:
+    // Screen-space AA effects are convolution effects and must stay in their
+    // own pass. An earlier debug knob exposed `?merge=1` and claimed the
+    // composer could reorder SMAA; the actual runtime correctly refused with:
     //
     //   Error: Convolution effects cannot be merged (ChromaticAberrationEffect)
     //
     // A knob that only crashes is not instrumentation. Keep the valid ordering
     // explicit instead of presenting an unsupported experiment as a feature.
     this.composer.addPass(new EffectPass(camera, ...effects));
-    if (smaa) this.composer.addPass(new EffectPass(camera, smaa));
+    if (aa) this.composer.addPass(new EffectPass(camera, aa));
 
     ctx.bus.on('engine:resize', (p: unknown) => {
       const { width, height } = p as { width: number; height: number };

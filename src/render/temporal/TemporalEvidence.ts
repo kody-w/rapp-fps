@@ -829,7 +829,7 @@ function createPatchMaps(camera: THREE.PerspectiveCamera): PatchMap[] {
 }
 
 function project(camera: THREE.PerspectiveCamera, point: THREE.Vector3): THREE.Vector2 {
-  const projected = point.project(camera);
+  const projected = point.clone().project(camera);
   return new THREE.Vector2(
     (projected.x * 0.5 + 0.5) * EVIDENCE_WIDTH,
     (0.5 - projected.y * 0.5) * EVIDENCE_HEIGHT,

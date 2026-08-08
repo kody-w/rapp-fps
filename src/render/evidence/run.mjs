@@ -138,6 +138,7 @@ try {
   assert.ok(controlImages, 'negative-control images were not generated');
 
   const comparisons = compareModes(modeReports);
+  const decision = decideFromEvidence(comparisons);
   const report = {
     schemaVersion: 1,
     capturedAt: new Date().toISOString(),
@@ -159,6 +160,7 @@ try {
     gpuSamplesPerTrial,
     modes: modeReports,
     comparisons,
+    decision,
     consoleErrors: Object.fromEntries(
       Object.entries(modeReports).map(([mode, value]) => [
         mode,
@@ -466,6 +468,29 @@ function compareModes(modeReports) {
         allGatesPass: Object.values(evidenceGate).every(Boolean),
       };
     });
+}
+
+function decideFromEvidence(comparisons) {
+  const passing = comparisons
+    .filter((comparison) => comparison.allGatesPass)
+    .sort(
+      (left, right) =>
+        right.temporalFlickerImprovement - left.temporalFlickerImprovement,
+    );
+  const selected = passing[0];
+  return {
+    verdict: selected ? 'CHANGE' : 'KEEP',
+    selectedMode: selected?.candidate ?? 'ultra',
+    issueClosingCriterionMet: Boolean(selected),
+    reason: selected
+      ? `${selected.candidate} is the strongest candidate that passes temporal, `
+        + 'sharpness, ghost, and paired-p95 gates.'
+      : 'No candidate passes every predeclared evidence gate.',
+    taaStatus: 'BLOCKED',
+    taaReason:
+      'No motion-vector buffer or object-motion/disocclusion history-rejection contract exists.',
+    naiveHistoryStatus: 'NEGATIVE_CONTROL_ONLY',
+  };
 }
 
 async function writePng(path, dataUrl, expectedWidth, expectedHeight) {
