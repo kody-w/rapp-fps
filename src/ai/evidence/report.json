@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-08-08T01:44:15.668Z",
+  "capturedAt": "2026-08-08T02:06:15.900Z",
   "vitePort": 5341,
   "schemaVersion": 1,
   "passed": true,
@@ -744,9 +744,9 @@
           "data": {
             "label": "LOS-on",
             "position": {
-              "x": 12,
+              "x": 0,
               "y": 1.45,
-              "z": 20
+              "z": 9
             }
           }
         },
@@ -990,6 +990,21 @@
           "expected": true,
           "actual": true,
           "summary": "PASS memory-based cover can still produce a reposition intent: expected true; actual true"
+        },
+        {
+          "name": "tick-0 LOS history remains original after tick-250 target movement",
+          "passed": true,
+          "expected": {
+            "x": 0,
+            "y": 1.45,
+            "z": 9
+          },
+          "actual": {
+            "x": 0,
+            "y": 1.45,
+            "z": 9
+          },
+          "summary": "PASS tick-0 LOS history remains original after tick-250 target movement: expected {\"x\":0,\"y\":1.45,\"z\":9}; actual {\"x\":0,\"y\":1.45,\"z\":9}"
         }
       ],
       "debug": {
@@ -1008,6 +1023,11 @@
           "x": -0.042626566253602505,
           "y": 1.45,
           "z": 8.95510515847709
+        },
+        "historicalLosPosition": {
+          "x": 0,
+          "y": 1.45,
+          "z": 9
         },
         "memoryDistance": 0,
         "liveDistance": 16.34058
@@ -2942,6 +2962,196 @@
         "memoryDistance": 0.000031
       }
     },
+    "retainedBurstOwnership": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 0.625,
+      "finalState": "engage",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657,
+            "mutation": "scalar-owned-aim"
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-on",
+            "position": {
+              "x": 0,
+              "y": 1.45,
+              "z": 9
+            }
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 1,
+          "atSeconds": 0.008333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "visual-cue"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "engage",
+            "reason": "target-confirmed"
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "first burst intent is retained by the sink",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS first burst intent is retained by the sink: expected true; actual true"
+        },
+        {
+          "name": "later memory sampling changes the reusable source vector",
+          "passed": true,
+          "expected": "> 0.001m",
+          "actual": "0.096292m",
+          "summary": "PASS later memory sampling changes the reusable source vector: expected > 0.001m; actual 0.096292m"
+        },
+        {
+          "name": "ownership probe runs before the retained burst final shot",
+          "passed": true,
+          "expected": "< 0.837232s",
+          "actual": 0.625,
+          "summary": "PASS ownership probe runs before the retained burst final shot: expected < 0.837232s; actual 0.625"
+        },
+        {
+          "name": "retained burst intent remains byte-identical through memory updates",
+          "passed": true,
+          "expected": "e5aa5931",
+          "actual": "e5aa5931",
+          "summary": "PASS retained burst intent remains byte-identical through memory updates: expected e5aa5931; actual e5aa5931"
+        }
+      ],
+      "debug": {
+        "aliasedAimSource": false,
+        "capturedAtTick": 55,
+        "observedAtTick": 75,
+        "finalShotAtSeconds": 0.837232,
+        "observationAtSeconds": 0.625,
+        "memoryMovedMeters": 0.096292,
+        "beforeHash": "e5aa5931",
+        "afterHash": "e5aa5931",
+        "retainedBurst": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": -0.03885790188214741,
+            "y": 1.45,
+            "z": 9.01255613968242
+          },
+          "shotCount": 4,
+          "shotIntervalSeconds": 0.10963274944573641,
+          "firstShotAtSeconds": 0.5083333333333333,
+          "yawErrorRadians": 0.016203045301139352,
+          "pitchErrorRadians": 0.013653344388818371,
+          "burstId": 1,
+          "nextBurstNotBeforeSeconds": 1.3843723059569795
+        }
+      }
+    },
+    "stimulusValueOwnership": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 0,
+      "finalState": "patrol",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-on",
+            "position": {
+              "x": 0,
+              "y": 1.45,
+              "z": 9
+            }
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "historical tick-0 LOS position remains the original value",
+          "passed": true,
+          "expected": {
+            "x": 0,
+            "y": 1.45,
+            "z": 9
+          },
+          "actual": {
+            "x": 0,
+            "y": 1.45,
+            "z": 9
+          },
+          "summary": "PASS historical tick-0 LOS position remains the original value: expected {\"x\":0,\"y\":1.45,\"z\":9}; actual {\"x\":0,\"y\":1.45,\"z\":9}"
+        },
+        {
+          "name": "nested stimulus history remains byte-identical after source mutation",
+          "passed": true,
+          "expected": "49c42b4f",
+          "actual": "49c42b4f",
+          "summary": "PASS nested stimulus history remains byte-identical after source mutation: expected 49c42b4f; actual 49c42b4f"
+        }
+      ],
+      "debug": {
+        "originalPosition": {
+          "x": 0,
+          "y": 1.45,
+          "z": 9
+        },
+        "movedSourcePosition": {
+          "x": 12,
+          "y": 1.45,
+          "z": 20
+        },
+        "recordedPosition": {
+          "x": 0,
+          "y": 1.45,
+          "z": 9
+        },
+        "beforeHash": "49c42b4f",
+        "afterHash": "49c42b4f"
+      }
+    },
     "resolvedDamage": {
       "passed": true,
       "seed": 1371568657,
@@ -4592,8 +4802,8 @@
         "name": "50 enemies for 60 simulated seconds stay within CPU budget",
         "passed": true,
         "expected": "<= 0.75 ms per 120 Hz fixed step",
-        "actual": "0.002667 ms",
-        "summary": "PASS 50 enemies for 60 simulated seconds stay within CPU budget: expected <= 0.75 ms per 120 Hz fixed step; actual 0.002667 ms"
+        "actual": "0.002583 ms",
+        "summary": "PASS 50 enemies for 60 simulated seconds stay within CPU budget: expected <= 0.75 ms per 120 Hz fixed step; actual 0.002583 ms"
       },
       {
         "name": "benchmark executes every agent tick",
@@ -4638,8 +4848,8 @@
     ],
     "simulatedSeconds": 60,
     "enemies": 50,
-    "elapsedCpuMs": 19.2,
-    "cpuMsPerFixedStep": 0.002667,
+    "elapsedCpuMs": 18.6,
+    "cpuMsPerFixedStep": 0.002583,
     "budget": {
       "cpuMsPerFixedStep": 0.75,
       "shareOf120HzFrame": 0.09,
@@ -4950,6 +5160,101 @@
       "failureSummary": "FAIL agent owns zero dynamic fixed-step allocations: expected 0; actual 120",
       "setupAllocationsObserved": 59,
       "dynamicTickObjectAllocations": 120
+    },
+    {
+      "name": "retained burst aim alias",
+      "mutation": "sink retains the reusable last-known-position reference",
+      "passed": false,
+      "expectedFailureObserved": true,
+      "relevantAssertion": "retained burst intent remains byte-identical through memory updates",
+      "failureSummary": "FAIL retained burst intent remains byte-identical through memory updates: expected e5aa5931; actual 61220625",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657,
+            "mutation": "aliased-aim-reference"
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-on",
+            "position": {
+              "x": 0,
+              "y": 1.45,
+              "z": 9
+            }
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 1,
+          "atSeconds": 0.008333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "visual-cue"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "engage",
+            "reason": "target-confirmed"
+          }
+        }
+      ]
+    },
+    {
+      "name": "shallow nested stimulus copy",
+      "mutation": "trace recorder stores nested stimulus references without value snapshotting",
+      "passed": false,
+      "expectedFailureObserved": true,
+      "relevantAssertion": "nested stimulus history remains byte-identical after source mutation",
+      "failureSummary": "FAIL nested stimulus history remains byte-identical after source mutation: expected 49c42b4f; actual 7c54734b",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-on",
+            "position": {
+              "x": 12,
+              "y": 1.45,
+              "z": 20
+            }
+          }
+        }
+      ]
     }
   ],
   "allocationPolicy": {

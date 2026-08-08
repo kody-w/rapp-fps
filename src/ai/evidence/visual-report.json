@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-08-08T01:44:19.438Z",
+  "capturedAt": "2026-08-08T02:06:19.626Z",
   "url": "http://127.0.0.1:5341/harness.html",
   "vitePort": 5341,
   "viewport": "1920x1080",
@@ -14,60 +14,60 @@
     "gpuDisjointCount": 0,
     "gpuFrameMs": {
       "samples": 120,
-      "median": 1.527,
-      "p95": 1.751,
-      "worst": 1.812
+      "median": 1.54,
+      "p95": 1.983,
+      "worst": 2.078
     },
     "cpuFrameMs": {
       "samples": 121,
       "median": 0.3,
-      "p95": 1,
-      "worst": 1.1
+      "p95": 0.4,
+      "worst": 0.5
     },
     "rafIntervalMs": {
       "samples": 121,
       "median": 16.7,
-      "p95": 16.8,
+      "p95": 16.7,
       "worst": 16.8
     },
     "budgetFrameMs": {
       "samples": 120,
-      "median": 1.527,
-      "p95": 1.751,
-      "worst": 1.812
+      "median": 1.54,
+      "p95": 1.983,
+      "worst": 2.078
     },
-    "budgetFrameMsMedian": 1.527,
-    "budgetFrameMsP95": 1.751
+    "budgetFrameMsMedian": 1.54,
+    "budgetFrameMsP95": 1.983
   },
   "performance": {
     "frameBudgetMs": 16.7,
     "gpuFrameMs": {
       "samples": 120,
-      "median": 1.527,
-      "p95": 1.751,
-      "worst": 1.812
+      "median": 1.54,
+      "p95": 1.983,
+      "worst": 2.078
     },
     "cpuFrameMs": {
       "samples": 121,
       "median": 0.3,
-      "p95": 1,
-      "worst": 1.1
+      "p95": 0.4,
+      "worst": 0.5
     },
     "rafIntervalMs": {
       "samples": 121,
       "median": 16.7,
-      "p95": 16.8,
+      "p95": 16.7,
       "worst": 16.8
     },
     "budgetFrameMs": {
       "samples": 120,
-      "median": 1.527,
-      "p95": 1.751,
-      "worst": 1.812
+      "median": 1.54,
+      "p95": 1.983,
+      "worst": 2.078
     },
-    "budgetFrameMsMedian": 1.527,
-    "budgetFrameMsP95": 1.751,
-    "pairedP95Ms": 1.751,
+    "budgetFrameMsMedian": 1.54,
+    "budgetFrameMsP95": 1.983,
+    "pairedP95Ms": 1.983,
     "overBudget": false,
     "verdict": "PASS",
     "note": "budgetFrameMs is max(CPU, GPU) paired by the frame that issued the true EXT_disjoint_timer_query_webgl2 query."

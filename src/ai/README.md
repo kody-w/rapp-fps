@@ -17,7 +17,7 @@ cannot enter `engage`; line of sight must survive the configured reaction delay.
 - distance/FOV vision with `PerceptionRaycastPort.isOccluded`;
 - canonical `Footstep` compatibility (`position`, shared `SurfaceKind`, `loud`);
 - reaction delay plus seeded, decaying target memory that keeps identity paired with position;
-- scheduled burst, aim-error, suppression, and reposition intents without weapon imports,
+- scalar-owned burst, aim-error, suppression, and reposition intents without weapon imports,
   preserving final-shot-plus-cooldown deadlines across tactical transitions;
 - fixed-buffer cover scoring using visible or remembered target position plus exposure,
   finite path cost, and flank weights;
@@ -56,7 +56,8 @@ node src/ai/evidence/run.mjs
 
 The strict Vite server owns `127.0.0.1:5341`.
 
-- `evidence/report.json`: deterministic timelines; occluded-memory, unreachable-cover,
+- `evidence/report.json`: value-owned deterministic timelines; retained-intent and nested
+  stimulus ownership controls; occluded-memory, unreachable-cover,
   burst-deadline, memory-identity, target-reaction, and damage-priority regressions;
   fixed-frame 30/60/144 accumulator
   coverage; the 50-agent benchmark; allocation instrumentation; and mutation summaries.

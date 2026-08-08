@@ -572,7 +572,9 @@ export class SecurityAgent {
     this.ports.combat.aim(
       this.id,
       targetId,
-      aimPoint,
+      aimPoint.x,
+      aimPoint.y,
+      aimPoint.z,
       yawError,
       pitchError,
       this.timeSeconds,
@@ -580,7 +582,9 @@ export class SecurityAgent {
     this.ports.combat.burst(
       this.id,
       targetId,
-      aimPoint,
+      aimPoint.x,
+      aimPoint.y,
+      aimPoint.z,
       shotCount,
       shotInterval,
       firstShotAt,
@@ -728,7 +732,9 @@ export class SecurityAgent {
         this.ports.combat.suppress(
           this.id,
           targetId,
-          aimPoint,
+          aimPoint.x,
+          aimPoint.y,
+          aimPoint.z,
           this.config.suppressSeconds,
           this.timeSeconds,
         );
@@ -742,7 +748,9 @@ export class SecurityAgent {
         this.ports.combat.reposition(
           this.id,
           candidate.id,
-          candidate.position,
+          candidate.position.x,
+          candidate.position.y,
+          candidate.position.z,
           candidate.score,
           this.timeSeconds,
         );

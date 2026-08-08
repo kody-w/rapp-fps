@@ -127,12 +127,15 @@ export interface CoverCandidatePort {
 /**
  * Integration-neutral combat output. These calls request aim/fire behavior;
  * they do not import a weapon, resolve hits, or emit authoritative Damage.
+ * Positions are scalars so retained intents cannot alias agent scratch vectors.
  */
 export interface CombatIntentSink {
   aim(
     agentId: string,
     targetId: string,
-    aimPoint: Vec3Like,
+    aimX: number,
+    aimY: number,
+    aimZ: number,
     yawErrorRadians: number,
     pitchErrorRadians: number,
     atSeconds: number,
@@ -140,7 +143,9 @@ export interface CombatIntentSink {
   burst(
     agentId: string,
     targetId: string,
-    aimPoint: Vec3Like,
+    aimX: number,
+    aimY: number,
+    aimZ: number,
     shotCount: number,
     shotIntervalSeconds: number,
     firstShotAtSeconds: number,
@@ -152,14 +157,18 @@ export interface CombatIntentSink {
   suppress(
     agentId: string,
     targetId: string,
-    aimPoint: Vec3Like,
+    aimX: number,
+    aimY: number,
+    aimZ: number,
     durationSeconds: number,
     atSeconds: number,
   ): void;
   reposition(
     agentId: string,
     coverId: string,
-    destination: Vec3Like,
+    destinationX: number,
+    destinationY: number,
+    destinationZ: number,
     score: number,
     atSeconds: number,
   ): void;

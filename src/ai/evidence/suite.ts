@@ -8,9 +8,11 @@ import { distance, round } from '../math.js';
 import type {
   AgentDebugView,
   AgentStorageStats,
+  CombatIntentSink,
   FootstepPayload,
   SecurityAgentConfig,
   SecurityAgentPorts,
+  Vec3Like,
 } from '../types.js';
 import {
   NULL_COMBAT_INTENT_SINK,
@@ -59,6 +61,86 @@ class AllocatingSecurityAgentMutation extends SecurityAgent {
   }
 }
 
+class ShallowTraceRecorderMutation extends TraceRecorder {
+  protected override snapshotData(data: Record<string, unknown>): Record<string, unknown> {
+    return data;
+  }
+}
+
+class RetainedIntentSink implements CombatIntentSink {
+  firstBurst: Record<string, unknown> | null = null;
+
+  constructor(
+    private readonly aliasedAimSource: (() => Vec3Like) | null = null,
+  ) {}
+
+  aim(
+    _agentId: string,
+    _targetId: string,
+    _aimX: number,
+    _aimY: number,
+    _aimZ: number,
+    _yawErrorRadians: number,
+    _pitchErrorRadians: number,
+    _atSeconds: number,
+  ): void {}
+
+  burst(
+    agentId: string,
+    targetId: string,
+    aimX: number,
+    aimY: number,
+    aimZ: number,
+    shotCount: number,
+    shotIntervalSeconds: number,
+    firstShotAtSeconds: number,
+    yawErrorRadians: number,
+    pitchErrorRadians: number,
+    burstId: number,
+    nextBurstNotBeforeSeconds: number,
+  ): void {
+    if (this.firstBurst) return;
+    this.firstBurst = {
+      agentId,
+      targetId,
+      aimPoint: this.aliasedAimSource?.() ?? { x: aimX, y: aimY, z: aimZ },
+      shotCount,
+      shotIntervalSeconds,
+      firstShotAtSeconds,
+      yawErrorRadians,
+      pitchErrorRadians,
+      burstId,
+      nextBurstNotBeforeSeconds,
+    };
+  }
+
+  suppress(
+    _agentId: string,
+    _targetId: string,
+    _aimX: number,
+    _aimY: number,
+    _aimZ: number,
+    _durationSeconds: number,
+    _atSeconds: number,
+  ): void {}
+
+  reposition(
+    _agentId: string,
+    _coverId: string,
+    _destinationX: number,
+    _destinationY: number,
+    _destinationZ: number,
+    _score: number,
+    _atSeconds: number,
+  ): void {}
+
+  cease(
+    _agentId: string,
+    _reason: 'lost-target' | 'eliminated',
+    _atSeconds: number,
+  ): void {}
+}
+
 function valueText(value: unknown): string {
   if (typeof value === 'string') return value;
   return JSON.stringify(value);
@@ -84,8 +166,8 @@ function createContext(
   seed = DEFAULT_SEED,
   overrides: Partial<SecurityAgentConfig> = {},
   world = new ScenarioWorld(),
+  trace = new TraceRecorder(),
 ): ScenarioContext {
-  const trace = new TraceRecorder();
   const agent = new SecurityAgent(
     'security-01',
     seed,
@@ -347,6 +429,12 @@ function runOccludedTargetCoverMemory(): ScenarioResult {
   const memoryDistance = distance(context.world.lastCoverTarget, rememberedAtOcclusion);
   const liveDistance = distance(context.world.lastCoverTarget, context.world.targetPosition);
   const reposition = context.trace.events.find((event) => event.kind === 'reposition');
+  const historicalLos = context.trace.events.find(
+    (event) => event.kind === 'stimulus' && event.data.label === 'LOS-on',
+  );
+  const historicalPosition = historicalLos?.data.position as
+    | { x: number; y: number; z: number }
+    | undefined;
   const assertions = [
     check('cover is evaluated during the occlusion grace window', context.world.coverQueryCount > 0, '> 0', context.world.coverQueryCount),
     check(
@@ -362,12 +450,22 @@ function runOccludedTargetCoverMemory(): ScenarioResult {
       `${round(liveDistance, 6)}m`,
     ),
     check('memory-based cover can still produce a reposition intent', Boolean(reposition), true, Boolean(reposition)),
+    check(
+      'tick-0 LOS history remains original after tick-250 target movement',
+      Boolean(
+        historicalPosition
+        && distance(historicalPosition, { x: 0, y: 1.45, z: 9 }) <= 1e-9
+      ),
+      { x: 0, y: 1.45, z: 9 },
+      historicalPosition ?? null,
+    ),
   ];
   return finishScenario(context, durationTicks / FIXED_HZ, assertions, {
     occlusionTick,
     rememberedAtOcclusion,
     movedLiveTarget: { ...context.world.targetPosition },
     coverQueryTarget: { ...context.world.lastCoverTarget },
+    historicalLosPosition: historicalPosition ?? null,
     memoryDistance: round(memoryDistance, 6),
     liveDistance: round(liveDistance, 6),
   });
@@ -671,6 +769,122 @@ function runOccludedRetargetMemoryIdentity(): ScenarioResult {
     suppressionTargetId: suppression?.data.targetId ?? null,
     suppressionPoint: suppressionPoint ?? null,
     memoryDistance: round(memoryDistance, 6),
+  });
+}
+
+function runRetainedBurstOwnership(
+  aliasedAimSource = false,
+): ScenarioResult {
+  const world = new ScenarioWorld();
+  const trace = new TraceRecorder();
+  let agent!: SecurityAgent;
+  const sink = new RetainedIntentSink(
+    aliasedAimSource
+      ? () => agent.getDebugView().lastKnownPosition
+      : null,
+  );
+  agent = new SecurityAgent(
+    'security-01',
+    DEFAULT_SEED,
+    {
+      perception: world,
+      navigation: world,
+      cover: world,
+      combat: sink,
+      observer: trace,
+    },
+  );
+  agent.setPose({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 1 });
+  agent.setHome({ x: 0, y: 0, z: -1.5 });
+  trace.stimulus(0, 'scenario-start', {
+    state: 'patrol',
+    seed: DEFAULT_SEED,
+    mutation: aliasedAimSource ? 'aliased-aim-reference' : 'scalar-owned-aim',
+  });
+  const context = { agent, world, trace };
+  world.targetPresent = true;
+  world.occluded = false;
+  trace.stimulus(0, 'LOS-on', { position: world.targetPosition });
+
+  let guardTicks = 0;
+  while (!sink.firstBurst && guardTicks < 120) {
+    agent.fixedUpdate(AI_FIXED_STEP_SECONDS);
+    guardTicks++;
+  }
+  const beforeBytes = JSON.stringify(sink.firstBurst);
+  const memoryAtBurst = { ...agent.getDebugView().lastKnownPosition };
+  while (agent.getDebugView().tick < 75) {
+    agent.fixedUpdate(AI_FIXED_STEP_SECONDS);
+  }
+  const afterBytes = JSON.stringify(sink.firstBurst);
+  const memoryAfterUpdate = { ...agent.getDebugView().lastKnownPosition };
+  const firstShotAt = Number(sink.firstBurst?.firstShotAtSeconds);
+  const shotCount = Number(sink.firstBurst?.shotCount);
+  const shotInterval = Number(sink.firstBurst?.shotIntervalSeconds);
+  const finalShotAt = firstShotAt + (shotCount - 1) * shotInterval;
+  const observationAt = agent.getDebugView().timeSeconds;
+  const memoryMoved = distance(memoryAtBurst, memoryAfterUpdate);
+  const assertions = [
+    check('first burst intent is retained by the sink', sink.firstBurst !== null, true, sink.firstBurst !== null),
+    check('later memory sampling changes the reusable source vector', memoryMoved > 0.001, '> 0.001m', `${round(memoryMoved, 6)}m`),
+    check('ownership probe runs before the retained burst final shot', observationAt < finalShotAt, `< ${round(finalShotAt, 6)}s`, round(observationAt, 6)),
+    check(
+      'retained burst intent remains byte-identical through memory updates',
+      beforeBytes === afterBytes,
+      fnv1a(beforeBytes),
+      fnv1a(afterBytes),
+    ),
+  ];
+  return finishScenario(context, observationAt, assertions, {
+    aliasedAimSource,
+    capturedAtTick: guardTicks,
+    observedAtTick: agent.getDebugView().tick,
+    finalShotAtSeconds: round(finalShotAt, 6),
+    observationAtSeconds: round(observationAt, 6),
+    memoryMovedMeters: round(memoryMoved, 6),
+    beforeHash: fnv1a(beforeBytes),
+    afterHash: fnv1a(afterBytes),
+    retainedBurst: sink.firstBurst,
+  });
+}
+
+function runStimulusValueOwnership(
+  trace = new TraceRecorder(),
+): ScenarioResult {
+  const world = new ScenarioWorld();
+  const context = createContext(DEFAULT_SEED, {}, world, trace);
+  const originalPosition = { ...world.targetPosition };
+  trace.stimulus(0, 'LOS-on', { position: world.targetPosition });
+  const historical = trace.events.find(
+    (event) => event.kind === 'stimulus' && event.data.label === 'LOS-on',
+  );
+  const beforeBytes = JSON.stringify(historical);
+  world.targetPosition.x = 12;
+  world.targetPosition.z = 20;
+  const afterBytes = JSON.stringify(historical);
+  const recordedPosition = historical?.data.position as
+    | { x: number; y: number; z: number }
+    | undefined;
+  const assertions = [
+    check(
+      'historical tick-0 LOS position remains the original value',
+      Boolean(recordedPosition && distance(recordedPosition, originalPosition) <= 1e-9),
+      originalPosition,
+      recordedPosition ?? null,
+    ),
+    check(
+      'nested stimulus history remains byte-identical after source mutation',
+      beforeBytes === afterBytes,
+      fnv1a(beforeBytes),
+      fnv1a(afterBytes),
+    ),
+  ];
+  return finishScenario(context, 0, assertions, {
+    originalPosition,
+    movedSourcePosition: { ...world.targetPosition },
+    recordedPosition: recordedPosition ?? null,
+    beforeHash: fnv1a(beforeBytes),
+    afterHash: fnv1a(afterBytes),
   });
 }
 
@@ -1301,6 +1515,8 @@ export function runEvidenceSuite(): Record<string, unknown> {
   const burstCooldownDeadline = runBurstCooldownDeadline();
   const targetIdentityReaction = runTargetIdentityReaction();
   const occludedRetargetMemoryIdentity = runOccludedRetargetMemoryIdentity();
+  const retainedBurstOwnership = runRetainedBurstOwnership();
+  const stimulusValueOwnership = runStimulusValueOwnership();
   const seedDeterminism = runSeedDeterminism();
   const batchingDeterminism = runBatchingDeterminism();
   const benchmark = runBenchmark();
@@ -1314,6 +1530,10 @@ export function runEvidenceSuite(): Record<string, unknown> {
     DEFAULT_SECURITY_AGENT_CONFIG.reactionDelaySeconds,
   );
   const hearingMutation = runQuietFootstep({ hearingThreshold: 0 });
+  const retainedBurstAliasMutation = runRetainedBurstOwnership(true);
+  const shallowStimulusMutation = runStimulusValueOwnership(
+    new ShallowTraceRecorderMutation(),
+  );
   const negativeControls = [
     negativeControl(
       'reaction delay removal',
@@ -1329,6 +1549,18 @@ export function runEvidenceSuite(): Record<string, unknown> {
     ),
     batchingDeterminism.mutationControl,
     allocationMutation,
+    negativeControl(
+      'retained burst aim alias',
+      'sink retains the reusable last-known-position reference',
+      retainedBurstAliasMutation,
+      'retained burst intent remains byte-identical through memory updates',
+    ),
+    negativeControl(
+      'shallow nested stimulus copy',
+      'trace recorder stores nested stimulus references without value snapshotting',
+      shallowStimulusMutation,
+      'nested stimulus history remains byte-identical after source mutation',
+    ),
   ];
   const controlsPassed = negativeControls.every(
     (control) => control.expectedFailureObserved === true,
@@ -1346,6 +1578,8 @@ export function runEvidenceSuite(): Record<string, unknown> {
     burstCooldownDeadline,
     targetIdentityReaction,
     occludedRetargetMemoryIdentity,
+    retainedBurstOwnership,
+    stimulusValueOwnership,
     resolvedDamage,
     lethalDamagePriority,
     searchDamageRefresh,

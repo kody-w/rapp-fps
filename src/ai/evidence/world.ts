@@ -25,12 +25,24 @@ export interface TraceEvent {
   data: Record<string, unknown>;
 }
 
-function vector(value: Vec3Like): { x: number; y: number; z: number } {
+function vector(x: number, y: number, z: number): { x: number; y: number; z: number } {
   return {
-    x: round(value.x),
-    y: round(value.y),
-    z: round(value.z),
+    x: round(x),
+    y: round(y),
+    z: round(z),
   };
+}
+
+function snapshotValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map((item) => snapshotValue(item));
+  if (value !== null && typeof value === 'object') {
+    const snapshot: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+      snapshot[key] = snapshotValue(nested);
+    }
+    return snapshot;
+  }
+  return value;
 }
 
 export class TraceRecorder implements AiObserver, CombatIntentSink {
@@ -62,7 +74,9 @@ export class TraceRecorder implements AiObserver, CombatIntentSink {
   aim(
     agentId: string,
     targetId: string,
-    aimPoint: Vec3Like,
+    aimX: number,
+    aimY: number,
+    aimZ: number,
     yawErrorRadians: number,
     pitchErrorRadians: number,
     atSeconds: number,
@@ -70,7 +84,7 @@ export class TraceRecorder implements AiObserver, CombatIntentSink {
     this.record(Math.round(atSeconds * 120), atSeconds, 'aim', {
       agentId,
       targetId,
-      aimPoint: vector(aimPoint),
+      aimPoint: vector(aimX, aimY, aimZ),
       yawErrorRadians: round(yawErrorRadians, 6),
       pitchErrorRadians: round(pitchErrorRadians, 6),
     });
@@ -79,7 +93,9 @@ export class TraceRecorder implements AiObserver, CombatIntentSink {
   burst(
     agentId: string,
     targetId: string,
-    aimPoint: Vec3Like,
+    aimX: number,
+    aimY: number,
+    aimZ: number,
     shotCount: number,
     shotIntervalSeconds: number,
     firstShotAtSeconds: number,
@@ -94,7 +110,7 @@ export class TraceRecorder implements AiObserver, CombatIntentSink {
     this.record(Math.round(atSeconds * 120), atSeconds, 'burst', {
       agentId,
       targetId,
-      aimPoint: vector(aimPoint),
+      aimPoint: vector(aimX, aimY, aimZ),
       shotCount,
       shotIntervalSeconds: round(shotIntervalSeconds, 6),
       firstShotAtSeconds: round(firstShotAtSeconds, 6),
@@ -110,14 +126,16 @@ export class TraceRecorder implements AiObserver, CombatIntentSink {
   suppress(
     agentId: string,
     targetId: string,
-    aimPoint: Vec3Like,
+    aimX: number,
+    aimY: number,
+    aimZ: number,
     durationSeconds: number,
     atSeconds: number,
   ): void {
     this.record(Math.round(atSeconds * 120), atSeconds, 'suppress', {
       agentId,
       targetId,
-      aimPoint: vector(aimPoint),
+      aimPoint: vector(aimX, aimY, aimZ),
       durationSeconds: round(durationSeconds),
     });
   }
@@ -125,14 +143,16 @@ export class TraceRecorder implements AiObserver, CombatIntentSink {
   reposition(
     agentId: string,
     coverId: string,
-    destination: Vec3Like,
+    destinationX: number,
+    destinationY: number,
+    destinationZ: number,
     score: number,
     atSeconds: number,
   ): void {
     this.record(Math.round(atSeconds * 120), atSeconds, 'reposition', {
       agentId,
       coverId,
-      destination: vector(destination),
+      destination: vector(destinationX, destinationY, destinationZ),
       score: round(score, 6),
     });
   }
@@ -146,6 +166,10 @@ export class TraceRecorder implements AiObserver, CombatIntentSink {
       agentId,
       reason,
     });
+  }
+
+  protected snapshotData(data: Record<string, unknown>): Record<string, unknown> {
+    return snapshotValue(data) as Record<string, unknown>;
   }
 
   private record(
@@ -162,7 +186,7 @@ export class TraceRecorder implements AiObserver, CombatIntentSink {
       tick,
       atSeconds: round(atSeconds, 6),
       kind,
-      data,
+      data: this.snapshotData(data),
     });
   }
 }
