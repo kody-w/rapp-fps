@@ -342,14 +342,20 @@ export class RenderSystem implements System {
     try {
       this.composer.render();
     } finally {
-      // Quaternion writes synchronize Euler angles into their canonical range.
-      // Restore both representations so an unbounded Euler controller (yaw=4,
-      // for example) does not jump to the equivalent -2.283... after rendering.
+      // Public quaternion/Euler setters synchronize each other. Restoring
+      // either one last necessarily perturbs the other: quaternion-last
+      // canonicalizes unbounded Euler yaw, while Euler-last can round-trip and
+      // alter a quaternion-authored pose near a singularity. Restore the exact
+      // quaternion through its public setter, then restore Euler's stored
+      // scalar representation without firing its onChange callback.
       this.camera.quaternion.copy(this.authoritativeCamera);
-      // Euler last: copying the quaternion synchronizes/canonicalizes Euler.
-      // Copying the original Euler afterward reconstructs the same quaternion
-      // while preserving the controller's unbounded angle representation.
-      this.camera.rotation.copy(this.authoritativeEuler);
+      const rotation = this.camera.rotation as THREE.Euler & {
+        _x: number; _y: number; _z: number; _order: THREE.EulerOrder;
+      };
+      rotation._x = this.authoritativeEuler.x;
+      rotation._y = this.authoritativeEuler.y;
+      rotation._z = this.authoritativeEuler.z;
+      rotation._order = this.authoritativeEuler.order;
       this.camera.updateMatrixWorld(true);
     }
   }

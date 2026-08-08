@@ -151,6 +151,44 @@ try {
   );
   await throwPage.close();
 
+  const quaternionPage = await open();
+  const quaternionAuthored = await quaternionPage.evaluate(() => {
+    const engine = window.engine;
+    const render = engine.get('render');
+    engine.stop();
+    const camera = engine.camera;
+    // Author through quaternion near an Euler singularity. Restoring Euler
+    // through its public setter changed this pose by ~1.2e-4 radians.
+    const authored = new window.THREE.Quaternion().setFromEuler(
+      new window.THREE.Euler(Math.PI / 2 - 0.0004, 1, 0.3, 'XYZ'),
+    );
+    camera.quaternion.copy(authored);
+    camera.updateMatrixWorld(true);
+    const before = camera.quaternion.toArray();
+    const beforeEuler = [camera.rotation.x, camera.rotation.y, camera.rotation.z];
+    engine.bus.emit('camera:shake', { amplitude: 0.02, duration: 1, frequency: 18 });
+    render.update(
+      { dt: 1 / 60, elapsed: performance.now() / 1000, frame: 1, alpha: 0 },
+      engine.context,
+    );
+    render.render();
+    return {
+      before,
+      beforeEuler,
+      after: camera.quaternion.toArray(),
+      afterEuler: [camera.rotation.x, camera.rotation.y, camera.rotation.z],
+    };
+  });
+  assert(
+    distance(quaternionAuthored.after, quaternionAuthored.before) <= epsilon,
+    'quaternion-authored camera drifted through shake render',
+  );
+  assert(
+    distance(quaternionAuthored.afterEuler, quaternionAuthored.beforeEuler) <= epsilon,
+    'quaternion-authored camera Euler representation changed',
+  );
+  await quaternionPage.close();
+
   // Negative control: the previous additive algorithm necessarily drifts.
   let oldRotation = [0, 0, 0];
   let amplitude = 0;
@@ -182,6 +220,14 @@ try {
     finalEulerDrift: distance(realFrames.afterEuler, realFrames.authoritativeEuler),
     throwDrift: distance(throwResult.after, throwResult.before),
     throwEulerDrift: distance(throwResult.afterEuler, throwResult.beforeEuler),
+    quaternionAuthoredDrift: distance(
+      quaternionAuthored.after,
+      quaternionAuthored.before,
+    ),
+    quaternionAuthoredEulerDrift: distance(
+      quaternionAuthored.afterEuler,
+      quaternionAuthored.beforeEuler,
+    ),
     oldAdditiveDriftRadians: Math.hypot(...oldRotation),
   }, null, 2));
 } finally {
