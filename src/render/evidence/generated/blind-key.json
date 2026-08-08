@@ -1,6 +1,10 @@
 {
   "warning": "Keep this file from the blind critic until their comparison is complete.",
   "mapping": {
-    "ultra": "mode-a"
+    "fxaa": "mode-a",
+    "msaa2": "mode-b",
+    "msaa4": "mode-c",
+    "msaa2-smaa": "mode-d",
+    "ultra": "mode-e"
   }
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-08T05:23:38.014Z",
+  "capturedAt": "2026-08-08T06:08:19.382Z",
   "issue": "kody-w/rapp-fps#29",
   "viewport": "1920x1080",
   "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
@@ -10,20 +10,104 @@
       "contactSheet": "blind/mode-a-contact.png",
       "roiSheet": "blind/mode-a-rois.png",
       "summary": {
-        "staticCoverageNoiseP95": 0.26528,
-        "staticEdgeEnergy": 5.130783,
-        "worstMotionCoverageNoiseP95": 12.348026,
-        "worstMotionSequence": "lateral",
-        "hardStopGhostTrailP95": 0.248986,
-        "revealGhostTrailP95": 0.183021,
-        "motionNoiseToJitterRatio": 1.243141
+        "staticCoverageNoiseP95": 0.441065,
+        "staticEdgeEnergy": 16.620738,
+        "worstMotionCoverageNoiseP95": 14.080609,
+        "worstMotionSequence": "fast-yaw",
+        "hardStopGhostTrailP95": 0.399829,
+        "revealGhostTrailP95": 0.526117,
+        "motionNoiseToJitterRatio": null
       },
       "performance": {
-        "gpuMedianOfMediansMs": 7.879,
-        "gpuWorstP95Ms": 11.076,
-        "pairedWorstP95Ms": 11.076,
-        "p95HeadroomMs": 5.624,
+        "gpuMedianOfMediansMs": 7.945,
+        "gpuWorstP95Ms": 16.57,
+        "pairedWorstP95Ms": 16.57,
+        "p95HeadroomMs": 0.13,
         "budgetVerdict": "PASS",
+        "requirement": "3 hardware GPU trials at 1920x1080; worst paired p95 <= 16.7ms"
+      }
+    },
+    "mode-b": {
+      "contactSheet": "blind/mode-b-contact.png",
+      "roiSheet": "blind/mode-b-rois.png",
+      "summary": {
+        "staticCoverageNoiseP95": 0.429355,
+        "staticEdgeEnergy": 16.710182,
+        "worstMotionCoverageNoiseP95": 14.205398,
+        "worstMotionSequence": "fast-yaw",
+        "hardStopGhostTrailP95": 0.388324,
+        "revealGhostTrailP95": 0.505294,
+        "motionNoiseToJitterRatio": null
+      },
+      "performance": {
+        "gpuMedianOfMediansMs": 9.772,
+        "gpuWorstP95Ms": 14.241,
+        "pairedWorstP95Ms": 14.241,
+        "p95HeadroomMs": 2.459,
+        "budgetVerdict": "PASS",
+        "requirement": "3 hardware GPU trials at 1920x1080; worst paired p95 <= 16.7ms"
+      }
+    },
+    "mode-c": {
+      "contactSheet": "blind/mode-c-contact.png",
+      "roiSheet": "blind/mode-c-rois.png",
+      "summary": {
+        "staticCoverageNoiseP95": 0.43449,
+        "staticEdgeEnergy": 16.634787,
+        "worstMotionCoverageNoiseP95": 12.035255,
+        "worstMotionSequence": "fast-yaw",
+        "hardStopGhostTrailP95": 0.390489,
+        "revealGhostTrailP95": 0.516045,
+        "motionNoiseToJitterRatio": null
+      },
+      "performance": {
+        "gpuMedianOfMediansMs": 11.931,
+        "gpuWorstP95Ms": 13.367,
+        "pairedWorstP95Ms": 13.367,
+        "p95HeadroomMs": 3.333,
+        "budgetVerdict": "PASS",
+        "requirement": "3 hardware GPU trials at 1920x1080; worst paired p95 <= 16.7ms"
+      }
+    },
+    "mode-d": {
+      "contactSheet": "blind/mode-d-contact.png",
+      "roiSheet": "blind/mode-d-rois.png",
+      "summary": {
+        "staticCoverageNoiseP95": 0.470251,
+        "staticEdgeEnergy": 16.648259,
+        "worstMotionCoverageNoiseP95": 14.155911,
+        "worstMotionSequence": "fast-yaw",
+        "hardStopGhostTrailP95": 0.418837,
+        "revealGhostTrailP95": 0.551683,
+        "motionNoiseToJitterRatio": null
+      },
+      "performance": {
+        "gpuMedianOfMediansMs": 11.077,
+        "gpuWorstP95Ms": 13.606,
+        "pairedWorstP95Ms": 13.606,
+        "p95HeadroomMs": 3.094,
+        "budgetVerdict": "PASS",
+        "requirement": "3 hardware GPU trials at 1920x1080; worst paired p95 <= 16.7ms"
+      }
+    },
+    "mode-e": {
+      "contactSheet": "blind/mode-e-contact.png",
+      "roiSheet": "blind/mode-e-rois.png",
+      "summary": {
+        "staticCoverageNoiseP95": 0.445425,
+        "staticEdgeEnergy": 16.707564,
+        "worstMotionCoverageNoiseP95": 14.240875,
+        "worstMotionSequence": "fast-yaw",
+        "hardStopGhostTrailP95": 0.399453,
+        "revealGhostTrailP95": 0.528119,
+        "motionNoiseToJitterRatio": 0.589708
+      },
+      "performance": {
+        "gpuMedianOfMediansMs": 8.575,
+        "gpuWorstP95Ms": 17.231,
+        "pairedWorstP95Ms": 17.231,
+        "p95HeadroomMs": -0.531,
+        "budgetVerdict": "FAIL",
         "requirement": "3 hardware GPU trials at 1920x1080; worst paired p95 <= 16.7ms"
       }
     }
