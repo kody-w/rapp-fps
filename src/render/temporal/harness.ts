@@ -2,9 +2,8 @@ import type { ProfilerSnapshot } from '../../core/profiler.js';
 import { Engine } from '../../core/engine.js';
 import { TestLevel } from '../../level/TestLevel.js';
 import { RenderSystem } from '../RenderSystem.js';
+import type { RenderDiagnostics } from '../RenderPolicy.js';
 import {
-  EVIDENCE_HEIGHT,
-  EVIDENCE_WIDTH,
   SEQUENCES,
   TemporalCameraSystem,
   TemporalEvidenceCapture,
@@ -23,6 +22,7 @@ interface TemporalHarnessApi {
 declare global {
   interface Window {
     __TEMPORAL_EVIDENCE__: TemporalHarnessApi;
+    __RENDER_DIAGNOSTICS__: RenderDiagnostics;
     engine: Engine;
   }
 }
@@ -40,10 +40,6 @@ if (!SEQUENCES.includes(sequenceValue as SequenceName)) {
 }
 
 const engine = new Engine(canvas);
-engine.renderer.setPixelRatio(1);
-engine.renderer.setSize(EVIDENCE_WIDTH, EVIDENCE_HEIGHT, false);
-engine.camera.aspect = EVIDENCE_WIDTH / EVIDENCE_HEIGHT;
-engine.camera.updateProjectionMatrix();
 engine.input = {
   move: { x: 0, y: 0 },
   look: { x: 0, y: 0 },

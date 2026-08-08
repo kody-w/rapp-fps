@@ -50,10 +50,20 @@ import {
 import { N8AOPostPass } from 'n8ao';
 import type { EngineContext, System, UpdateContext } from '../core/contracts.js';
 import { generateSky, type SkyResult } from './ProceduralSky.js';
+import {
+  parseAaMode,
+  parseDprMode,
+  probeRgba16fSamples,
+  resolveAaMode,
+  resolveDpr,
+  updateDrawingBufferDiagnostics,
+  type AaMode,
+  type DprMode,
+  type RenderDiagnostics,
+} from './RenderPolicy.js';
 
 type AoMode = 'full' | 'half' | 'off';
-type SmaaMode = 'ultra' | 'high' | 'medium' | 'low';
-type AaMode = SmaaMode | 'fxaa' | 'msaa2' | 'msaa4' | 'msaa2-smaa' | 'off';
+type SmaaMode = Extract<AaMode, 'ultra' | 'high' | 'medium' | 'low'>;
 type BloomMode = 'large' | 'medium' | 'small' | 'off';
 
 interface RenderConfig {
@@ -64,6 +74,7 @@ interface RenderConfig {
   ao: AoMode;
   aoQuality: 'High' | 'Medium' | 'Low';
   aa: AaMode;
+  dpr: DprMode;
   bloom: BloomMode;
   /** Chromatic aberration + vignette + grain, together — the lens character. */
   lens: boolean;
@@ -105,25 +116,11 @@ function readConfig(): RenderConfig {
     // default. #1
     ao: pick('ao', 'off', ['full', 'half', 'off'] as const),
     aoQuality: pick('aoq', 'High', ['High', 'Medium', 'Low'] as const),
-    // #29's deterministic motion harness measured 4x render-target MSAA as
-    // the only tested alternative that materially lowered both thin-bar and
-    // specular edge instability without a meaningful sharpness loss. Keep the
-    // former SMAA path available as `aa=ultra` for the committed A/B evidence.
-    aa: pick(
-      'aa',
-      'msaa4',
-      [
-        'ultra',
-        'high',
-        'medium',
-        'low',
-        'fxaa',
-        'msaa2',
-        'msaa4',
-        'msaa2-smaa',
-        'off',
-      ] as const,
-    ),
+    // 4x RGBA16F MSAA passes at a 1080p drawing buffer but exceeds budget on
+    // the reviewed Retina profile. Keep SMAA as the safe global default while
+    // the explicit MSAA modes remain available to the evidence matrix.
+    aa: parseAaMode(q, 'ultra'),
+    dpr: parseDprMode(q),
     bloom: pick('bloom', 'medium', ['large', 'medium', 'small', 'off'] as const),
     lens: bool('lens', true),
   };
@@ -164,6 +161,9 @@ export class RenderSystem implements System {
   private ca?: ChromaticAberrationEffect;
   private sky?: SkyResult;
   private camera!: THREE.PerspectiveCamera;
+  private renderer!: THREE.WebGLRenderer;
+  private requestedDpr: DprMode = 'auto';
+  private diagnostics?: RenderDiagnostics;
   private readonly authoritativeCamera = new THREE.Quaternion();
   private readonly authoritativeEuler = new THREE.Euler();
   private readonly shakeQuaternion = new THREE.Quaternion();
@@ -184,19 +184,53 @@ export class RenderSystem implements System {
 
   async init(ctx: EngineContext): Promise<void> {
     const { renderer, scene, camera } = ctx;
+    this.renderer = renderer;
     this.camera = camera;
     const cfg = readConfig();
+    this.requestedDpr = cfg.dpr;
+    const query = new URLSearchParams(location.search);
+    const sampleCapability = probeRgba16fSamples(renderer, query);
+    const aa = resolveAaMode(cfg.aa, sampleCapability.effective);
+    const effectiveDpr = this.applyDpr(
+      window.innerWidth,
+      window.innerHeight,
+    );
 
     this.composer = new EffectComposer(renderer, {
       // Half-float keeps the HDR range intact all the way to tone mapping, so
       // bloom thresholds mean something and bright surfaces roll off instead
       // of clipping to paper white.
       frameBufferType: THREE.HalfFloatType,
-      multisampling:
-        cfg.aa === 'msaa4' ? 4
-          : cfg.aa === 'msaa2' || cfg.aa === 'msaa2-smaa' ? 2
-            : 0,
+      multisampling: aa.multisampling,
     });
+    this.diagnostics = {
+      requestedAa: cfg.aa,
+      effectiveAa: aa.effective,
+      requestedDpr: cfg.dpr,
+      deviceDpr: window.devicePixelRatio,
+      effectiveDpr,
+      rgba16fSupportedSamples: sampleCapability.actual,
+      rgba16fEffectiveSamples: sampleCapability.effective,
+      forcedSampleCapability: sampleCapability.forced,
+      aaFallbackReason: aa.fallbackReason,
+      composerMultisampling: this.composer.multisampling,
+      frameBufferType: 'RGBA16F',
+      cssWidth: window.innerWidth,
+      cssHeight: window.innerHeight,
+      drawingBufferWidth: 0,
+      drawingBufferHeight: 0,
+      drawingBufferPixels: 0,
+    };
+    updateDrawingBufferDiagnostics(
+      this.diagnostics,
+      renderer,
+      window.innerWidth,
+      window.innerHeight,
+      effectiveDpr,
+    );
+    (window as unknown as {
+      __RENDER_DIAGNOSTICS__: RenderDiagnostics;
+    }).__RENDER_DIAGNOSTICS__ = this.diagnostics;
 
     this.composer.addPass(new RenderPass(scene, camera));
 
@@ -289,11 +323,14 @@ export class RenderSystem implements System {
     });
     effects.push(tone);
 
-    const aa = isSmaaMode(cfg.aa) || cfg.aa === 'msaa2-smaa'
+    const aaEffect = isSmaaMode(aa.effective) || aa.effective === 'msaa2-smaa'
       ? new SMAAEffect({
-        preset: cfg.aa === 'msaa2-smaa' ? SMAAPreset.ULTRA : presetFor(cfg.aa),
+        preset:
+          aa.effective === 'msaa2-smaa'
+            ? SMAAPreset.ULTRA
+            : presetFor(aa.effective),
       })
-      : cfg.aa === 'fxaa'
+      : aa.effective === 'fxaa'
         ? new FXAAEffect()
         : null;
 
@@ -306,7 +343,7 @@ export class RenderSystem implements System {
     // A knob that only crashes is not instrumentation. Keep the valid ordering
     // explicit instead of presenting an unsupported experiment as a feature.
     this.composer.addPass(new EffectPass(camera, ...effects));
-    if (aa) this.composer.addPass(new EffectPass(camera, aa));
+    if (aaEffect) this.composer.addPass(new EffectPass(camera, aaEffect));
 
     ctx.bus.on('engine:resize', (p: unknown) => {
       const { width, height } = p as { width: number; height: number };
@@ -314,7 +351,18 @@ export class RenderSystem implements System {
       // every pass. Calling `ao.setSize` again with CSS pixels overwrote that:
       // on DPR 2, full-res became half-res and configured half-res became
       // quarter-width after the first resize.
+      const resizedDpr = this.applyDpr(width, height);
       this.composer.setSize(width, height);
+      if (this.diagnostics) {
+        this.diagnostics.deviceDpr = window.devicePixelRatio;
+        updateDrawingBufferDiagnostics(
+          this.diagnostics,
+          renderer,
+          width,
+          height,
+          resizedDpr,
+        );
+      }
     });
 
     ctx.bus.on('camera:shake', (p: unknown) => {
@@ -396,5 +444,17 @@ export class RenderSystem implements System {
   dispose(): void {
     this.composer.dispose();
     this.sky?.dispose();
+  }
+
+  private applyDpr(width: number, height: number): number {
+    const dpr = resolveDpr(
+      this.requestedDpr,
+      window.devicePixelRatio,
+      width,
+      height,
+    );
+    this.renderer.setPixelRatio(dpr);
+    this.renderer.setSize(width, height, false);
+    return dpr;
   }
 }

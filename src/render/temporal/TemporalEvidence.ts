@@ -3,8 +3,6 @@ import type { System, UpdateContext } from '../../core/contracts.js';
 import type { Engine } from '../../core/engine.js';
 import type { RenderSystem } from '../RenderSystem.js';
 
-export const EVIDENCE_WIDTH = 1920;
-export const EVIDENCE_HEIGHT = 1080;
 export const EVIDENCE_FRAMES = 120;
 
 export const SEQUENCES = [
@@ -60,11 +58,6 @@ interface TemporalAnalysis {
   compensatedFrameDifference: Distribution;
   edgeEnergy: Distribution;
   edgeSampleFraction: number;
-  perFrame: {
-    coverageNoise: number[];
-    compensatedFrameDifference: number[];
-    edgeEnergy: number[];
-  };
 }
 
 interface AnalysisGroups {
@@ -172,6 +165,11 @@ interface CaptureSheets {
   blurContext?: CanvasRenderingContext2D;
 }
 
+interface EvidenceDimensions {
+  width: number;
+  height: number;
+}
+
 interface SequenceCapture {
   frames: Float32Array[][];
   wrongFrames: Float32Array[][];
@@ -185,9 +183,11 @@ interface SequenceCapture {
 
 const BASE_POSITION = new THREE.Vector3(0.6, 1.65, 3.4);
 const REVEAL_TARGET = new THREE.Vector3(0, 1.2, -13);
-const CONTACT_FRAMES = [0, 24, 48, 72, 96, 119];
-const HARD_STOP_FRAMES = [55, 59, 60, 61, 64, 72];
-const REVEAL_FRAMES = [75, 79, 80, 81, 84, 96];
+const CONTACT_FRAMES = [0, 40, 80, 119];
+const HARD_STOP_FRAMES = [59, 60, 64, 72];
+const REVEAL_FRAMES = [79, 80, 84, 96];
+const CONTACT_TILE = { width: 256, height: 144 };
+const ROI_TILE = { width: 256, height: 96 };
 const EDGE_THRESHOLD = 0.018;
 const STATIC_FALSE_POSITIVE_MAX = 0.5;
 const BAR_COUNT = 9;
@@ -294,6 +294,7 @@ export function applyEvidencePose(
   camera: THREE.PerspectiveCamera,
   name: SequenceName | 'static-jitter',
   frame: number,
+  dimensions: EvidenceDimensions,
 ): void {
   const pose = sequencePose(name, frame);
   camera.position.set(pose.x, pose.y, pose.z);
@@ -303,11 +304,13 @@ export function applyEvidencePose(
     camera.rotation.set(pose.pitch ?? 0, pose.yaw ?? 0, 0, 'YXZ');
   }
   camera.clearViewOffset();
-  camera.aspect = EVIDENCE_WIDTH / EVIDENCE_HEIGHT;
+  camera.aspect = dimensions.width / dimensions.height;
   camera.updateProjectionMatrix();
   if (pose.jitterX !== undefined || pose.jitterY !== undefined) {
-    camera.projectionMatrix.elements[8] += (2 * (pose.jitterX ?? 0)) / EVIDENCE_WIDTH;
-    camera.projectionMatrix.elements[9] += (2 * (pose.jitterY ?? 0)) / EVIDENCE_HEIGHT;
+    camera.projectionMatrix.elements[8] +=
+      (2 * (pose.jitterX ?? 0)) / dimensions.width;
+    camera.projectionMatrix.elements[9] +=
+      (2 * (pose.jitterY ?? 0)) / dimensions.height;
     camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
   }
   camera.updateMatrixWorld(true);
@@ -320,13 +323,22 @@ export class TemporalCameraSystem implements System {
   constructor(private readonly sequence: SequenceName) {}
 
   update(_update: UpdateContext, ctx: Parameters<NonNullable<System['update']>>[1]): void {
-    applyEvidencePose(ctx.camera, this.sequence, this.frame++ % EVIDENCE_FRAMES);
+    applyEvidencePose(
+      ctx.camera,
+      this.sequence,
+      this.frame++ % EVIDENCE_FRAMES,
+      {
+        width: ctx.renderer.domElement.width,
+        height: ctx.renderer.domElement.height,
+      },
+    );
   }
 }
 
 export class TemporalEvidenceCapture {
   private readonly canvas: HTMLCanvasElement;
   private readonly gl: WebGL2RenderingContext;
+  private readonly dimensions: EvidenceDimensions;
 
   constructor(
     private readonly engine: Engine,
@@ -334,10 +346,21 @@ export class TemporalEvidenceCapture {
   ) {
     this.canvas = engine.renderer.domElement;
     this.gl = engine.renderer.getContext() as WebGL2RenderingContext;
+    this.dimensions = {
+      width: this.canvas.width,
+      height: this.canvas.height,
+    };
+    if (this.dimensions.width <= 0 || this.dimensions.height <= 0) {
+      throw new Error('Temporal evidence requires a non-empty drawing buffer.');
+    }
   }
 
   async capture(includeControls: boolean): Promise<TemporalCaptureResult> {
-    const sheets = createSheets(includeControls);
+    const sheets = createSheets(
+      includeControls,
+      this.dimensions.width,
+      this.dimensions.height,
+    );
     const sequenceResults = {} as Record<SequenceName, SequenceEvidence>;
     const captures = new Map<SequenceName, SequenceCapture>();
 
@@ -383,7 +406,7 @@ export class TemporalEvidenceCapture {
     return {
       methodology: {
         frameCount: EVIDENCE_FRAMES,
-        viewport: `${EVIDENCE_WIDTH}x${EVIDENCE_HEIGHT}`,
+        viewport: `${this.dimensions.width}x${this.dimensions.height}`,
         primaryMetric:
           'p95 absolute temporal second difference at edge pixels, scaled by 1000',
         motionCompensation:
@@ -432,9 +455,9 @@ export class TemporalEvidenceCapture {
     includeControls: boolean,
   ): Promise<SequenceCapture> {
     resetTemporalHistory(this.renderSystem);
-    applyEvidencePose(this.engine.camera, name, 0);
+    applyEvidencePose(this.engine.camera, name, 0, this.dimensions);
     await this.warmUp(name);
-    const fixedMaps = createPatchMaps(this.engine.camera);
+    const fixedMaps = createPatchMaps(this.engine.camera, this.dimensions);
     const frames: Float32Array[][] = [];
     const wrongFrames: Float32Array[][] = [];
     const historyCanvas = name === 'hard-stop' || name === 'reveal'
@@ -442,8 +465,8 @@ export class TemporalEvidenceCapture {
       : undefined;
     const historyContext = historyCanvas?.getContext('2d', { alpha: false });
     if (historyCanvas) {
-      historyCanvas.width = EVIDENCE_WIDTH;
-      historyCanvas.height = EVIDENCE_HEIGHT;
+      historyCanvas.width = this.dimensions.width;
+      historyCanvas.height = this.dimensions.height;
     }
     const selectedGhostFrames = name === 'hard-stop'
       ? HARD_STOP_FRAMES
@@ -452,9 +475,9 @@ export class TemporalEvidenceCapture {
         : [];
 
     for (let frame = 0; frame < EVIDENCE_FRAMES; frame++) {
-      applyEvidencePose(this.engine.camera, name, frame);
+      applyEvidencePose(this.engine.camera, name, frame, this.dimensions);
       this.render(frame);
-      const maps = createPatchMaps(this.engine.camera);
+      const maps = createPatchMaps(this.engine.camera, this.dimensions);
       const region = this.readMaps([...maps, ...fixedMaps]);
       frames.push(extractPatches(maps, region));
       wrongFrames.push(extractPatches(fixedMaps, region));
@@ -466,18 +489,19 @@ export class TemporalEvidenceCapture {
           this.canvas,
           contactColumn,
           row,
-          320,
-          180,
+          CONTACT_TILE.width,
+          CONTACT_TILE.height,
           `${name.toUpperCase()} F${String(frame).padStart(3, '0')}`,
         );
         drawRoiTile(
           sheets.roiContext,
           this.canvas,
           maps,
+          this.dimensions,
           contactColumn,
           row,
-          320,
-          120,
+          ROI_TILE.width,
+          ROI_TILE.height,
           `${name.toUpperCase()} F${String(frame).padStart(3, '0')}`,
         );
         if (includeControls && name === 'static' && sheets.controlsContext) {
@@ -486,8 +510,8 @@ export class TemporalEvidenceCapture {
             this.canvas,
             contactColumn,
             0,
-            320,
-            160,
+            CONTACT_TILE.width,
+            CONTACT_TILE.height,
             `STATIC RAW F${String(frame).padStart(3, '0')}`,
           );
         }
@@ -498,7 +522,12 @@ export class TemporalEvidenceCapture {
           && sheets.blur
           && sheets.blurContext
         ) {
-          sheets.blurContext.clearRect(0, 0, EVIDENCE_WIDTH, EVIDENCE_HEIGHT);
+          sheets.blurContext.clearRect(
+            0,
+            0,
+            this.dimensions.width,
+            this.dimensions.height,
+          );
           sheets.blurContext.filter = 'blur(2px)';
           sheets.blurContext.drawImage(this.canvas, 0, 0);
           sheets.blurContext.filter = 'none';
@@ -507,8 +536,8 @@ export class TemporalEvidenceCapture {
             sheets.blur,
             contactColumn,
             2,
-            320,
-            160,
+            CONTACT_TILE.width,
+            CONTACT_TILE.height,
             `DELIBERATE BLUR F${String(frame).padStart(3, '0')}`,
           );
         }
@@ -530,20 +559,22 @@ export class TemporalEvidenceCapture {
             sheets.ghostsContext,
             this.canvas,
             maps,
+            this.dimensions,
             ghostColumn,
             rawRow,
-            320,
-            120,
+            ROI_TILE.width,
+            ROI_TILE.height,
             `${name.toUpperCase()} RAW F${String(frame).padStart(3, '0')}`,
           );
           drawRoiTile(
             sheets.ghostsContext,
             historyCanvas,
             maps,
+            this.dimensions,
             ghostColumn,
             rawRow + 1,
-            320,
-            120,
+            ROI_TILE.width,
+            ROI_TILE.height,
             `${name.toUpperCase()} HISTORY F${String(frame).padStart(3, '0')}`,
           );
           if (
@@ -556,8 +587,8 @@ export class TemporalEvidenceCapture {
               historyCanvas,
               ghostColumn,
               3,
-              320,
-              160,
+              CONTACT_TILE.width,
+              CONTACT_TILE.height,
               `NAIVE HISTORY F${String(frame).padStart(3, '0')}`,
             );
           }
@@ -591,16 +622,26 @@ export class TemporalEvidenceCapture {
 
   private async captureJitterControl(sheets: CaptureSheets): Promise<SequenceCapture> {
     resetTemporalHistory(this.renderSystem);
-    applyEvidencePose(this.engine.camera, 'static-jitter', 0);
+    applyEvidencePose(
+      this.engine.camera,
+      'static-jitter',
+      0,
+      this.dimensions,
+    );
     await this.warmUp('static-jitter');
-    const fixedMaps = createPatchMaps(this.engine.camera);
+    const fixedMaps = createPatchMaps(this.engine.camera, this.dimensions);
     const frames: Float32Array[][] = [];
     const wrongFrames: Float32Array[][] = [];
 
     for (let frame = 0; frame < EVIDENCE_FRAMES; frame++) {
-      applyEvidencePose(this.engine.camera, 'static-jitter', frame);
+      applyEvidencePose(
+        this.engine.camera,
+        'static-jitter',
+        frame,
+        this.dimensions,
+      );
       this.render(frame);
-      const maps = createPatchMaps(this.engine.camera);
+      const maps = createPatchMaps(this.engine.camera, this.dimensions);
       const region = this.readMaps([...maps, ...fixedMaps]);
       frames.push(extractPatches(maps, region));
       wrongFrames.push(extractPatches(fixedMaps, region));
@@ -611,8 +652,8 @@ export class TemporalEvidenceCapture {
           this.canvas,
           column,
           1,
-          320,
-          160,
+          CONTACT_TILE.width,
+          CONTACT_TILE.height,
           `SUBPIXEL JITTER F${String(frame).padStart(3, '0')}`,
         );
       }
@@ -630,7 +671,7 @@ export class TemporalEvidenceCapture {
 
   private async warmUp(name: SequenceName | 'static-jitter'): Promise<void> {
     for (let frame = 0; frame < 12; frame++) {
-      applyEvidencePose(this.engine.camera, name, 0);
+      applyEvidencePose(this.engine.camera, name, 0, this.dimensions);
       this.render(-12 + frame);
       await nextFrame();
     }
@@ -648,9 +689,9 @@ export class TemporalEvidenceCapture {
   }
 
   private readMaps(maps: readonly PatchMap[]): ReadRegion {
-    const bounds = mapBounds(maps, 3);
+    const bounds = mapBounds(maps, 3, this.dimensions);
     const glX = bounds.x;
-    const glY = EVIDENCE_HEIGHT - bounds.y - bounds.height;
+    const glY = this.dimensions.height - bounds.y - bounds.height;
     const pixels = new Uint8Array(bounds.width * bounds.height * 4);
     this.gl.readPixels(
       glX,
@@ -764,16 +805,23 @@ function evaluateControls(
   };
 }
 
-function createPatchMaps(camera: THREE.PerspectiveCamera): PatchMap[] {
+function createPatchMaps(
+  camera: THREE.PerspectiveCamera,
+  dimensions: EvidenceDimensions,
+): PatchMap[] {
   const maps: PatchMap[] = [];
   for (let index = 0; index < BAR_COUNT; index++) {
     const layout = PATCH_LAYOUTS[index];
     const x = -3 + index * 0.55;
     const z = -8 - index * 1.1;
-    const bottom = project(camera, new THREE.Vector3(x, 0.15, z));
-    const top = project(camera, new THREE.Vector3(x, 2.25, z));
-    const middle = project(camera, new THREE.Vector3(x, 1.2, z));
-    const right = project(camera, new THREE.Vector3(x + 0.06, 1.2, z));
+    const bottom = project(camera, new THREE.Vector3(x, 0.15, z), dimensions);
+    const top = project(camera, new THREE.Vector3(x, 2.25, z), dimensions);
+    const middle = project(camera, new THREE.Vector3(x, 1.2, z), dimensions);
+    const right = project(
+      camera,
+      new THREE.Vector3(x + 0.06, 1.2, z),
+      dimensions,
+    );
     const tangent = top.clone().sub(bottom);
     const tangentLength = tangent.length();
     const tangentDirection = tangentLength > 0
@@ -804,14 +852,16 @@ function createPatchMaps(camera: THREE.PerspectiveCamera): PatchMap[] {
   for (let index = 0; index < SPECULAR_CENTERS.length; index++) {
     const layout = PATCH_LAYOUTS[BAR_COUNT + index];
     const centerWorld = SPECULAR_CENTERS[index];
-    const center = project(camera, centerWorld);
+    const center = project(camera, centerWorld, dimensions);
     const right = project(
       camera,
       centerWorld.clone().add(new THREE.Vector3(0.45, 0, 0)),
+      dimensions,
     ).sub(center);
     const up = project(
       camera,
       centerWorld.clone().add(new THREE.Vector3(0, 0.45, 0)),
+      dimensions,
     ).sub(center);
     const coordinates = new Float32Array(layout.width * layout.height * 2);
     let offset = 0;
@@ -828,20 +878,25 @@ function createPatchMaps(camera: THREE.PerspectiveCamera): PatchMap[] {
   return maps;
 }
 
-function project(camera: THREE.PerspectiveCamera, point: THREE.Vector3): THREE.Vector2 {
+function project(
+  camera: THREE.PerspectiveCamera,
+  point: THREE.Vector3,
+  dimensions: EvidenceDimensions,
+): THREE.Vector2 {
   const projected = point.clone().project(camera);
   return new THREE.Vector2(
-    (projected.x * 0.5 + 0.5) * EVIDENCE_WIDTH,
-    (0.5 - projected.y * 0.5) * EVIDENCE_HEIGHT,
+    (projected.x * 0.5 + 0.5) * dimensions.width,
+    (0.5 - projected.y * 0.5) * dimensions.height,
   );
 }
 
 function mapBounds(
   maps: readonly PatchMap[],
   margin: number,
+  dimensions: EvidenceDimensions,
 ): { x: number; y: number; width: number; height: number } {
-  let minimumX = EVIDENCE_WIDTH - 1;
-  let minimumY = EVIDENCE_HEIGHT - 1;
+  let minimumX = dimensions.width - 1;
+  let minimumY = dimensions.height - 1;
   let maximumX = 0;
   let maximumY = 0;
   for (const map of maps) {
@@ -857,8 +912,8 @@ function mapBounds(
   }
   const x = Math.max(0, Math.floor(minimumX - margin));
   const y = Math.max(0, Math.floor(minimumY - margin));
-  const right = Math.min(EVIDENCE_WIDTH, Math.ceil(maximumX + margin));
-  const bottom = Math.min(EVIDENCE_HEIGHT, Math.ceil(maximumY + margin));
+  const right = Math.min(dimensions.width, Math.ceil(maximumX + margin));
+  const bottom = Math.min(dimensions.height, Math.ceil(maximumY + margin));
   if (right <= x || bottom <= y) {
     throw new Error('Temporal ROI projection produced an empty read region.');
   }
@@ -987,11 +1042,6 @@ function analyzeFrames(
     edgeEnergy: distribution(edgeEnergy),
     edgeSampleFraction:
       temporalSamples > 0 ? rounded(temporalEdgeSamples / temporalSamples) : 0,
-    perFrame: {
-      coverageNoise: coverageNoise.map(rounded),
-      compensatedFrameDifference: frameDifference.map(rounded),
-      edgeEnergy: edgeEnergy.map(rounded),
-    },
   };
 }
 
@@ -1167,17 +1217,21 @@ function rounded(value: number): number {
   return Math.round(value * 1_000_000) / 1_000_000;
 }
 
-function createSheets(includeControls: boolean): CaptureSheets {
+function createSheets(
+  includeControls: boolean,
+  sourceWidth: number,
+  sourceHeight: number,
+): CaptureSheets {
   const contact = document.createElement('canvas');
-  contact.width = 1920;
-  contact.height = SEQUENCES.length * 180;
+  contact.width = CONTACT_FRAMES.length * CONTACT_TILE.width;
+  contact.height = SEQUENCES.length * CONTACT_TILE.height;
   const contactContext = required2d(contact);
   contactContext.fillStyle = '#000';
   contactContext.fillRect(0, 0, contact.width, contact.height);
 
   const roi = document.createElement('canvas');
-  roi.width = 1920;
-  roi.height = SEQUENCES.length * 120;
+  roi.width = CONTACT_FRAMES.length * ROI_TILE.width;
+  roi.height = SEQUENCES.length * ROI_TILE.height;
   const roiContext = required2d(roi);
   roiContext.fillStyle = '#000';
   roiContext.fillRect(0, 0, roi.width, roi.height);
@@ -1185,22 +1239,22 @@ function createSheets(includeControls: boolean): CaptureSheets {
   if (!includeControls) return { contact, contactContext, roi, roiContext };
 
   const controls = document.createElement('canvas');
-  controls.width = 1920;
-  controls.height = 640;
+  controls.width = CONTACT_FRAMES.length * CONTACT_TILE.width;
+  controls.height = 4 * CONTACT_TILE.height;
   const controlsContext = required2d(controls);
   controlsContext.fillStyle = '#000';
   controlsContext.fillRect(0, 0, controls.width, controls.height);
 
   const ghosts = document.createElement('canvas');
-  ghosts.width = 1920;
-  ghosts.height = 480;
+  ghosts.width = HARD_STOP_FRAMES.length * ROI_TILE.width;
+  ghosts.height = 4 * ROI_TILE.height;
   const ghostsContext = required2d(ghosts);
   ghostsContext.fillStyle = '#000';
   ghostsContext.fillRect(0, 0, ghosts.width, ghosts.height);
 
   const blur = document.createElement('canvas');
-  blur.width = EVIDENCE_WIDTH;
-  blur.height = EVIDENCE_HEIGHT;
+  blur.width = sourceWidth;
+  blur.height = sourceHeight;
   const blurContext = required2d(blur);
 
   return {
@@ -1242,13 +1296,18 @@ function drawRoiTile(
   context: CanvasRenderingContext2D,
   source: CanvasImageSource,
   maps: readonly PatchMap[],
+  dimensions: EvidenceDimensions,
   column: number,
   row: number,
   width: number,
   height: number,
   label: string,
 ): void {
-  const bounds = fitBoundsToAspect(mapBounds(maps, 24), width / height);
+  const bounds = fitBoundsToAspect(
+    mapBounds(maps, 24, dimensions),
+    width / height,
+    dimensions,
+  );
   const x = column * width;
   const y = row * height;
   context.drawImage(
@@ -1268,6 +1327,7 @@ function drawRoiTile(
 function fitBoundsToAspect(
   bounds: { x: number; y: number; width: number; height: number },
   aspect: number,
+  dimensions: EvidenceDimensions,
 ): { x: number; y: number; width: number; height: number } {
   let { x, y, width, height } = bounds;
   const currentAspect = width / height;
@@ -1282,13 +1342,13 @@ function fitBoundsToAspect(
   }
   if (x < 0) x = 0;
   if (y < 0) y = 0;
-  if (x + width > EVIDENCE_WIDTH) x = EVIDENCE_WIDTH - width;
-  if (y + height > EVIDENCE_HEIGHT) y = EVIDENCE_HEIGHT - height;
+  if (x + width > dimensions.width) x = dimensions.width - width;
+  if (y + height > dimensions.height) y = dimensions.height - height;
   return {
     x: Math.max(0, Math.round(x)),
     y: Math.max(0, Math.round(y)),
-    width: Math.min(EVIDENCE_WIDTH, Math.round(width)),
-    height: Math.min(EVIDENCE_HEIGHT, Math.round(height)),
+    width: Math.min(dimensions.width, Math.round(width)),
+    height: Math.min(dimensions.height, Math.round(height)),
   };
 }
 
