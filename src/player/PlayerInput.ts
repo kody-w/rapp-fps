@@ -72,6 +72,11 @@ export class PlayerInput implements InputState {
     return result;
   }
 
+  /** Called once after all frame consumers have observed semantic edges. */
+  endFrame(): void {
+    this.edgeActions.clear();
+  }
+
   clearLook(): void {
     this.look.x = 0;
     this.look.y = 0;
@@ -155,7 +160,7 @@ export class PlayerInput implements InputState {
   };
 
   private onMouseDown = (event: MouseEvent): void => {
-    if (document.pointerLockElement !== this.element) {
+    if (!this.lockRequested && document.pointerLockElement !== this.element) {
       // The click that starts play requests the real pointer lock a desktop
       // player needs (which arms look) and is swallowed rather than fired.
       void this.requestPointerLock();
@@ -178,7 +183,10 @@ export class PlayerInput implements InputState {
 
   private onContextMenu = (event: Event): void => event.preventDefault();
 
-  private onBlur = (): void => this.reset();
+  private onBlur = (): void => {
+    this.reset();
+    this.releaseLook();
+  };
 
   private onPointerLockChange = (): void => {
     const locked = document.pointerLockElement === this.element;
