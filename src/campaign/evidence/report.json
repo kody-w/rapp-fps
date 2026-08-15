@@ -1,0 +1,385 @@
+{
+  "ok": true,
+  "total": 19,
+  "passed": 19,
+  "failed": 0,
+  "failures": [],
+  "tests": [
+    {
+      "name": "catalogAcceptsComposedCampaign",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "ids": [
+          "cargo-breach",
+          "fixture-bravo",
+          "fixture-charlie"
+        ]
+      }
+    },
+    {
+      "name": "defaultFreshState",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "snapshot": {
+          "snapshotVersion": 2,
+          "currentMissionId": "cargo-breach",
+          "currentTitle": "Cargo Breach",
+          "currentObjective": "Eliminate the defender holding the beacon terminal.",
+          "currentObjectiveTitle": "SECURE THE CARGO BAY",
+          "missions": [
+            {
+              "id": "cargo-breach",
+              "order": 1,
+              "title": "Cargo Breach",
+              "status": "current",
+              "objective": "Eliminate the defender holding the beacon terminal.",
+              "objectiveTitle": "SECURE THE CARGO BAY"
+            },
+            {
+              "id": "fixture-bravo",
+              "order": 2,
+              "title": "Fixture Bravo",
+              "status": "locked",
+              "objective": "Clear the 2 defender(s) in the Fixture Bravo fixture.",
+              "objectiveTitle": "HOLD THE RELAY"
+            },
+            {
+              "id": "fixture-charlie",
+              "order": 3,
+              "title": "Fixture Charlie",
+              "status": "locked",
+              "objective": "Clear the 2 defender(s) in the Fixture Charlie fixture.",
+              "objectiveTitle": "BREACH THE CORE"
+            }
+          ],
+          "eliminations": {
+            "current": 0,
+            "required": 1,
+            "remaining": 1
+          },
+          "campaignComplete": false,
+          "completedCount": 0,
+          "totalCount": 3,
+          "missionCount": 3,
+          "furthestUnlockedIndex": 0,
+          "finaleMissionId": "fixture-charlie"
+        }
+      }
+    },
+    {
+      "name": "deepLinkLockedUnlockedUnknown",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "lockedFinal": {
+          "outcome": "locked",
+          "missionId": "fixture-charlie",
+          "order": 3,
+          "blockedBy": "fixture-bravo",
+          "fallbackMissionId": "cargo-breach"
+        },
+        "unlocked": {
+          "outcome": "resolved",
+          "missionId": "fixture-bravo",
+          "order": 2,
+          "status": "unlocked",
+          "fallbackMissionId": "cargo-breach"
+        }
+      }
+    },
+    {
+      "name": "deepLinkNoSuccessFallback",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "locked": {
+          "outcome": "locked",
+          "missionId": "fixture-charlie",
+          "order": 3,
+          "blockedBy": "fixture-bravo",
+          "fallbackMissionId": "cargo-breach"
+        },
+        "unknown": {
+          "outcome": "unknown",
+          "requested": "ghost-mission",
+          "fallbackMissionId": "cargo-breach"
+        }
+      }
+    },
+    {
+      "name": "deepLinkResolvedDeploys",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "deepLink": {
+          "outcome": "resolved",
+          "missionId": "fixture-bravo",
+          "order": 2,
+          "status": "current",
+          "fallbackMissionId": "fixture-bravo"
+        },
+        "current": "fixture-bravo"
+      }
+    },
+    {
+      "name": "eliminationProgression",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "events": [
+          "campaign:deep-link-resolved",
+          "campaign:enemy-eliminated",
+          "campaign:mission-completed",
+          "campaign:mission-unlocked",
+          "campaign:enemy-eliminated",
+          "campaign:checkpoint-banked",
+          "campaign:enemy-eliminated",
+          "campaign:checkpoint-banked",
+          "campaign:mission-completed",
+          "campaign:mission-unlocked"
+        ]
+      }
+    },
+    {
+      "name": "deathRetryCheckpoint",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "events": [
+          "campaign:deep-link-resolved",
+          "campaign:enemy-eliminated",
+          "campaign:mission-completed",
+          "campaign:mission-unlocked",
+          "campaign:enemy-eliminated",
+          "campaign:checkpoint-banked",
+          "campaign:mission-failed",
+          "campaign:enemy-eliminated",
+          "campaign:checkpoint-banked",
+          "campaign:mission-completed",
+          "campaign:mission-unlocked",
+          "campaign:enemy-eliminated",
+          "campaign:mission-failed"
+        ]
+      }
+    },
+    {
+      "name": "finalCompletionCompletesCampaign",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "completedOrder": [
+          "cargo-breach",
+          "fixture-bravo",
+          "fixture-charlie"
+        ]
+      }
+    },
+    {
+      "name": "deterministicEventSequence",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "sequence": [
+          "campaign:deep-link-resolved",
+          "campaign:enemy-eliminated",
+          "campaign:mission-completed",
+          "campaign:mission-unlocked",
+          "campaign:enemy-eliminated",
+          "campaign:checkpoint-banked",
+          "campaign:enemy-eliminated",
+          "campaign:checkpoint-banked",
+          "campaign:mission-completed",
+          "campaign:mission-unlocked",
+          "campaign:enemy-eliminated",
+          "campaign:enemy-eliminated",
+          "campaign:mission-completed",
+          "campaign:campaign-completed"
+        ]
+      }
+    },
+    {
+      "name": "persistenceHydrationRoundTrip",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "restored": {
+          "snapshotVersion": 2,
+          "currentMissionId": "fixture-bravo",
+          "currentTitle": "Fixture Bravo",
+          "currentObjective": "Clear the 2 defender(s) in the Fixture Bravo fixture.",
+          "currentObjectiveTitle": "HOLD THE RELAY",
+          "missions": [
+            {
+              "id": "cargo-breach",
+              "order": 1,
+              "title": "Cargo Breach",
+              "status": "completed",
+              "objective": "Eliminate the defender holding the beacon terminal.",
+              "objectiveTitle": "SECURE THE CARGO BAY"
+            },
+            {
+              "id": "fixture-bravo",
+              "order": 2,
+              "title": "Fixture Bravo",
+              "status": "current",
+              "objective": "Clear the 2 defender(s) in the Fixture Bravo fixture.",
+              "objectiveTitle": "HOLD THE RELAY"
+            },
+            {
+              "id": "fixture-charlie",
+              "order": 3,
+              "title": "Fixture Charlie",
+              "status": "locked",
+              "objective": "Clear the 2 defender(s) in the Fixture Charlie fixture.",
+              "objectiveTitle": "BREACH THE CORE"
+            }
+          ],
+          "eliminations": {
+            "current": 1,
+            "required": 2,
+            "remaining": 1
+          },
+          "campaignComplete": false,
+          "completedCount": 1,
+          "totalCount": 3,
+          "missionCount": 3,
+          "furthestUnlockedIndex": 1,
+          "finaleMissionId": "fixture-charlie"
+        }
+      }
+    },
+    {
+      "name": "persistenceMalformedRefused",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "hydration": {
+          "status": "refused",
+          "reason": "stored value is not valid JSON"
+        }
+      }
+    },
+    {
+      "name": "persistenceVersionMismatchAndMigration",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "migratedRead": "migrated"
+      }
+    },
+    {
+      "name": "twoFloorSpawnSlotsValidated",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "derived": {
+          "position": [
+            2.6,
+            0,
+            -1.6
+          ],
+          "method": "preferred-offset",
+          "attempts": 1
+        },
+        "separation": 2.6
+      }
+    },
+    {
+      "name": "catalogRejectsEveryFault",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "controls": 18
+      }
+    },
+    {
+      "name": "progressMachineGuards",
+      "pass": true,
+      "failures": [],
+      "detail": {}
+    },
+    {
+      "name": "objectiveTitleAndHudSnapshotFields",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "snapshot": {
+          "snapshotVersion": 2,
+          "currentMissionId": null,
+          "currentTitle": null,
+          "currentObjective": null,
+          "currentObjectiveTitle": null,
+          "missions": [
+            {
+              "id": "cargo-breach",
+              "order": 1,
+              "title": "Cargo Breach",
+              "status": "completed",
+              "objective": "Eliminate the defender holding the beacon terminal.",
+              "objectiveTitle": "SECURE THE CARGO BAY"
+            },
+            {
+              "id": "fixture-bravo",
+              "order": 2,
+              "title": "Fixture Bravo",
+              "status": "completed",
+              "objective": "Clear the 2 defender(s) in the Fixture Bravo fixture.",
+              "objectiveTitle": "HOLD THE RELAY"
+            },
+            {
+              "id": "fixture-charlie",
+              "order": 3,
+              "title": "Fixture Charlie",
+              "status": "completed",
+              "objective": "Clear the 2 defender(s) in the Fixture Charlie fixture.",
+              "objectiveTitle": "BREACH THE CORE"
+            }
+          ],
+          "eliminations": null,
+          "campaignComplete": true,
+          "completedCount": 3,
+          "totalCount": 3,
+          "missionCount": 3,
+          "furthestUnlockedIndex": 2,
+          "finaleMissionId": "fixture-charlie"
+        }
+      }
+    },
+    {
+      "name": "postFinaleReplayDeployNeverCoexists",
+      "pass": true,
+      "failures": [],
+      "detail": {}
+    },
+    {
+      "name": "lockedAndUnknownDeepLinkNormalizeUrl",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "locked": {
+          "outcome": "locked",
+          "missionId": "fixture-charlie",
+          "order": 3,
+          "blockedBy": "fixture-bravo",
+          "fallbackMissionId": "cargo-breach"
+        },
+        "unknown": {
+          "outcome": "unknown",
+          "requested": "ghost-mission",
+          "fallbackMissionId": "cargo-breach"
+        }
+      }
+    },
+    {
+      "name": "finalReloadPreservesCompletion",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "hydration": "restored",
+        "complete": true
+      }
+    }
+  ]
+}
