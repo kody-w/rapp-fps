@@ -1,6 +1,6 @@
 {
-  "at": "2026-08-15T16:00:53.379Z",
-  "url": "http://127.0.0.1:5295/src/level/missions/foundry/harness.html",
+  "at": "2026-08-15T18:13:21.854Z",
+  "url": "http://127.0.0.1:5273/src/level/missions/foundry/harness.html",
   "report": {
     "ok": true,
     "results": [
@@ -30,10 +30,10 @@
         "detail": "every collidable solid is in a rendered group"
       }
     ],
-    "solidCount": 43,
+    "solidCount": 44,
     "collidableCount": 36,
     "boxCount": 36,
-    "renderVertexKeys": 320
+    "renderVertexKeys": 328
   },
   "consoleErrors": []
 }

@@ -286,12 +286,14 @@ export function buildFoundry(): FoundryArenaDefinition {
   );
 
   // ── Render-only dressing (never cover) ───────────────────────────────────
-  // Warm furnace glow: the tap stream and hood, emissive bloom sources at the
-  // heat end. The cool objective beacon is the counterpoint at the gantry.
+  // The hood is structural dark metal, not one giant emissive plane. Heat comes
+  // from a narrow tap and point lights under that mass, so the fixture reads as
+  // attached industrial hardware rather than a floating fullbright slab.
   push(
-    box('furnace-tap', [3.0, 1.15, -10.8], [1.6, 1.5, 0.4], 'lampWarm', 'metal', { collide: false, castShadow: false }),
-    box('furnace-hood', [7.0, 4.2, -13.5], [7.0, 0.5, 4.0], 'lampWarm', 'metal', { collide: false, castShadow: false }),
-    box('lamp-w', [X_MIN + 0.35, 3.0, -6.0], [0.5, 0.32, 0.7], 'lampWarm', 'metal', { collide: false, castShadow: false }),
+    box('furnace-tap', [3.0, 1.15, -10.8], [0.42, 1.25, 0.18], 'lampWarm', 'metal', { collide: false, castShadow: false }),
+    box('furnace-hood', [7.0, 4.2, -13.5], [7.0, 0.5, 4.0], 'darkMetal', 'metal', { collide: false }),
+    box('lamp-w-housing', [X_MIN + 0.3, 3.0, -6.0], [0.58, 0.42, 0.78], 'darkMetal', 'metal', { collide: false }),
+    box('lamp-w', [X_MIN + 0.58, 3.0, -6.0], [0.16, 0.14, 0.34], 'lampWarm', 'metal', { collide: false, castShadow: false }),
     box('beacon', [consoleXZ[0], GANTRY_TOP + consoleH + 0.35, consoleXZ[1]], [0.42, 0.7, 0.42], 'beacon', 'metal', { collide: false, castShadow: false }),
     box('beacon-cap', [consoleXZ[0], GANTRY_TOP + consoleH + 0.74, consoleXZ[1]], [0.54, 0.12, 0.54], 'darkMetal', 'metal', { collide: false, castShadow: false }),
   );

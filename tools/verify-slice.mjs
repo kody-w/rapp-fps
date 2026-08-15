@@ -182,12 +182,85 @@ const cameraState = () => page.evaluate(() => {
 });
 const events = () => page.evaluate(() => window.__SLICE_EVENTS__ ?? []);
 const countOf = (list, name) => list.filter((e) => e.event === name).length;
+const enemyCombatProof = (list) => list.filter((e) => (
+  e.event === EV.HitConfirmed
+  || (e.event === EV.Damage && e.payload?.id !== 'player')
+));
 const dist2D = (a, b) => Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z);
 
 // A click both arms audio and requests pointer lock in the production root.
 await page.mouse.click(WIDTH / 2, HEIGHT / 2);
 await page.waitForTimeout(400);
 const pointerLocked = await page.evaluate(() => document.pointerLockElement !== null);
+
+// Prove one nonlethal target hit from an authored, capsule-valid objective lane
+// before AI cover movement changes the sightline. Restore the exact feet/view
+// pose afterward so movement/look checks still begin at the production spawn.
+let preflightCombatProbe = null;
+{
+  const prepared = await page.evaluate(() => {
+    const integration = window.__INTEGRATION__;
+    const player = integration?.player;
+    const ai = integration?.ai;
+    const motor = player?.getMotor?.();
+    const objective = window.__CAMPAIGN__?.mission?.objective?.target;
+    const THREE = window.THREE;
+    if (!player || !ai || !motor || !THREE || !Array.isArray(objective)) {
+      return { ok: false, reason: 'authored objective combat lane unavailable' };
+    }
+    const candidate = new THREE.Vector3(...objective);
+    if (!motor.world.canFit(candidate, 1.78, 0.34)) {
+      return { ok: false, reason: 'authored objective is not capsule-valid' };
+    }
+    const originalFeet = motor.position.clone();
+    const originalForward = new THREE.Vector3();
+    window.engine.camera.getWorldDirection(originalForward);
+    const target = new THREE.Vector3();
+    if (!ai.copyPosition(target)) {
+      return { ok: false, reason: 'enemy is already dead' };
+    }
+    target.y += 1.05;
+    motor.teleport(candidate);
+    player.lookAt(target);
+    return {
+      ok: true,
+      candidate: candidate.toArray(),
+      target: target.toArray(),
+      originalFeet: originalFeet.toArray(),
+      originalForward: originalForward.toArray(),
+    };
+  });
+
+  if (prepared.ok) {
+    await page.waitForTimeout(200);
+    const before = (await events()).length;
+    await page.mouse.down();
+    await page.waitForTimeout(50);
+    await page.mouse.up();
+    await page.waitForTimeout(180);
+    const probeEvents = (await events()).slice(before);
+    preflightCombatProbe = {
+      ok: true,
+      phase: 'authored-objective-preflight',
+      candidate: prepared.candidate,
+      target: prepared.target,
+      fired: countOf(probeEvents, EV.WeaponFired),
+      impacts: countOf(probeEvents, EV.BulletImpact),
+      enemyProof: enemyCombatProof(probeEvents).length,
+    };
+    await page.evaluate(({ originalFeet, originalForward }) => {
+      const { player } = window.__INTEGRATION__;
+      const THREE = window.THREE;
+      const feet = new THREE.Vector3(...originalFeet);
+      const forward = new THREE.Vector3(...originalForward);
+      player.getMotor().teleport(feet);
+      const eye = feet.clone();
+      eye.y += 1.66;
+      player.lookAt(eye.addScaledVector(forward, 10));
+    }, prepared);
+    await page.waitForTimeout(120);
+  }
+}
 
 /* --- check: look ----------------------------------------------------------
  * Pointer lock CANNOT be granted under Playwright on this machine: headless
@@ -373,12 +446,8 @@ let playerMoved = false;
 /* --- check: there is something to fight ----------------------------------- */
 {
   let evs = await events();
-  const enemyProof = (list) => list.filter((e) => (
-    e.event === EV.HitConfirmed
-    || (e.event === EV.Damage && e.payload?.id !== 'player')
-  ));
-  let proof = enemyProof(evs);
-  let targetedProbe = null;
+  let proof = enemyCombatProof(evs);
+  let targetedProbe = preflightCombatProbe;
 
   if (proof.length === 0) {
     targetedProbe = await page.evaluate(() => {
@@ -410,47 +479,79 @@ let playerMoved = false;
           || point.z - radius < bounds.min[2]
           || point.z + radius > bounds.max[2]
         ) return false;
-        return !world.boxes.some((box) => {
+        const broadPhaseClear = !world.boxes.some((box) => {
           if (box.max[1] <= point.y + 1e-4 || box.min[1] >= point.y + height) return false;
           const dx = Math.max(box.min[0] - point.x, 0, point.x - box.max[0]);
           const dz = Math.max(box.min[2] - point.z, 0, point.z - box.max[2]);
           return Math.hypot(dx, dz) < radius;
         });
+        return broadPhaseClear && motor.world.canFit(point, height, radius);
       };
 
       const clearShot = (point) => {
-        const eye = point.clone();
-        eye.y += eyeHeight;
-        const direction = target.clone().sub(eye);
+        // The rifle's world-space muzzle sits below the eye. A camera-clear ray
+        // can still put the barrel into chest-high cover, so qualify the lane
+        // from a conservative 1.2 m muzzle height rather than from the camera.
+        const muzzle = point.clone();
+        muzzle.y += Math.min(1.2, eyeHeight);
+        const direction = target.clone().sub(muzzle);
         const distance = direction.length();
         if (distance < 1e-6) return false;
         direction.multiplyScalar(1 / distance);
-        const ray = new THREE.Ray(eye, direction);
+        const ray = new THREE.Ray(muzzle, direction);
         const hit = new THREE.Vector3();
         return !world.boxes.some((box) => {
           if (box.max[1] <= 0.01) return false;
           const aabb = new THREE.Box3(
-            new THREE.Vector3(...box.min),
-            new THREE.Vector3(...box.max),
+            new THREE.Vector3(box.min[0] - 0.45, box.min[1] - 0.05, box.min[2] - 0.45),
+            new THREE.Vector3(box.max[0] + 0.45, box.max[1] + 0.05, box.max[2] + 0.45),
           );
+          if (aabb.containsPoint(muzzle)) return true;
           const intersection = ray.intersectBox(aabb, hit);
-          return intersection && intersection.distanceTo(eye) < distance - 0.2;
+          return intersection && intersection.distanceTo(muzzle) < distance - 0.2;
         });
       };
 
-      let candidate = null;
-      for (const ring of [3, 4.5, 6, 7.5]) {
-        for (let step = 0; step < 32; step++) {
-          const angle = step / 32 * Math.PI * 2;
-          const point = new THREE.Vector3(
-            enemy.x + Math.cos(angle) * ring,
-            enemy.y,
-            enemy.z + Math.sin(angle) * ring,
-          );
-          if (canFit(point) && clearShot(point)) {
-            candidate = point;
-            break;
+      const supportHeights = [...new Set([
+        enemy.y,
+        ...world.boxes
+          .map((box) => box.max[1])
+          // The shipping campaign proves floor and stair-accessed decks through
+          // 1.7 m. Do not "prove" combat from an unreachable cover roof.
+          .filter((height) => height >= -1e-4 && height <= 1.7)
+          .map((height) => Math.round(height * 1000) / 1000),
+      ])];
+      const hasSupport = (point) => world.boxes.some((box) => (
+        Math.abs(box.max[1] - point.y) <= 0.02
+        && point.x >= box.min[0] + radius
+        && point.x <= box.max[0] - radius
+        && point.z >= box.min[2] + radius
+        && point.z <= box.max[2] - radius
+      ));
+
+      const objectiveTarget = window.__CAMPAIGN__?.mission?.objective?.target;
+      let candidate = Array.isArray(objectiveTarget)
+        ? new THREE.Vector3(...objectiveTarget)
+        : null;
+      if (candidate && (!hasSupport(candidate) || !canFit(candidate))) {
+        candidate = null;
+      }
+      for (const ring of [3, 4.5, 6, 7.5, 9, 10.5, 12]) {
+        if (candidate) break;
+        for (let step = 0; step < 64; step++) {
+          const angle = step / 64 * Math.PI * 2;
+          for (const height of supportHeights) {
+            const point = new THREE.Vector3(
+              enemy.x + Math.cos(angle) * ring,
+              height,
+              enemy.z + Math.sin(angle) * ring,
+            );
+            if (hasSupport(point) && canFit(point) && clearShot(point)) {
+              candidate = point;
+              break;
+            }
           }
+          if (candidate) break;
         }
         if (candidate) break;
       }
@@ -467,6 +568,14 @@ let playerMoved = false;
 
     if (targetedProbe.ok) {
       await page.waitForTimeout(200);
+      targetedProbe.cameraBeforeFire = await page.evaluate(() => {
+        const direction = new window.THREE.Vector3();
+        window.engine.camera.getWorldDirection(direction);
+        return {
+          position: window.engine.camera.position.toArray(),
+          direction: direction.toArray(),
+        };
+      });
       const before = (await events()).length;
       await page.mouse.down();
       for (let i = 0; i < 50; i++) {
@@ -483,7 +592,24 @@ let playerMoved = false;
       await page.mouse.up();
       await page.waitForTimeout(250);
       evs = (await events()).slice(before);
-      proof = enemyProof(evs);
+      proof = enemyCombatProof(evs);
+      targetedProbe.events = {
+        fired: countOf(evs, EV.WeaponFired),
+        impacts: countOf(evs, EV.BulletImpact),
+        enemyProof: proof.length,
+        sampleFired: evs.find((event) => event.event === EV.WeaponFired)?.payload ?? null,
+        sampleImpact: evs.find((event) => event.event === EV.BulletImpact)?.payload ?? null,
+        feetAfter: await page.evaluate(() => {
+          const feet = new window.THREE.Vector3();
+          const enemy = new window.THREE.Vector3();
+          window.__INTEGRATION__.player.copyFeetPosition(feet);
+          window.__INTEGRATION__.ai.copyPosition(enemy);
+          return {
+            feet: { x: feet.x, y: feet.y, z: feet.z },
+            enemy: { x: enemy.x, y: enemy.y, z: enemy.z },
+          };
+        }),
+      };
     }
   }
 

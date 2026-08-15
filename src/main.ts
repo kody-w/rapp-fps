@@ -46,6 +46,7 @@ const playerSpawn = new THREE.Vector3(...campaign.spawn.position);
 const { input, system: player } = createPlayer(canvas, {
   world: staticWorld,
   spawn: playerSpawn,
+  initialYaw: campaign.spawn.yaw,
 });
 engine.input = input;
 

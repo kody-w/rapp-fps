@@ -190,6 +190,10 @@ export class CampaignSystem implements System {
   private handleElimination(): void {
     const ctx = this.ctx;
     if (!ctx || this.transitioning) return;
+    if (this.runtime.snapshot().campaignComplete) {
+      this.publishCampaignComplete(ctx.bus);
+      return;
+    }
     if (this.fixtureMode) {
       ctx.bus.emit(Events.ObjectiveChanged, {
         title: 'MISSION COMPLETE',
@@ -222,6 +226,12 @@ export class CampaignSystem implements System {
   private handlePlayerDeath(): void {
     const ctx = this.ctx;
     if (!ctx || this.transitioning) return;
+    if (this.runtime.snapshot().campaignComplete) {
+      this.transitioning = true;
+      this.publishCampaignComplete(ctx.bus);
+      this.scheduleReload(this.activeMission.id, 650);
+      return;
+    }
     this.transitioning = true;
     if (!this.fixtureMode) this.runtime.reportPlayerDeath();
     ctx.bus.emit(Events.ObjectiveChanged, {

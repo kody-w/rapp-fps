@@ -209,7 +209,11 @@ export function buildArena(): ArenaDefinition {
   const CW = 2.44; // short dimension
   push(
     onFloor('cont-a', [-1.8, -9.3], [CL, CW], CH, 'container', 'metal', { tint: CONTAINER.blue }),
-    box('cont-b', [-1.4, CH + CH / 2, -9.3], [CL, CH, CW], 'container', 'metal', { tint: CONTAINER.ochre }),
+    // Seat the upper container 6 cm into the lower shell and align their long
+    // axes. Exact face coincidence read as a full-width air gap after the
+    // bounds-derived rails were dressed; the shallow overlap makes the physical
+    // support unmistakable without changing the playable floor volume.
+    box('cont-b', [-1.8, CH + CH / 2 - 0.06, -9.3], [CL, CH, CW], 'container', 'metal', { tint: CONTAINER.ochre }),
     onFloor('cont-c', [2.9, -7.6], [CW, CL], CH, 'container', 'metal', { tint: CONTAINER.rust }),
   );
 

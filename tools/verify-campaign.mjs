@@ -358,6 +358,44 @@ try {
   assert.equal(completedReload.state.status, 'complete');
   assert.equal(completedReload.hudRoots, 1);
   assert.equal(completedReload.canvasCount, 1);
+
+  // A completed reload still renders the finale for free play. Re-engaging its
+  // fresh enemy must not call reducers that correctly have no current mission.
+  await emit(page, 'combat:elimination', { id: 'enemy-1', label: 'TARGET DOWN' });
+  await page.waitForTimeout(100);
+  const afterCompletedKill = await snapshot(page);
+  assert.equal(afterCompletedKill.state.missionId, MISSIONS[2].id);
+  assert.equal(afterCompletedKill.state.status, 'complete');
+
+  // Death in terminal free play reloads the finale while preserving completion,
+  // instead of leaving a zero-health player soft-stuck.
+  const terminalReload = page.waitForNavigation({
+    waitUntil: 'domcontentloaded',
+    timeout: 10_000,
+  });
+  await emit(page, 'combat:damage', {
+    id: 'player',
+    amount: 100,
+    health: 0,
+    maxHealth: 100,
+    lethal: true,
+    direction: { x: 0, y: 0, z: 1 },
+    point: { x: 0, y: 1, z: 0 },
+  });
+  await terminalReload;
+  await page.waitForFunction(() => window.__CAMPAIGN__?.state?.status === 'complete', null, {
+    timeout: 45_000,
+  });
+  const afterTerminalRetry = await snapshot(page);
+  assert.equal(afterTerminalRetry.state.missionId, MISSIONS[2].id);
+  assert.equal(afterTerminalRetry.state.status, 'complete');
+  assert.equal(afterTerminalRetry.hudRoots, 1);
+  assert.equal(afterTerminalRetry.canvasCount, 1);
+  evidence.progression.push({
+    check: 'terminal-free-play',
+    killPreservedCompletion: true,
+    deathReloadPreservedCompletion: true,
+  });
   await page.close();
   await context.close();
 

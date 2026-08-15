@@ -130,7 +130,7 @@ imports the emitted entry, runs the suite, prints a per-case summary, and writes
 | G9 | Navigation/reload is an interface; tests never mutate `location` | ✅ in-memory double |
 | G10 | `campaignComplete` and a current mission are mutually exclusive; post-finale deploy/replay reopen cleanly; a completed reload stays complete | ✅ invariant + reload identity proven |
 | G11 | Browser contract proves locked links, retry reload, progression hydration, one HUD/canvas, and explicit finale | ✅ `tools/verify-campaign.mjs` |
-| G12 | Every mission passes the production gameplay judge three times on hardware GPU | ✅ 9/9; worst p95 8.767 ms |
+| G12 | Every mission passes the production gameplay judge three times on hardware GPU | ✅ 9/9; worst p95 9.424 ms |
 
 Scenario coverage in `test/run.ts`: default fresh state · deep link
 locked/unlocked/unknown/absent + URL normalization · elimination progression ·

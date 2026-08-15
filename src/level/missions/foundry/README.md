@@ -43,7 +43,7 @@ harness against the real `buildArena()`):
 | field | Foundry | Cargo |
 | --- | --- | --- |
 | bounds (min\|max) | `-14.1,-1.1,-18.1 \| 14.1,6.1,6.1` | `-13.1,-1.1,-21.1 \| 13.1,6.5,2.1` |
-| solid count | 43 | 36 |
+| solid count | 44 | 36 |
 | collidable count | 36 | 29 |
 | id hash (FNV-1a) | `b572fefe` | `7645a4b3` |
 | spawn key (player→enemy) | `-4,0,3.2 > 1,0,-9.5` | `0,0,-1.6 > -9,0,-13` |
@@ -67,7 +67,7 @@ commands in **Reproduce**. Every gate currently **passes**.
 
 | Gate | Evidence | Result |
 | --- | --- | --- |
-| One-source solids ⇄ render ⇄ collision, proven against **real GPU buffers** | `evidence/correspondence/report.json` | `ok`, 43 solids, 36 collidable = 36 boxes, 5/5 checks, `consoleErrors: []` |
+| One-source solids ⇄ render ⇄ collision, proven against **real GPU buffers** | `evidence/correspondence/report.json` | `ok`, 44 solids, 36 collidable = 36 boxes, 5/5 checks, `consoleErrors: []` |
 | Core world validation (`assertValidStaticWorld`) | analysis + correspondence | pass |
 | Two clear **feet-based** player spawns | `evidence/analysis.report.json › spawns` | `[-4,0,3.2]`, `[4,0,3.2]`, both feet-on-floor, capsule (r0.34/h1.78) fits, inside bounds, 8 m apart |
 | Enemy spawn **clearance** (explicit gate) | `…› enemySpawn`, `foundry.ts` | `[1,0,-9.5]` measured with the shipping player capsule (r0.34/h1.78): `fits`, `insideBounds`, `feetOnFloor` all true |
@@ -82,7 +82,7 @@ commands in **Reproduce**. Every gate currently **passes**.
 | Lifecycle init/update/dispose ×2 | `evidence/lifecycle.report.json` | correspondence OK both cycles, hooks installed **and cleared**, scene → baseline (0 children), no update throw |
 | Empty-container path safe for `{ containerDressing: undefined }` (reproducing) | `…› undefinedDressingCycle` | `createFoundryLevel({ containerDressing: undefined })` coerces to `false`: `initThrew: false`, correspondence OK, scene → baseline. Pre-fix this threw `Cannot read properties of undefined (reading 'index')` |
 | Visual frames @ 1920×1080 | `evidence/frames/*.png` | `furnace_contrast, casting_lane, gantry_traversal, final_objective, silhouette` |
-| 3 hardware trials ≤16.7 ms, zero errors, explicit **port 5295** | `evidence/timing-trial-{1,2,3}/report.json` | p95 **6.73 / 6.66 / 6.71 ms**, `gpuDisjointCount 0`, `consoleErrors: []` |
+| 3 hardware trials ≤16.7 ms, zero errors | `evidence/timing-trial-{1,2,3}/report.json` | p95 **5.657 / 6.454 / 6.120 ms**, `gpuDisjointCount 0`, `consoleErrors: []` |
 | `tsc` clean | `npx tsc --noEmit` | exit 0 |
 
 Rise arithmetic: `GANTRY_TOP 1.7 / STAIR_STEP_COUNT 6 = 0.28333 m < maxStepHeight 0.34 m`;
@@ -100,11 +100,11 @@ exceeding any of them should be treated as a regression to investigate.
 | --- | --- | --- |
 | Collidable boxes | 36 | **≤ 45** |
 | Draw calls / frame | 25 | **≤ 32** |
-| Triangles / frame | 1,056 | **≤ 2,000** |
+| Triangles / frame | 1,080 | **≤ 2,000** |
 | Textures | 22 | **≤ 28** |
 | Geometries | 13 | **≤ 16** |
 | Shader programs | 12 | **≤ 16** |
-| Frame time p95 (max of CPU/GPU) | 5.6–6.7 ms | **≤ 16.7 ms** (60 fps) |
+| Frame time p95 (max of CPU/GPU) | 5.657–6.454 ms | **≤ 16.7 ms** (60 fps) |
 
 Geometry ships as **one merged mesh per material** (the shared
 `mergeSolidsByMaterial`), which is what keeps the draw-call count low; there are

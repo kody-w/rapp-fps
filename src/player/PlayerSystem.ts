@@ -30,6 +30,8 @@ import { StaticBoxWorld } from './StaticBoxWorld.js';
 export interface PlayerSystemOptions {
   world: StaticWorld;
   spawn?: THREE.Vector3;
+  /** Authored initial camera yaw. Omitted preserves the level shot orientation. */
+  initialYaw?: number;
   tuning?: Readonly<PlayerTuning>;
 }
 
@@ -41,6 +43,7 @@ export class PlayerSystem implements System {
   private readonly tuning: Readonly<PlayerTuning>;
   private readonly worldDefinition: StaticWorld;
   private readonly requestedSpawn?: THREE.Vector3;
+  private readonly requestedYaw?: number;
   private world: StaticBoxWorld | null = null;
   private motor: PlayerMotor | null = null;
 
@@ -74,6 +77,10 @@ export class PlayerSystem implements System {
     this.tuning = options.tuning ?? DEFAULT_PLAYER_TUNING;
     this.worldDefinition = options.world;
     this.requestedSpawn = options.spawn?.clone();
+    if (options.initialYaw !== undefined && !Number.isFinite(options.initialYaw)) {
+      throw new Error('PlayerSystem initialYaw must be finite');
+    }
+    this.requestedYaw = options.initialYaw;
   }
 
   copyFeetPosition(out: THREE.Vector3): boolean {
@@ -136,12 +143,14 @@ export class PlayerSystem implements System {
       },
     });
 
-    this.yaw = ctx.camera.rotation.y;
-    this.pitch = THREE.MathUtils.clamp(
-      ctx.camera.rotation.x,
-      -this.tuning.pitchLimitRadians,
-      this.tuning.pitchLimitRadians,
-    );
+    this.yaw = this.requestedYaw ?? ctx.camera.rotation.y;
+    this.pitch = this.requestedYaw === undefined
+      ? THREE.MathUtils.clamp(
+        ctx.camera.rotation.x,
+        -this.tuning.pitchLimitRadians,
+        this.tuning.pitchLimitRadians,
+      )
+      : 0;
     this.eyeHeight = this.tuning.standingEyeHeight;
     ctx.camera.rotation.order = 'YXZ';
     this.camera = ctx.camera;

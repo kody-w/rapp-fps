@@ -18,16 +18,16 @@ export const relayBlackout: MissionDefinition = {
   createArena: buildRelayArena,
   playerSpawns: [
     {
-      id: arena.playerSpawns[0].name,
-      label: 'West switchyard insertion',
-      position: arena.playerSpawns[0].position,
-      yaw: 0,
-    },
-    {
       id: arena.playerSpawns[1].name,
       label: 'East switchyard insertion',
       position: arena.playerSpawns[1].position,
-      yaw: 0,
+      yaw: 0.62,
+    },
+    {
+      id: arena.playerSpawns[0].name,
+      label: 'West switchyard insertion',
+      position: arena.playerSpawns[0].position,
+      yaw: -0.62,
     },
   ],
   enemies: [{

@@ -1,7 +1,7 @@
 {
-  "url": "http://127.0.0.1:5295/src/level/missions/foundry/fixtures/lifecycle.html",
+  "url": "http://127.0.0.1:5273/src/level/missions/foundry/fixtures/lifecycle.html",
   "consoleErrors": [],
-  "at": "2026-08-15T16:39:44.104Z",
+  "at": "2026-08-15T18:13:22.303Z",
   "ok": true,
   "baselineChildren": 0,
   "cycles": [
