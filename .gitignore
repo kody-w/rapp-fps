@@ -7,3 +7,6 @@ dist/
 shots/**
 .DS_Store
 *.log
+
+# AI evidence build output (browser-free Node fixtures)
+.ai-build/

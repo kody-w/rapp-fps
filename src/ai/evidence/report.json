@@ -1,0 +1,451 @@
+{
+  "ok": true,
+  "at": "2026-08-15T02:28:58.834Z",
+  "fixedStepHz": 120,
+  "failures": [],
+  "reachability": {
+    "ok": true,
+    "failures": [],
+    "rows": [
+      {
+        "from": "patrol",
+        "to": "investigate",
+        "reason": "heard",
+        "firedBy": "heard-lost-interest",
+        "tick": 48,
+        "time": 0.4
+      },
+      {
+        "from": "patrol",
+        "to": "engage",
+        "reason": "spotted",
+        "firedBy": "approach-dwell-reposition",
+        "tick": 271,
+        "time": 2.258
+      },
+      {
+        "from": "investigate",
+        "to": "engage",
+        "reason": "confirmed",
+        "firedBy": "heard-then-confirm",
+        "tick": 345,
+        "time": 2.875
+      },
+      {
+        "from": "investigate",
+        "to": "patrol",
+        "reason": "lost-interest",
+        "firedBy": "heard-lost-interest",
+        "tick": 529,
+        "time": 4.408
+      },
+      {
+        "from": "engage",
+        "to": "reposition",
+        "reason": "repositioning",
+        "firedBy": "approach-dwell-reposition",
+        "tick": 692,
+        "time": 5.767
+      },
+      {
+        "from": "reposition",
+        "to": "engage",
+        "reason": "in-position",
+        "firedBy": "approach-dwell-reposition",
+        "tick": 909,
+        "time": 7.575
+      },
+      {
+        "from": "engage",
+        "to": "search",
+        "reason": "lost-sight",
+        "firedBy": "engage-lose-sight-abandon",
+        "tick": 824,
+        "time": 6.867
+      },
+      {
+        "from": "reposition",
+        "to": "search",
+        "reason": "lost-sight",
+        "firedBy": "reposition-lose-sight",
+        "tick": 652,
+        "time": 5.433
+      },
+      {
+        "from": "search",
+        "to": "engage",
+        "reason": "reacquired",
+        "firedBy": "engage-lose-sight-reacquire",
+        "tick": 968,
+        "time": 8.067
+      },
+      {
+        "from": "search",
+        "to": "patrol",
+        "reason": "abandoned",
+        "firedBy": "engage-lose-sight-abandon",
+        "tick": 1544,
+        "time": 12.867
+      },
+      {
+        "from": "*",
+        "to": "dead",
+        "reason": "killed",
+        "firedBy": "killed-from-engage",
+        "tick": 601,
+        "time": 5.008,
+        "observedFroms": [
+          "engage",
+          "patrol"
+        ]
+      }
+    ],
+    "scenarioLog": [
+      {
+        "scenario": "approach-dwell-reposition",
+        "note": "Player emerges, is spotted, and is held in view long enough to dwell in cover and reposition, then settle back to engage.",
+        "config": "default",
+        "transitions": [
+          {
+            "from": "patrol",
+            "to": "engage",
+            "reason": "spotted",
+            "tick": 271,
+            "time": 2.258
+          },
+          {
+            "from": "engage",
+            "to": "reposition",
+            "reason": "repositioning",
+            "tick": 692,
+            "time": 5.767
+          },
+          {
+            "from": "reposition",
+            "to": "engage",
+            "reason": "in-position",
+            "tick": 909,
+            "time": 7.575
+          },
+          {
+            "from": "engage",
+            "to": "reposition",
+            "reason": "repositioning",
+            "tick": 1330,
+            "time": 11.083
+          },
+          {
+            "from": "reposition",
+            "to": "engage",
+            "reason": "in-position",
+            "tick": 1476,
+            "time": 12.3
+          }
+        ]
+      },
+      {
+        "scenario": "heard-lost-interest",
+        "note": "A footstep in range with the player kept out of sight behind the pillar: investigate, then give up.",
+        "config": "default",
+        "transitions": [
+          {
+            "from": "patrol",
+            "to": "investigate",
+            "reason": "heard",
+            "tick": 48,
+            "time": 0.4
+          },
+          {
+            "from": "investigate",
+            "to": "patrol",
+            "reason": "lost-interest",
+            "tick": 529,
+            "time": 4.408
+          }
+        ]
+      },
+      {
+        "scenario": "heard-then-confirm",
+        "note": "A footstep starts an investigation, then the player steps into view and is confirmed.",
+        "config": "default",
+        "transitions": [
+          {
+            "from": "patrol",
+            "to": "investigate",
+            "reason": "heard",
+            "tick": 48,
+            "time": 0.4
+          },
+          {
+            "from": "investigate",
+            "to": "engage",
+            "reason": "confirmed",
+            "tick": 345,
+            "time": 2.875
+          }
+        ]
+      },
+      {
+        "scenario": "engage-lose-sight-abandon",
+        "note": "Spotted, then the player ducks behind cover and stays hidden until the search times out.",
+        "config": "default",
+        "transitions": [
+          {
+            "from": "patrol",
+            "to": "engage",
+            "reason": "spotted",
+            "tick": 232,
+            "time": 1.933
+          },
+          {
+            "from": "engage",
+            "to": "reposition",
+            "reason": "repositioning",
+            "tick": 653,
+            "time": 5.442
+          },
+          {
+            "from": "reposition",
+            "to": "engage",
+            "reason": "in-position",
+            "tick": 790,
+            "time": 6.583
+          },
+          {
+            "from": "engage",
+            "to": "search",
+            "reason": "lost-sight",
+            "tick": 824,
+            "time": 6.867
+          },
+          {
+            "from": "search",
+            "to": "patrol",
+            "reason": "abandoned",
+            "tick": 1544,
+            "time": 12.867
+          }
+        ]
+      },
+      {
+        "scenario": "engage-lose-sight-reacquire",
+        "note": "Spotted, sight is broken into a search, then the player re-emerges and is reacquired.",
+        "config": "default",
+        "transitions": [
+          {
+            "from": "patrol",
+            "to": "engage",
+            "reason": "spotted",
+            "tick": 232,
+            "time": 1.933
+          },
+          {
+            "from": "engage",
+            "to": "reposition",
+            "reason": "repositioning",
+            "tick": 653,
+            "time": 5.442
+          },
+          {
+            "from": "reposition",
+            "to": "engage",
+            "reason": "in-position",
+            "tick": 790,
+            "time": 6.583
+          },
+          {
+            "from": "engage",
+            "to": "search",
+            "reason": "lost-sight",
+            "tick": 824,
+            "time": 6.867
+          },
+          {
+            "from": "search",
+            "to": "engage",
+            "reason": "reacquired",
+            "tick": 968,
+            "time": 8.067
+          }
+        ]
+      },
+      {
+        "scenario": "reposition-lose-sight",
+        "note": "Spotted, damage forces a reposition, and the player hides during the move so sight is lost mid-reposition. Runs under the DEFAULT config — no guard tuning.",
+        "config": "default",
+        "transitions": [
+          {
+            "from": "patrol",
+            "to": "engage",
+            "reason": "spotted",
+            "tick": 271,
+            "time": 2.258
+          },
+          {
+            "from": "engage",
+            "to": "reposition",
+            "reason": "repositioning",
+            "tick": 481,
+            "time": 4.008
+          },
+          {
+            "from": "reposition",
+            "to": "search",
+            "reason": "lost-sight",
+            "tick": 652,
+            "time": 5.433
+          },
+          {
+            "from": "search",
+            "to": "engage",
+            "reason": "reacquired",
+            "tick": 688,
+            "time": 5.733
+          }
+        ]
+      },
+      {
+        "scenario": "killed-from-engage",
+        "note": "Spotted, then a lethal hit while engaged.",
+        "config": "default",
+        "transitions": [
+          {
+            "from": "patrol",
+            "to": "engage",
+            "reason": "spotted",
+            "tick": 271,
+            "time": 2.258
+          },
+          {
+            "from": "engage",
+            "to": "dead",
+            "reason": "killed",
+            "tick": 601,
+            "time": 5.008
+          }
+        ]
+      },
+      {
+        "scenario": "killed-from-patrol",
+        "note": "A lethal hit while patrolling, with no target ever seen — killed is reachable from a non-combat state too.",
+        "config": "default",
+        "transitions": [
+          {
+            "from": "patrol",
+            "to": "dead",
+            "reason": "killed",
+            "tick": 121,
+            "time": 1.008
+          }
+        ]
+      }
+    ]
+  },
+  "lineOfSight": {
+    "ok": true,
+    "failures": [],
+    "cases": [
+      {
+        "name": "clear-empty-world",
+        "kind": "los",
+        "expected": true,
+        "actual": true,
+        "detail": "no geometry between two points"
+      },
+      {
+        "name": "blocked-box-on-segment",
+        "kind": "los",
+        "expected": false,
+        "actual": false,
+        "detail": "a box straddling the mid-point blocks the line"
+      },
+      {
+        "name": "clear-box-beside-segment",
+        "kind": "los",
+        "expected": true,
+        "actual": true,
+        "detail": "a box 5 m to the side does not block the line"
+      },
+      {
+        "name": "arena-open-lane",
+        "kind": "los",
+        "expected": true,
+        "actual": true,
+        "detail": "enemy eye to a player on the open central lane"
+      },
+      {
+        "name": "arena-behind-hide-l",
+        "kind": "los",
+        "expected": false,
+        "actual": false,
+        "detail": "player tucked behind the hide-l block is NOT visible"
+      },
+      {
+        "name": "arena-behind-pillar",
+        "kind": "los",
+        "expected": false,
+        "actual": false,
+        "detail": "player behind the central pillar (beyond z=4.2) is NOT visible"
+      },
+      {
+        "name": "perceive-front-in-range",
+        "kind": "perception",
+        "expected": true,
+        "actual": true,
+        "detail": "target ahead, in range and in the cone, unobstructed"
+      },
+      {
+        "name": "perceive-behind-out-of-cone",
+        "kind": "perception",
+        "expected": false,
+        "actual": false,
+        "detail": "target directly behind is outside the 120° cone"
+      },
+      {
+        "name": "perceive-too-far",
+        "kind": "perception",
+        "expected": false,
+        "actual": false,
+        "detail": "target beyond vision distance is not seen"
+      },
+      {
+        "name": "perceive-occluded-in-cone",
+        "kind": "perception",
+        "expected": false,
+        "actual": false,
+        "detail": "target ahead and in range but behind a box is not seen"
+      }
+    ]
+  },
+  "determinism": {
+    "ok": true,
+    "failures": [],
+    "runs": 2,
+    "shotsFired": 9,
+    "transitions": 8,
+    "identical": true
+  },
+  "renderRate": {
+    "ok": true,
+    "failures": [],
+    "targetSteps": 1800,
+    "rates": [
+      30,
+      60,
+      144,
+      240
+    ],
+    "identical": true,
+    "transitions": 7
+  },
+  "cpu": {
+    "ok": true,
+    "failures": [],
+    "enemies": 1,
+    "stepsPerTrial": 5400,
+    "trials": 3,
+    "perStepMicros": 0.4507,
+    "perFrame60Micros": 0.9014,
+    "budgetMicros": 250
+  }
+}
