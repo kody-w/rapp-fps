@@ -90,6 +90,11 @@ export class Engine {
     this.scene.matrixWorldAutoUpdate = true;
 
     window.addEventListener('resize', this.onResize, { passive: true });
+    // iOS Safari rotates and shows/hides its URL bar without always firing a
+    // timely `resize`; orientationchange + the VisualViewport's own resize cover
+    // those, so the canvas keeps filling the screen through orientation flips.
+    window.addEventListener('orientationchange', this.onDeferredResize, { passive: true });
+    window.visualViewport?.addEventListener('resize', this.onResize, { passive: true });
   }
 
   private onResize = (): void => {
@@ -99,6 +104,12 @@ export class Engine {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h, false);
     this.bus.emit('engine:resize', { width: w, height: h });
+  };
+
+  // orientationchange can fire before the browser has settled the new
+  // innerWidth/innerHeight, so read them on the next frame.
+  private onDeferredResize = (): void => {
+    requestAnimationFrame(this.onResize);
   };
 
   add(system: System): this {
@@ -194,6 +205,8 @@ export class Engine {
   dispose(): void {
     this.stop();
     window.removeEventListener('resize', this.onResize);
+    window.removeEventListener('orientationchange', this.onDeferredResize);
+    window.visualViewport?.removeEventListener('resize', this.onResize);
     // Tear down dependants before providers (weapon/AI/player before level and
     // render). Forward disposal can restore a hook after its owner removed it.
     for (let i = this.systems.length - 1; i >= 0; i--) {

@@ -2,11 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <title>rapp-fps</title>
 <style>
-  html,body{margin:0;height:100%;background:#000;overflow:hidden}
-  #game{display:block;width:100vw;height:100vh}
+  /* Lock the page to the viewport: no scroll, no pull-to-refresh / rubber-band,
+     no pinch or double-tap zoom eating touches meant for the controls. */
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;overscroll-behavior:none;touch-action:none;-webkit-text-size-adjust:100%}
+  /* 100% (not 100vh) tracks the visual viewport on iOS Safari, so the canvas
+     matches the drawing buffer the engine sizes from window.inner{Width,Height}
+     and the bottom controls never hide behind the URL bar. */
+  #game{display:block;width:100%;height:100%;touch-action:none}
 </style>
 </head>
 <body>

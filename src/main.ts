@@ -17,6 +17,7 @@ import { CombatFX } from './fx/CombatFX.js';
 import { AudioSystem } from './audio/AudioSystem.js';
 import { CombatHud } from './hud/CombatHud.js';
 import { createPlayer } from './player/index.js';
+import { mountTouchControls } from './input/TouchControls.js';
 import { WeaponSystem } from './weapons/index.js';
 import { AiSystem } from './ai/AiSystem.js';
 import {
@@ -37,6 +38,11 @@ const { input, system: player } = createPlayer(canvas, {
   spawn: playerSpawn,
 });
 engine.input = input;
+
+// On phones/tablets pointer lock is unavailable, so an on-screen overlay feeds
+// the same `input` object: bottom-left joystick → move, bottom-right button →
+// fire, drag elsewhere → look. No-ops (returns null) on desktop.
+const touchControls = mountTouchControls(input);
 
 const playerEye = new THREE.Vector3();
 const playerFeet = new THREE.Vector3();
@@ -235,6 +241,7 @@ const disposeApp = (): void => {
   unsubscribeAudioStatus();
   if (clearInputRaf) cancelAnimationFrame(clearInputRaf);
   if (readyRaf) cancelAnimationFrame(readyRaf);
+  touchControls?.dispose();
   engine.dispose();
 };
 
