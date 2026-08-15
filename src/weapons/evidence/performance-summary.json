@@ -1,0 +1,161 @@
+{
+  "measuredAgainstMain": "b566972",
+  "baseline": {
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "viewport": "1920x1080",
+    "budgetMs": 16.7,
+    "overBudget": false,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 9.572,
+      "p95": 11.694,
+      "worst": 13.647
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 1.4,
+      "p95": 2,
+      "worst": 2.2
+    },
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 9.572,
+      "p95": 11.694,
+      "worst": 13.647
+    },
+    "drawCallsPerFrame": 80,
+    "trianglesPerFrame": 84442,
+    "programs": 12,
+    "textures": 28,
+    "geometries": 8,
+    "gpuDisjointCount": 0,
+    "consoleErrors": []
+  },
+  "weaponIdle": {
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "viewport": "1920x1080",
+    "budgetMs": 16.7,
+    "overBudget": false,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 8.532,
+      "p95": 9.491,
+      "worst": 10.71
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 0.3,
+      "p95": 0.5,
+      "worst": 0.6
+    },
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 8.532,
+      "p95": 9.491,
+      "worst": 10.71
+    },
+    "drawCallsPerFrame": 84,
+    "trianglesPerFrame": 85406,
+    "programs": 13,
+    "textures": 28,
+    "geometries": 12,
+    "gpuDisjointCount": 0,
+    "consoleErrors": []
+  },
+  "trueSustainedFire": {
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "viewport": "1920x1080",
+    "budgetMs": 16.7,
+    "overBudget": false,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 8.272,
+      "p95": 10.408,
+      "worst": 12.867
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 1.7,
+      "p95": 2.6,
+      "worst": 3.1
+    },
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 8.272,
+      "p95": 10.408,
+      "worst": 12.867
+    },
+    "drawCallsPerFrame": 84,
+    "trianglesPerFrame": 85406,
+    "programs": 15,
+    "textures": 28,
+    "geometries": 14,
+    "gpuDisjointCount": 0,
+    "consoleErrors": []
+  },
+  "sustainedWindowProof": {
+    "profiler": {
+      "gpuSupported": true,
+      "gpuCounterBits": 64,
+      "gpuDisjointCount": 0,
+      "gpuFrameMs": {
+        "samples": 120,
+        "median": 9.538,
+        "p95": 12.521,
+        "worst": 13.614
+      },
+      "cpuFrameMs": {
+        "samples": 122,
+        "median": 1.7,
+        "p95": 2.7,
+        "worst": 3.2
+      },
+      "rafIntervalMs": {
+        "samples": 122,
+        "median": 16.7,
+        "p95": 18.3,
+        "worst": 18.6
+      },
+      "budgetFrameMs": {
+        "samples": 120,
+        "median": 9.538,
+        "p95": 12.521,
+        "worst": 13.614
+      },
+      "budgetFrameMsMedian": 9.538,
+      "budgetFrameMsP95": 12.521
+    },
+    "shotsFired": 24,
+    "ammoSpent": 24,
+    "frames": 122,
+    "flashFrames": 48,
+    "flashFrameRatio": 0.39344262295081966,
+    "maxDrawCalls": 88,
+    "flashDrawCallsMax": 88,
+    "impacts": 13,
+    "reloadStarts": 0,
+    "reloadEnds": 0,
+    "shakeEvents": 0,
+    "damageEvents": 0,
+    "assertionCount": 13,
+    "failures": []
+  },
+  "observedDeltaFromSameHarnessBaseline": {
+    "idleDrawCalls": 4,
+    "activeFlashDrawCalls": 4,
+    "idleTriangles": 964,
+    "note": "Draw-call and triangle deltas are weapon-attributable and stable across runs; GPU-ms deltas are within run-to-run variance."
+  },
+  "verdict": {
+    "idle": "PASS: 9.491ms p95 <= 16.700ms (7.209ms headroom)",
+    "sustainedFireShotTool": "PASS: 10.408ms p95 <= 16.700ms (6.292ms headroom)",
+    "sustainedWindowProof": "PASS: 12.521ms p95 <= 16.700ms (4.179ms headroom)",
+    "activityVerified": "24 shots, 48/122 flash-active frames, 88 max/flash draw calls, 0 reloads, 0 shakes, 0 damage events",
+    "interpretation": "Round-4 recapture. Weapon adds +4 idle draw calls and +4 during muzzle flash. GPU p95 varies run-to-run (idle 9.491ms, shot-tool sustained 10.408ms, window-proof 12.521ms) but every window stays well under the 16.7ms budget."
+  },
+  "round4Recapture": {
+    "measuredAgainstMain": "b566972",
+    "capturedAt": "2026-08-08T01:58:54.575Z",
+    "note": "All p95 windows re-measured after the trigger-edge, ballistic-inclusion, and normalized-spread fixes. No console errors in any capture."
+  }
+}

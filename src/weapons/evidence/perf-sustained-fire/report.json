@@ -1,0 +1,50 @@
+{
+  "at": "2026-08-08T01:54:40.939Z",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "cpuThrottleRate": 1,
+  "rafDelayMs": 0,
+  "frameBudgetMs": 16.7,
+  "overBudget": false,
+  "performance": {
+    "gpuSupported": true,
+    "gpuCounterBits": 64,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 8.272,
+      "p95": 10.408,
+      "worst": 12.867
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 1.7,
+      "p95": 2.6,
+      "worst": 3.1
+    },
+    "rafIntervalMs": {
+      "samples": 122,
+      "median": 16.7,
+      "p95": 16.9,
+      "worst": 17.1
+    },
+    "budgetFrameMsMedian": 8.272,
+    "budgetFrameMsP95": 10.408,
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 8.272,
+      "p95": 10.408,
+      "worst": 12.867
+    },
+    "gpuDisjointCount": 0,
+    "note": "budget uses max(CPU, GPU); rAF interval is scheduler cadence only",
+    "drawCallsPerFrame": 84,
+    "trianglesPerFrame": 85406,
+    "programs": 15,
+    "textures": 28,
+    "geometries": 14
+  },
+  "shots": [
+    "src/weapons/evidence/perf-sustained-fire/stress-fire.png"
+  ],
+  "consoleErrors": []
+}

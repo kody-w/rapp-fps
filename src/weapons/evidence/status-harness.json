@@ -1,0 +1,42 @@
+{
+  "passed": true,
+  "assertions": 11,
+  "failures": [],
+  "consoleErrors": [],
+  "reference": {
+    "adsStill": 0,
+    "hipStill": 0.33862433862433866,
+    "hipFullMove": 1,
+    "rawRadianFullMove": 0.03438298626428829
+  },
+  "phaseA": {
+    "count": 13,
+    "min": 0.43161054174040386,
+    "max": 0.9825740867629308,
+    "final": 0.9825740867629308
+  },
+  "phaseB": {
+    "count": 13,
+    "final": 0.3399503819867629
+  },
+  "phaseC": {
+    "count": 16,
+    "finalSpread": 0.0038029100821186405,
+    "finalAim": 0.9887695312500001
+  },
+  "phaseD": {
+    "idleFramesDriven": 120,
+    "statusEmitted": 0
+  },
+  "allInUnitRange": true,
+  "totalStatuses": 42,
+  "normalizationNegativeControl": {
+    "expectedStatus": "failed",
+    "actualStatus": "failed",
+    "assertionFailures": [
+      "raw radian spread 0.0344 at full movement reads as ~0 (tightest) under the HUD 0..1 contract"
+    ],
+    "collectionErrors": [],
+    "rawRadianFullMove": 0.03438298626428829
+  }
+}
