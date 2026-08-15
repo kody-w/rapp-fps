@@ -8,9 +8,9 @@
  * `ArenaDefinition` type (re-exported below), which every mission's `createArena`
  * returns — the same type the shipping level already produces.
  *
- * Typical wiring, once the sibling Relay/Foundry branches land, integration
- * composes the reviewed mission list (Cargo Breach ships here; the others arrive
- * from those branches):
+ * Generic callers may compose their own validated catalog. Production uses the
+ * reviewed catalog from `production.ts` and the browser-facing
+ * `CampaignSystem`.
  *
  * ```ts
  * import {
@@ -61,11 +61,20 @@ export {
 export type { ClearanceResult, ClearanceOptions, DerivedSpawn, DeriveSpawnOptions } from './spawns.js';
 
 // ── Reviewed missions & catalog ─────────────────────────────────────────────
-// Cargo Breach is the only reviewed mission that ships here; integration adds
-// the sibling Relay/Foundry definitions to the catalog once their PRs merge.
-export { cargoBreach, cargoBreachDerivedSpawn } from './missions/index.js';
+export {
+  cargoBreach,
+  cargoBreachDerivedSpawn,
+  relayBlackout,
+  foundryLastLight,
+} from './missions/index.js';
 export { createCampaignCatalog, CampaignValidationError } from './catalog.js';
 export type { CampaignCatalog, CampaignValidationCode } from './catalog.js';
+export {
+  productionMissions,
+  arenaTopologyFingerprint,
+  assertDistinctMissionArenas,
+  createProductionCampaignCatalog,
+} from './production.js';
 
 // ── Progression state machine ───────────────────────────────────────────────
 export {

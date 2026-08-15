@@ -174,8 +174,9 @@ export class ArenaLevel implements System {
     // 5/5 correspondence above is untouched and the collider stays the body box.
     // Off with `?dressing=0` (paired with the plain material) for a matched
     // pre-#67 evidence frame.
-    if (dressingOn) {
-      this.dressing = createContainerDressingLayer(selectContainerSolids(this.def));
+    const containerSolids = selectContainerSolids(this.def);
+    if (dressingOn && containerSolids.length > 0) {
+      this.dressing = createContainerDressingLayer(containerSolids);
       for (const mesh of this.dressing.meshes) this.root.add(mesh);
     }
     if (typeof window !== 'undefined') {

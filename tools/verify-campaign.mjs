@@ -203,6 +203,7 @@ try {
 
   const fingerprints = [];
   const imageHashes = [];
+  const fixtureStorageSnapshots = [];
   for (const expected of MISSIONS) {
     const page = await open(catalogContext, expected.id, true);
     const actual = await snapshot(page);
@@ -216,6 +217,7 @@ try {
     const imageHash = createHash('sha256').update(image).digest('hex');
     fingerprints.push(fingerprint);
     imageHashes.push(imageHash);
+    fixtureStorageSnapshots.push(actual.storage);
     evidence.missions.push({
       id: expected.id,
       worldBoxes: actual.boxes.length,
@@ -240,15 +242,13 @@ try {
   }
   assert(duplicateRejected, 'world-distinctness negative control did not fail');
 
-  const fixtureStorage = await catalogContext.newPage();
-  await fixtureStorage.goto(TARGET, { waitUntil: 'domcontentloaded' });
-  const storageAfterFixture = await fixtureStorage.evaluate(() => ({ ...localStorage }));
-  assert.deepEqual(
-    storageAfterFixture,
-    storageBeforeFixture,
-    'campaignFixture mission jumps forged persisted completion',
-  );
-  await fixtureStorage.close();
+  for (const storageAfterFixture of fixtureStorageSnapshots) {
+    assert.deepEqual(
+      storageAfterFixture,
+      storageBeforeFixture,
+      'campaignFixture mission jumps forged persisted completion',
+    );
+  }
   await catalogContext.close();
 
   const context = await browser.newContext({

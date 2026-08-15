@@ -372,16 +372,133 @@ let playerMoved = false;
 
 /* --- check: there is something to fight ----------------------------------- */
 {
-  const evs = await events();
-  const dmg = evs.filter((e) => e.event === EV.Damage || e.event === EV.HitConfirmed);
+  let evs = await events();
+  const enemyProof = (list) => list.filter((e) => (
+    e.event === EV.HitConfirmed
+    || (e.event === EV.Damage && e.payload?.id !== 'player')
+  ));
+  let proof = enemyProof(evs);
+  let targetedProbe = null;
+
+  if (proof.length === 0) {
+    targetedProbe = await page.evaluate(() => {
+      const integration = window.__INTEGRATION__;
+      const player = integration?.player;
+      const ai = integration?.ai;
+      const motor = player?.getMotor?.();
+      const world = window.__LEVEL_STATIC_WORLD__;
+      const THREE = window.THREE;
+      if (!player || !ai || !motor || !world || !THREE) {
+        return { ok: false, reason: 'player/AI/world evidence seam unavailable' };
+      }
+
+      const enemy = new THREE.Vector3();
+      if (!ai.copyPosition(enemy)) {
+        return { ok: false, reason: 'enemy is already dead' };
+      }
+      const target = enemy.clone();
+      target.y += 1.05;
+      const radius = 0.34;
+      const height = 1.78;
+      const eyeHeight = 1.66;
+      const bounds = world.bounds;
+
+      const canFit = (point) => {
+        if (
+          point.x - radius < bounds.min[0]
+          || point.x + radius > bounds.max[0]
+          || point.z - radius < bounds.min[2]
+          || point.z + radius > bounds.max[2]
+        ) return false;
+        return !world.boxes.some((box) => {
+          if (box.max[1] <= point.y + 1e-4 || box.min[1] >= point.y + height) return false;
+          const dx = Math.max(box.min[0] - point.x, 0, point.x - box.max[0]);
+          const dz = Math.max(box.min[2] - point.z, 0, point.z - box.max[2]);
+          return Math.hypot(dx, dz) < radius;
+        });
+      };
+
+      const clearShot = (point) => {
+        const eye = point.clone();
+        eye.y += eyeHeight;
+        const direction = target.clone().sub(eye);
+        const distance = direction.length();
+        if (distance < 1e-6) return false;
+        direction.multiplyScalar(1 / distance);
+        const ray = new THREE.Ray(eye, direction);
+        const hit = new THREE.Vector3();
+        return !world.boxes.some((box) => {
+          if (box.max[1] <= 0.01) return false;
+          const aabb = new THREE.Box3(
+            new THREE.Vector3(...box.min),
+            new THREE.Vector3(...box.max),
+          );
+          const intersection = ray.intersectBox(aabb, hit);
+          return intersection && intersection.distanceTo(eye) < distance - 0.2;
+        });
+      };
+
+      let candidate = null;
+      for (const ring of [3, 4.5, 6, 7.5]) {
+        for (let step = 0; step < 32; step++) {
+          const angle = step / 32 * Math.PI * 2;
+          const point = new THREE.Vector3(
+            enemy.x + Math.cos(angle) * ring,
+            enemy.y,
+            enemy.z + Math.sin(angle) * ring,
+          );
+          if (canFit(point) && clearShot(point)) {
+            candidate = point;
+            break;
+          }
+        }
+        if (candidate) break;
+      }
+      if (!candidate) return { ok: false, reason: 'no clear capsule-valid firing lane found' };
+
+      motor.teleport(candidate);
+      player.lookAt(target);
+      return {
+        ok: true,
+        candidate: { x: candidate.x, y: candidate.y, z: candidate.z },
+        target: { x: target.x, y: target.y, z: target.z },
+      };
+    });
+
+    if (targetedProbe.ok) {
+      await page.waitForTimeout(200);
+      const before = (await events()).length;
+      await page.mouse.down();
+      for (let i = 0; i < 50; i++) {
+        await page.evaluate(() => {
+          const { player, ai } = window.__INTEGRATION__;
+          const target = new window.THREE.Vector3();
+          if (ai.copyPosition(target)) {
+            target.y += 1.05;
+            player.lookAt(target);
+          }
+        });
+        await page.waitForTimeout(16);
+      }
+      await page.mouse.up();
+      await page.waitForTimeout(250);
+      evs = (await events()).slice(before);
+      proof = enemyProof(evs);
+    }
+  }
+
   const kills = countOf(evs, EV.Elimination);
-  if (dmg.length > 0) {
+  if (proof.length > 0) {
     record('enemy_damageable', 'pass',
-      `${dmg.length} damage/hit-confirm events observed${kills ? `, ${kills} elimination(s)` : ''}.`);
+      `${proof.length} enemy damage/hit-confirm events observed`
+        + `${kills ? `, ${kills} elimination(s)` : ''}.`,
+      targetedProbe);
   } else {
     record('enemy_damageable', 'unobserved',
-      'no combat:damage or combat:hit-confirm was observed at any point. Nothing in this build '
-        + 'can be fought. This is NOT a pass — an empty arena produces exactly this result.');
+      'no enemy-specific combat:damage or combat:hit-confirm was observed, including the '
+        + `clear-lane targeted probe (${targetedProbe?.reason ?? 'not available'}). Nothing in `
+        + 'this build demonstrated a fightable target.',
+      targetedProbe);
   }
 }
 

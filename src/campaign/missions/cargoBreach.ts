@@ -40,7 +40,7 @@ const spawnB: SpawnSlot = {
 export const cargoBreach: MissionDefinition = {
   id: asMissionId('cargo-breach'),
   order: 1,
-  title: 'Cargo Breach',
+  title: 'CARGO BREACH',
   brief:
     'Blue-hour cargo bay. One defender holds the beacon terminal at the loading '
     + 'dock. Break the straight sightline through the container stack and take the '

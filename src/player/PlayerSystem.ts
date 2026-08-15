@@ -55,6 +55,7 @@ export class PlayerSystem implements System {
 
   private readonly renderPosition = new THREE.Vector3();
   private readonly cameraRight = new THREE.Vector3();
+  private readonly aimEye = new THREE.Vector3();
   private camera: THREE.PerspectiveCamera | null = null;
   private viewBobX = 0;
   private viewOffsetY = 0;
@@ -97,6 +98,22 @@ export class PlayerSystem implements System {
     );
     out.copy(motor.position);
     out.y += eye;
+    return true;
+  }
+
+  lookAt(target: THREE.Vector3): boolean {
+    if (!this.copyEyePosition(this.aimEye)) return false;
+    const dx = target.x - this.aimEye.x;
+    const dy = target.y - this.aimEye.y;
+    const dz = target.z - this.aimEye.z;
+    const length = Math.hypot(dx, dy, dz);
+    if (!Number.isFinite(length) || length < 1e-6) return false;
+    this.yaw = Math.atan2(-dx, -dz);
+    this.pitch = THREE.MathUtils.clamp(
+      Math.asin(dy / length),
+      -this.tuning.pitchLimitRadians,
+      this.tuning.pitchLimitRadians,
+    );
     return true;
   }
 

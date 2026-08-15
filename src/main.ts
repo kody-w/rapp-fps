@@ -10,7 +10,6 @@ import { Engine } from './core/engine.js';
 import { RenderSystem } from './render/RenderSystem.js';
 import {
   ArenaLevel,
-  buildArena,
   buildStaticWorld,
 } from './level/index.js';
 import { CombatFX } from './fx/CombatFX.js';
@@ -24,15 +23,26 @@ import {
   CombatSystem,
   createAiArenaBinding,
 } from './game/index.js';
+import { CampaignSystem } from './campaign/CampaignSystem.js';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const engine = new Engine(canvas);
 
 const render = new RenderSystem();
-const arenaDefinition = buildArena();
+const campaign = CampaignSystem.create({
+  store: window.localStorage,
+  location: {
+    getSearch: () => location.search,
+    setSearch: (next) => {
+      history.replaceState(null, '', `${location.pathname}${next}${location.hash}`);
+    },
+    reload: () => location.reload(),
+  },
+});
+const arenaDefinition = campaign.definition;
 const staticWorld = buildStaticWorld(arenaDefinition);
 const level = new ArenaLevel(arenaDefinition, staticWorld);
-const playerSpawn = new THREE.Vector3(...arenaDefinition.playerSpawn);
+const playerSpawn = new THREE.Vector3(...campaign.spawn.position);
 const { input, system: player } = createPlayer(canvas, {
   world: staticWorld,
   spawn: playerSpawn,
@@ -111,14 +121,9 @@ if (enabled('hud')) engine.add(hud);
 engine.add(combat);
 engine.add(ai);
 engine.add(weapon);
+engine.add(campaign);
 
 await engine.init();
-if (enabled('hud')) {
-  hud.setObjective({
-    title: 'SECURE THE CARGO BAY',
-    detail: 'Eliminate the hostile at the beacon.',
-  });
-}
 
 // The pipeline owns presentation once it is initialised.
 // `renderer.info` resets on every render call, so reading it after the composer
@@ -256,6 +261,8 @@ const gameplay = {
       enemyState: ai.state,
       weaponAmmo: weapon.magazineAmmo,
       weaponReserve: weapon.reserveAmmo,
+      missionId: campaign.stateEvidence.missionId,
+      campaignStatus: campaign.stateEvidence.status,
     };
   },
 };
@@ -267,6 +274,9 @@ Object.assign(window as unknown as Record<string, unknown>, {
     fx,
     audio,
     hud,
+    player,
+    ai,
+    campaign,
     gameplay,
     dispose: disposeApp,
   },
