@@ -87,14 +87,14 @@ async function snapshot(page) {
   return page.evaluate(() => {
     const campaign = window.__CAMPAIGN__;
     const world = window.__LEVEL_STATIC_WORLD__;
+    const correspondence = window.__ARENA_CHECK__;
     const hudObjective = document.querySelector('.hud-objective')?.textContent
       ?.replace(/\s+/g, ' ')
       .trim() ?? '';
     const boxes = world?.boxes?.map((box) => ({
-      id: box.id,
-      min: [box.min.x, box.min.y, box.min.z],
-      max: [box.max.x, box.max.y, box.max.z],
-      surface: box.surface,
+      min: [box.min[0], box.min[1], box.min[2]],
+      max: [box.max[0], box.max[1], box.max[2]],
+      material: box.material,
     })) ?? [];
     return {
       state: campaign?.state ?? null,
@@ -110,6 +110,15 @@ async function snapshot(page) {
       hudObjective,
       bodyText: document.body.innerText.replace(/\s+/g, ' ').trim(),
       boxes,
+      correspondence: correspondence
+        ? {
+          ok: correspondence.ok,
+          results: correspondence.results,
+          solidCount: correspondence.solidCount,
+          collidableCount: correspondence.collidableCount,
+          boxCount: correspondence.boxCount,
+        }
+        : null,
       storage: { ...localStorage },
       hudRoots: document.querySelectorAll('[data-hud-root]').length,
       canvasCount: document.querySelectorAll('canvas#game').length,
@@ -145,6 +154,17 @@ function assertMissionSnapshot(actual, expected) {
     `${expected.id} has no authored enemy cover ids`,
   );
   assert(actual.boxes.length > 0, `${expected.id} produced an empty StaticWorld`);
+  assert(actual.correspondence, `${expected.id} did not expose a correspondence report`);
+  assert.equal(actual.correspondence.ok, true, `${expected.id} correspondence failed`);
+  assert.equal(
+    actual.correspondence.results.length,
+    5,
+    `${expected.id} did not run all five correspondence checks`,
+  );
+  assert(
+    actual.correspondence.results.every((result) => result.ok),
+    `${expected.id} has a failed correspondence check`,
+  );
   assert.equal(actual.hudRoots, 1, `${expected.id} mounted ${actual.hudRoots} HUD roots`);
   assert.equal(actual.canvasCount, 1, `${expected.id} mounted ${actual.canvasCount} game canvases`);
 }
@@ -204,6 +224,7 @@ try {
       playerSpawnSlots: actual.mission.playerSpawns.length,
       enemyCoverIds: actual.mission.enemyCoverIds.length,
       hudObjective: actual.hudObjective,
+      correspondenceChecks: actual.correspondence.results.map((result) => result.name),
     });
     await page.close();
   }
