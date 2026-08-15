@@ -1,5 +1,15 @@
 import * as THREE from 'three';
 import { AiSystem } from '../../ai/AiSystem.js';
+import {
+  computeTracerSegment,
+  ENEMY_TRACER_CAMERA_CLEARANCE,
+  ENEMY_TRACER_MAX_CSS_PIXELS,
+  ENEMY_TRACER_MAX_LENGTH,
+  ENEMY_TRACER_TARGET_CSS_PIXELS,
+  nearestTracerDepth,
+  projectedTracerWidthCssPixels,
+  tracerWorldRadiusForCssPixels,
+} from '../../ai/TracerPresentation.js';
 import { EventBusImpl } from '../../core/bus.js';
 import {
   Events,
@@ -270,11 +280,177 @@ function testProductionAiOmitsDebugMarkers(): Outcome {
   };
 }
 
+function testTracerPresentationBounds(): Outcome {
+  const failures: string[] = [];
+  const far = computeTracerSegment(
+    { x: 0, y: 1, z: -10 },
+    { x: 0, y: 0, z: 1 },
+    { x: 0, y: 1, z: 0 },
+  );
+  if (!far || Math.abs(far.length - ENEMY_TRACER_MAX_LENGTH) > 1e-9) {
+    failures.push(`far tracer length ${String(far?.length)} != ${ENEMY_TRACER_MAX_LENGTH}`);
+  }
+
+  const near = computeTracerSegment(
+    { x: 0, y: 1, z: -1 },
+    { x: 0, y: 0, z: 1 },
+    { x: 0, y: 1, z: 0 },
+  );
+  const expectedNear = 1 - ENEMY_TRACER_CAMERA_CLEARANCE;
+  if (!near || Math.abs(near.length - expectedNear) > 1e-9) {
+    failures.push(`near tracer length ${String(near?.length)} != ${expectedNear}`);
+  }
+
+  const tooClose = computeTracerSegment(
+    { x: 0, y: 1, z: -0.5 },
+    { x: 0, y: 0, z: 1 },
+    { x: 0, y: 1, z: 0 },
+  );
+  if (tooClose !== null) failures.push('tracer inside camera clearance must be hidden');
+  if (computeTracerSegment(
+    { x: 0, y: 0, z: 0 },
+    { x: 0, y: 0, z: 0 },
+    { x: 0, y: 0, z: 1 },
+  ) !== null) failures.push('zero direction must be refused');
+  if (computeTracerSegment(
+    { x: Number.NaN, y: 0, z: 0 },
+    { x: 0, y: 0, z: 1 },
+    { x: 0, y: 0, z: 1 },
+  ) !== null) failures.push('NaN origin must be refused');
+
+  const fov = THREE.MathUtils.degToRad(52);
+  const centerDepth = 3;
+  const nearDepth = nearestTracerDepth(centerDepth, 1, ENEMY_TRACER_MAX_LENGTH);
+  const oldCenterRadius = tracerWorldRadiusForCssPixels(fov, 1080, centerDepth);
+  const oldNearWidth = projectedTracerWidthCssPixels(
+    fov,
+    1080,
+    nearDepth,
+    oldCenterRadius,
+  );
+  const radius = tracerWorldRadiusForCssPixels(
+    fov,
+    1080,
+    nearDepth,
+  );
+  const width = projectedTracerWidthCssPixels(
+    fov,
+    1080,
+    nearDepth,
+    radius,
+  );
+  if (
+    Math.abs(width - ENEMY_TRACER_TARGET_CSS_PIXELS) > 1e-9
+    || width > ENEMY_TRACER_MAX_CSS_PIXELS
+  ) {
+    failures.push(`scaled width ${width}px is not target ${ENEMY_TRACER_TARGET_CSS_PIXELS}px`);
+  }
+  if (oldNearWidth <= ENEMY_TRACER_MAX_CSS_PIXELS) {
+    failures.push(`center-depth negative control did not exceed bound: ${oldNearWidth}px`);
+  }
+
+  return {
+    name: 'tracerPresentationBounds',
+    pass: failures.length === 0,
+    failures,
+    detail: {
+      farLength: far?.length,
+      nearLength: near?.length,
+      tooCloseHidden: tooClose === null,
+      projectedWidthAt52Fov: width,
+      worldRadiusAtNearestEnd: radius,
+      oldCenterSizedNearWidth: oldNearWidth,
+      nearestEndDepth: nearDepth,
+      pixelBound: ENEMY_TRACER_MAX_CSS_PIXELS,
+    },
+  };
+}
+
+function testTracerVisualLifetime(): Outcome {
+  const failures: string[] = [];
+  const bus = new EventBusImpl();
+  const ctx = context(bus);
+  const definition = buildArena();
+  const coreWorld = buildStaticWorld(definition);
+  const binding = createAiArenaBinding(definition, coreWorld);
+  const ai = new AiSystem({
+    arena: binding.arena,
+    spawn: binding.spawn,
+    yaw: binding.yaw,
+    renderWorld: false,
+    renderMarkers: false,
+    renderGaze: false,
+  });
+  ai.init(ctx);
+  const internal = ai as unknown as {
+    sink: {
+      onFire?: (shot: {
+        origin: { x: number; y: number; z: number };
+        direction: { x: number; y: number; z: number };
+        aimError: number;
+        burstIndex: number;
+        time: number;
+      }) => void;
+    };
+    tracer: THREE.Mesh;
+    muzzle: THREE.Mesh;
+  };
+  internal.sink.onFire?.({
+    origin: { x: 0, y: 1.7, z: -1 },
+    direction: { x: 0, y: 0, z: 1 },
+    aimError: 0,
+    burstIndex: 0,
+    time: 1,
+  });
+  ai.update({ dt: 0.03, elapsed: 1, frame: 0, alpha: 1 }, ctx);
+  const firstVisible = internal.tracer.visible && internal.muzzle.visible;
+  const firstLength = internal.tracer.scale.y;
+  ai.update({ dt: 0.03, elapsed: 1.03, frame: 1, alpha: 1 }, ctx);
+  ai.update({ dt: 0, elapsed: 1.06, frame: 2, alpha: 1 }, ctx);
+  const expired = !internal.tracer.visible && !internal.muzzle.visible;
+  internal.sink.onFire?.({
+    origin: { x: 0, y: 1.7, z: -1 },
+    direction: { x: 0, y: 0, z: 1 },
+    aimError: 0,
+    burstIndex: 0,
+    time: 2,
+  });
+  ai.update({ dt: 0.01, elapsed: 2, frame: 3, alpha: 1 }, ctx);
+  const visibleBeforeDeath = internal.tracer.visible;
+  ai.agent.state = 'dead';
+  ai.update({ dt: 0, elapsed: 2.01, frame: 4, alpha: 1 }, ctx);
+  const hiddenOnDeath = !internal.tracer.visible && !internal.muzzle.visible;
+  if (!firstVisible) failures.push('fresh FireShot did not show tracer/muzzle');
+  if (Math.abs(firstLength - 0.4) > 1e-9) {
+    failures.push(`near-camera visual length ${firstLength} != 0.4`);
+  }
+  if (!expired) failures.push('tracer/muzzle remained visible after 60ms');
+  if (!visibleBeforeDeath || !hiddenOnDeath) {
+    failures.push('pending tracer/muzzle did not hide immediately on death');
+  }
+  ai.dispose();
+
+  return {
+    name: 'tracerVisualLifetime',
+    pass: failures.length === 0,
+    failures,
+    detail: {
+      firstVisible,
+      firstLength,
+      expired,
+      visibleBeforeDeath,
+      hiddenOnDeath,
+    },
+  };
+}
+
 const tests = [
   testPlayerImpactBecomesEnemyDamage(),
   testEnemyShotHonorsPlayerAndCover(),
   testCanonicalArenaBinding(),
   testProductionAiOmitsDebugMarkers(),
+  testTracerPresentationBounds(),
+  testTracerVisualLifetime(),
 ];
 const result = {
   status: tests.every((test) => test.pass) ? 'passed' : 'failed',

@@ -26,6 +26,19 @@ export type { SightParams } from './perception.js';
 export { rankCover, selectCover } from './cover.js';
 export type { CoverCandidate, CoverQuery } from './cover.js';
 export { SeededRandom } from './random.js';
+export {
+  computeTracerSegment,
+  nearestTracerDepth,
+  projectedTracerWidthCssPixels,
+  tracerWorldRadiusForCssPixels,
+  ENEMY_TRACER_CAMERA_CLEARANCE,
+  ENEMY_TRACER_LIFETIME_SECONDS,
+  ENEMY_TRACER_MAX_CSS_PIXELS,
+  ENEMY_TRACER_MAX_LENGTH,
+  ENEMY_TRACER_RADIUS,
+  ENEMY_TRACER_TARGET_CSS_PIXELS,
+  type TracerSegment,
+} from './TracerPresentation.js';
 export type {
   AgentSnapshot,
   AiState,

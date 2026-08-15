@@ -30,6 +30,13 @@ import type {
   AiState, CombatSink, DamageEvent, EnemyConfig, FireShot, FootstepStimulus,
   StepInput, TargetSample, Vec3,
 } from './types.js';
+import {
+  computeTracerSegment,
+  ENEMY_TRACER_LIFETIME_SECONDS,
+  ENEMY_TRACER_RADIUS,
+  nearestTracerDepth,
+  tracerWorldRadiusForCssPixels,
+} from './TracerPresentation.js';
 
 /** What the host reports about the player each fixed step. `null` = no target. */
 export interface PlayerSample {
@@ -113,7 +120,7 @@ export class AiSystem implements System {
   // Most recent shot, for the tracer/muzzle while firing.
   private readonly shotOrigin = new THREE.Vector3();
   private readonly shotDir = new THREE.Vector3(0, 0, -1);
-  private firedThisFrame = false;
+  private tracerRemaining = 0;
 
   // Ground-truth player the AI was last told about, for the player marker.
   private readonly lastPlayer = new THREE.Vector3();
@@ -141,6 +148,8 @@ export class AiSystem implements System {
 
   private readonly scratch = new THREE.Vector3();
   private readonly upAxis = new THREE.Vector3(0, 1, 0);
+  private readonly cameraForward = new THREE.Vector3();
+  private readonly cameraToTracer = new THREE.Vector3();
   private readonly glowFrom: Vec3 = { x: 0, y: 0, z: 0 };
   private readonly glowTo: Vec3 = { x: 0, y: 0, z: 0 };
 
@@ -165,7 +174,7 @@ export class AiSystem implements System {
       onFire: (shot: FireShot) => {
         this.shotOrigin.set(shot.origin.x, shot.origin.y, shot.origin.z);
         this.shotDir.set(shot.direction.x, shot.direction.y, shot.direction.z);
-        this.firedThisFrame = true;
+        this.tracerRemaining = ENEMY_TRACER_LIFETIME_SECONDS;
         hostSink?.onFire?.(shot);
       },
       onCease: (reason, time) => hostSink?.onCease?.(reason, time),
@@ -304,10 +313,17 @@ export class AiSystem implements System {
     this.updateDeath(a.state, a.deathSeconds);
     if (this.opts.renderGaze) this.updateGaze(a.state);
     this.updateTelegraph();
-    this.updateFiring();
+    if (a.state === 'dead') {
+      this.tracerRemaining = 0;
+    } else {
+      this.updateFiring(
+        u.dt,
+        ctx.camera,
+        ctx.renderer.domElement?.clientHeight || window.innerHeight,
+      );
+    }
     if (this.opts.renderMarkers) this.updateMarkers();
 
-    this.firedThisFrame = false;
   }
 
   /** CPU cost summary for the host to publish. Steady-state, warm-up discarded. */
@@ -339,7 +355,7 @@ export class AiSystem implements System {
     this.prevYaw = this.currYaw = this.agent.yaw;
     this.pendingFootsteps = [];
     this.pendingDamage = [];
-    this.firedThisFrame = false;
+    this.tracerRemaining = 0;
     this.hasPlayer = false;
     this.lastStepMs = this.avgStepMs = this.maxStepMs = this.stepMsTotal = 0;
     this.sampledSteps = 0;
@@ -507,7 +523,12 @@ export class AiSystem implements System {
     this.disposables.push(muzGeo, this.muzzleMat);
 
     // Tracer: a thin emissive rod along the last shot direction.
-    const traGeo = new THREE.CylinderGeometry(0.02, 0.02, 1, 8);
+    const traGeo = new THREE.CylinderGeometry(
+      ENEMY_TRACER_RADIUS,
+      ENEMY_TRACER_RADIUS,
+      1,
+      8,
+    );
     this.tracerMat = new THREE.MeshStandardMaterial({
       color: 0xfff2c8, emissive: 0xffc860, emissiveIntensity: 8, roughness: 0.4,
     });
@@ -581,22 +602,53 @@ export class AiSystem implements System {
     this.telegraphMat.emissive.setRGB(1, 0.6 - p * 0.4, 0.24 - p * 0.22);
   }
 
-  private updateFiring(): void {
-    const firing = this.agent.combatPhase === 'burst';
-    this.muzzle.visible = firing;
-    this.tracer.visible = firing;
-    if (!firing) { this.muzzleMat.emissiveIntensity = 0; return; }
+  private updateFiring(
+    dt: number,
+    camera: THREE.PerspectiveCamera,
+    viewportHeight: number,
+  ): void {
+    const segment = this.tracerRemaining > 0
+      ? computeTracerSegment(this.shotOrigin, this.shotDir, camera.position)
+      : null;
+    const visible = segment !== null;
+    this.muzzle.visible = visible;
+    this.tracer.visible = visible;
+    if (!segment) {
+      this.muzzleMat.emissiveIntensity = 0;
+      this.tracerRemaining = Math.max(0, this.tracerRemaining - dt);
+      return;
+    }
 
     this.muzzle.position.copy(this.shotOrigin);
-    this.muzzleMat.emissiveIntensity = this.firedThisFrame ? 26 : 10;
-
-    // Lay the tracer from the muzzle along the shot direction.
-    const len = 22;
-    this.scratch.copy(this.shotDir).multiplyScalar(len * 0.5).add(this.shotOrigin);
-    this.tracer.position.copy(this.scratch);
+    const life = this.tracerRemaining / ENEMY_TRACER_LIFETIME_SECONDS;
+    this.muzzleMat.emissiveIntensity = 8 + life * 18;
+    this.tracer.position.set(segment.center.x, segment.center.y, segment.center.z);
+    this.shotDir.set(
+      segment.direction.x,
+      segment.direction.y,
+      segment.direction.z,
+    );
     this.tracer.quaternion.setFromUnitVectors(this.upAxis, this.shotDir);
-    this.tracer.scale.set(1, len, 1);
-    this.tracerMat.emissiveIntensity = this.firedThisFrame ? 14 : 5;
+    camera.getWorldDirection(this.cameraForward);
+    this.cameraToTracer.copy(this.tracer.position).sub(camera.position);
+    const centerDepth = this.cameraToTracer.dot(this.cameraForward);
+    const axialDot = this.shotDir.dot(this.cameraForward);
+    const depth = nearestTracerDepth(centerDepth, axialDot, segment.length);
+    const worldRadius = tracerWorldRadiusForCssPixels(
+      THREE.MathUtils.degToRad(camera.fov),
+      viewportHeight,
+      depth,
+    );
+    if (worldRadius <= 0) {
+      this.muzzle.visible = false;
+      this.tracer.visible = false;
+      this.tracerRemaining = Math.max(0, this.tracerRemaining - dt);
+      return;
+    }
+    const radialScale = worldRadius / ENEMY_TRACER_RADIUS;
+    this.tracer.scale.set(radialScale, segment.length, radialScale);
+    this.tracerMat.emissiveIntensity = 4 + life * 10;
+    this.tracerRemaining = Math.max(0, this.tracerRemaining - dt);
   }
 
   private updateMarkers(): void {
