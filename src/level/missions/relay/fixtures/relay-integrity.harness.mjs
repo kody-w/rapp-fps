@@ -17,6 +17,15 @@
  *     globals cleaned up, and GPU geometry handles released; a fresh rebuild on
  *     a new scene must pass correspondence again (no leaked global state).
  *
+ *  3. INTEGRATION FOOTGUN — `buildRelayArena()` declares no `container` solids,
+ *     but `ArenaLevel` defaults container dressing ON, and that path throws on an
+ *     empty selection (`mergeGeometries([])`). So a raw
+ *     `new ArenaLevel(def, world)` with DEFAULT options CRASHES in init. This
+ *     block reproduces that crash (red on the unsafe/default path) and proves
+ *     `createRelayLevel()` — which resolves `containerDressing` via `?? false`,
+ *     including on an explicit `undefined` — mounts cleanly (green through the
+ *     factory).
+ *
  * Result published on `window.__RELAY_INTEGRITY__` for the playwright runner.
  */
 
@@ -24,6 +33,7 @@ import * as THREE from 'three';
 import { buildRelayArena } from '../relayArena.js';
 import { buildStaticWorld } from '../../../staticWorld.js';
 import { ArenaLevel } from '../../../ArenaLevel.js';
+import { createRelayLevel } from '../relayLevel.js';
 
 const out = window;
 const EXPECTED_CHECKS = ['core-contract', 'box-count', 'bijection', 'render-backing', 'render-membership'];
@@ -136,6 +146,89 @@ try {
     'the rebuilt merged geometry is identical to the first build (deterministic)');
 
   arena2.dispose();
+
+  // ── 4. Integration footgun: default container dressing vs the safe factory ──
+  // buildRelayArena() has NO `container` solids, but ArenaLevel defaults its
+  // container dressing ON, and that path throws on an empty selection
+  // (createContainerDressingLayer([]) → mergeGeometries([]) → TypeError). So a
+  // caller who mounts the mission the obvious way — `new ArenaLevel(def, world)`
+  // with DEFAULT options — crashes in init. Reproduce that (red), then prove
+  // createRelayLevel() closes it (green). All under relay/**; the shared root
+  // cause (ArenaLevel defaulting dressing on for a container-less def) is parent
+  // integration work, not touched here.
+  const sceneUnsafe = new THREE.Scene();
+  const arenaUnsafe = new ArenaLevel(def, buildStaticWorld(def)); // DEFAULT options — the footgun
+  let unsafeThrew = false;
+  let unsafeError = null;
+  try {
+    arenaUnsafe.init(makeCtx(sceneUnsafe));
+  } catch (e) {
+    unsafeThrew = true;
+    unsafeError = e instanceof Error ? e.message : String(e);
+  }
+  try { arenaUnsafe.dispose(); } catch { /* partial init — best-effort teardown */ }
+  // The unsafe init sets some window globals before it throws and (never having
+  // installed the shot hook) its dispose leaves them behind; clear them so the
+  // footgun probe leaves no residue in the published report.
+  for (const k of ['__ARENA_CHECK__', '__LEVEL_STATIC_WORLD__', '__ARENA_SPAWNS__', '__CONTACT_SHADOWS__', '__CONTAINER_DRESSING__']) {
+    delete out[k];
+  }
+
+  add('unsafe_default_path_throws',
+    unsafeThrew && !/correspondence/i.test(unsafeError ?? ''),
+    { threw: unsafeThrew, error: unsafeError },
+    'raw new ArenaLevel(def, world) with DEFAULT options throws building container dressing on the relay\'s empty container selection (the integration footgun) — and not from a correspondence failure');
+
+  // The factory: containerDressing resolves to false via `?? false`, so the SAME
+  // default-shaped mount is safe and builds no dressing layer.
+  const sceneFactory = new THREE.Scene();
+  const factoryLevel = createRelayLevel(); // no options
+  let factoryThrew = false;
+  let factoryError = null;
+  try {
+    factoryLevel.init(makeCtx(sceneFactory));
+  } catch (e) {
+    factoryThrew = true;
+    factoryError = e instanceof Error ? e.message : String(e);
+  }
+  add('factory_default_path_survives',
+    !factoryThrew
+      && !!factoryLevel.correspondence?.ok
+      && arenaRoot(sceneFactory) !== undefined
+      && factoryLevel.containerDressing === undefined,
+    {
+      threw: factoryThrew, error: factoryError,
+      correspondenceOk: factoryLevel.correspondence?.ok ?? null,
+      mounted: arenaRoot(sceneFactory) !== undefined,
+      dressingLayer: factoryLevel.containerDressing === undefined ? 'none' : 'built',
+    },
+    'createRelayLevel() builds + passes correspondence on the same default-shaped path that crashes raw ArenaLevel, and builds NO container-dressing layer');
+  factoryLevel.dispose();
+
+  // The `?? false` must resolve an EXPLICIT `undefined` off too (not just an
+  // absent option), so the factory is safe even when a caller forwards options.
+  const sceneFactoryUndef = new THREE.Scene();
+  const factoryLevelUndef = createRelayLevel({ containerDressing: undefined });
+  let factoryUndefThrew = false;
+  let factoryUndefError = null;
+  try {
+    factoryLevelUndef.init(makeCtx(sceneFactoryUndef));
+  } catch (e) {
+    factoryUndefThrew = true;
+    factoryUndefError = e instanceof Error ? e.message : String(e);
+  }
+  add('factory_explicit_undefined_resolves_off',
+    !factoryUndefThrew
+      && !!factoryLevelUndef.correspondence?.ok
+      && factoryLevelUndef.containerDressing === undefined,
+    {
+      threw: factoryUndefThrew, error: factoryUndefError,
+      correspondenceOk: factoryLevelUndef.correspondence?.ok ?? null,
+      dressingLayer: factoryLevelUndef.containerDressing === undefined ? 'none' : 'built',
+    },
+    'createRelayLevel({ containerDressing: undefined }) still resolves to OFF via `?? false`, so the explicit-undefined path never throws either');
+  factoryLevelUndef.dispose();
+
   renderer.dispose();
 
   const ok = assertions.every((a) => a.passed);
@@ -146,6 +239,12 @@ try {
     correspondenceChecks: report1.results.map((r) => ({ name: r.name, ok: r.ok, detail: r.detail })),
     mergedBuffers: buffers1,
     lifecycle: { geomAfterBuild, geomAfterDispose },
+    containerDressingFootgun: {
+      unsafeDefaultPathThrew: unsafeThrew,
+      unsafeError,
+      factoryDefaultSafe: !factoryThrew,
+      factoryExplicitUndefinedSafe: !factoryUndefThrew,
+    },
     assertions,
   };
   out.__FRAME_READY__ = true;

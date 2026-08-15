@@ -2,18 +2,19 @@
  * Evidence harness for RELAY BLACKOUT (issue #72, parent #70).
  *
  * Boots the SAME engine + render pipeline as `src/main.ts` and `src/level/
- * harness.ts`, but mounts an `ArenaLevel` composed from the mission factory
- * instead of the default cargo bay:
+ * harness.ts`, but mounts the mission through `createRelayLevel()` — the safe
+ * factory that composes an `ArenaLevel` from the mission definition + world:
  *
- *     new ArenaLevel(buildRelayArena(), buildStaticWorld(def), { containerDressing: false })
+ *     engine.add(createRelayLevel());
  *
  * `ArenaLevel` already accepts an injected definition + world, so the mission
- * renders under the shipped pipeline with ZERO edits to any shared file. What
- * `tools/shoot.mjs` captures here is the mission arena under the real renderer;
- * the arena owns `window.__SHOT__` (from `def.shots`) and runs the five
- * correspondence checks in `init`, publishing `window.__ARENA_CHECK__`.
- * `containerDressing` is off because the relay palette never uses the `container`
- * material — the flag is set explicitly so the intent is legible.
+ * renders under the shipped pipeline with ZERO edits to any shared file. The
+ * factory resolves `containerDressing` to `false` (the relay palette never uses
+ * the `container` material, and `ArenaLevel`'s default-on dressing throws on that
+ * empty selection). What `tools/shoot.mjs` captures here is the mission arena
+ * under the real renderer; the arena owns `window.__SHOT__` (from `def.shots`)
+ * and runs the five correspondence checks in `init`, publishing
+ * `window.__ARENA_CHECK__`.
  *
  * Point the shot tool at:  /src/level/missions/relay/harness.html
  */
@@ -21,9 +22,7 @@
 import * as THREE from 'three';
 import { Engine } from '../../../core/engine.js';
 import { RenderSystem } from '../../../render/RenderSystem.js';
-import { ArenaLevel } from '../../ArenaLevel.js';
-import { buildStaticWorld } from '../../staticWorld.js';
-import { buildRelayArena } from './relayArena.js';
+import { createRelayLevel } from './relayLevel.js';
 import type { UpdateContext } from '../../../core/contracts.js';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -44,8 +43,8 @@ addEventListener('keydown', (e) => { if (!held.has(e.code)) edge.add(e.code); he
 addEventListener('keyup', (e) => held.delete(e.code));
 
 const render = new RenderSystem();
-const definition = buildRelayArena();
-const arena = new ArenaLevel(definition, buildStaticWorld(definition), { containerDressing: false });
+const arena = createRelayLevel();
+const definition = arena.definition;
 
 engine.add(render);
 engine.add(arena);

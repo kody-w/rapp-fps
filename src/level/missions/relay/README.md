@@ -12,16 +12,29 @@ contracts and helpers **by import only**. Everything in this mission lives under
 integrates the exports.
 
 ```ts
-import { buildRelayArena } from './level/missions/relay/index.js';
-import { buildStaticWorld } from './level/staticWorld.js';
-import { ArenaLevel } from './level/ArenaLevel.js';
+import { createRelayLevel } from './level/missions/relay/index.js';
 
-const def = buildRelayArena();
-// ArenaLevel already accepts an injected definition + world — no subclassing,
-// no shared-file change. containerDressing is off (the relay palette never uses
-// the `container` material).
-engine.add(new ArenaLevel(def, buildStaticWorld(def), { containerDressing: false }));
+// createRelayLevel() composes the shipping ArenaLevel from the mission
+// definition + world. It resolves `containerDressing` to `false` for you
+// (the relay palette never uses the `container` material, and ArenaLevel's
+// default-on dressing THROWS on that empty selection — see below), so this is
+// safe on the default path. Read `.definition` / `.staticWorld` off the level
+// to wire the two deploy pads, the enemy spawn and the objective.
+engine.add(createRelayLevel());
 ```
+
+> **Integration footgun (closed here).** `buildRelayArena()` declares no
+> `container` solids, but `ArenaLevel` defaults its container dressing **on**,
+> and that path throws on an empty selection
+> (`createContainerDressingLayer([])` → `mergeGeometries([])`). A raw
+> `new ArenaLevel(buildRelayArena(), buildStaticWorld(def))` therefore **crashes
+> in `init`** unless the caller remembers `{ containerDressing: false }`.
+> `createRelayLevel(options?)` always resolves `containerDressing` via
+> `options.containerDressing ?? false` (including an explicit `undefined`), so
+> the mission mounts safely. The shared root cause — `ArenaLevel` defaulting
+> dressing on for a container-less definition — is the parent's to harden; this
+> mission only makes its own composition safe. The `relay-integrity` fixture
+> asserts both halves (raw default throws; factory survives).
 
 ## The one rule (inherited, unchanged)
 
@@ -114,7 +127,7 @@ Archived: `evidence/relay-traversal.report.json`.
   the `step-*` treads removed **cannot reach the deck** — it stops at the 1.6 m
   deck face. The stairs are load-bearing; the success is real.
 
-### 3. Correspondence + lifecycle — `relay-integrity.harness.mjs`
+### 3. Correspondence + lifecycle + integration footgun — `relay-integrity.harness.mjs`
 Mounts the mission through the shipping `ArenaLevel` against a **real
 `THREE.WebGLRenderer`**. Archived: `evidence/relay-integrity.report.json`.
 
@@ -125,6 +138,12 @@ Mounts the mission through the shipping `ArenaLevel` against a **real
   `__SHOT__`/`__ARENA_CHECK__` globals and **releases GPU geometry (9 → 0)**; a
   fresh rebuild on a new scene passes correspondence again and is byte-identical
   to the first build.
+- **Container-dressing footgun (red on default, green through the factory):**
+  a raw `new ArenaLevel(def, world)` with **default** options **throws** in
+  `init` (container dressing has an empty selection on a relay with no
+  `container` solids); `createRelayLevel()` — and `createRelayLevel({
+  containerDressing: undefined })` — mounts cleanly and builds no dressing layer.
+  Both halves are asserted, so the fix cannot silently regress.
 
 ### 4. Hardware frames + budget — `harness.ts` via `tools/shoot.mjs`
 Six procedural frames at **1920×1080** on hardware (Apple M4, ANGLE Metal),
@@ -165,8 +184,9 @@ npx tsc --noEmit
 | file | role |
 |------|------|
 | `relayArena.ts` | the pure factory `buildRelayArena()` + extended types |
+| `relayLevel.ts` | `createRelayLevel(options?)` — safe `ArenaLevel` factory (resolves `containerDressing ?? false`) |
 | `topology.ts` | fingerprint + `compareTopology` + AABB segment raycast (LOS) |
-| `index.ts` | public surface for the parent (`buildRelayArena` + types + topology) |
+| `index.ts` | public surface for the parent (`createRelayLevel`, `buildRelayArena` + types + topology) |
 | `harness.ts` / `.html` | mounts the mission through `ArenaLevel` for shot/correspondence evidence |
 | `fixtures/*.harness.mjs` / `.html` | the three browser fixtures (topology, traversal, integrity) |
 | `fixtures/run-*.mjs` | playwright runners that archive JSON and exit non-zero on failure |

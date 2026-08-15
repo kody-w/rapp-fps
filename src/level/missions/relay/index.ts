@@ -5,10 +5,17 @@
  * its metadata types from here; the topology fingerprint + sightline helpers are
  * exported for the committed comparison test and any future mission-selection UI.
  * Nothing here touches a shared file: `ArenaLevel` already accepts an injected
- * `ArenaDefinition`, and `RelayArenaDefinition` is assignable to it, so the parent
- * composes the mission with `new ArenaLevel(buildRelayArena(), ...)` unchanged.
+ * `ArenaDefinition`, and `RelayArenaDefinition` is assignable to it.
+ *
+ * Prefer `createRelayLevel()` to mount the mission: `buildRelayArena()` declares
+ * no `container` solids, and `ArenaLevel`'s container dressing defaults ON — a
+ * path that THROWS on that empty selection — so a raw
+ * `new ArenaLevel(buildRelayArena(), ...)` crashes unless the caller remembers
+ * `{ containerDressing: false }`. The factory resolves that safely for you.
  */
 
+export { createRelayLevel } from './relayLevel.js';
+export type { RelayLevelOptions } from './relayLevel.js';
 export { buildRelayArena } from './relayArena.js';
 export type {
   RelayArenaDefinition,

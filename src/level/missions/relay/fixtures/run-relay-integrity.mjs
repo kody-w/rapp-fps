@@ -92,6 +92,11 @@ console.log(`  correspondence: ${report.correspondenceChecks.map((c) => `${c.nam
 console.log(`  merged buffers: ${report.mergedBuffers.meshes} meshes, ${report.mergedBuffers.vertices} verts, `
   + `${report.mergedBuffers.triangles} tris  [${report.mergedBuffers.materials.join(', ')}]`);
 console.log(`  lifecycle geometries: build=${report.lifecycle.geomAfterBuild} → dispose=${report.lifecycle.geomAfterDispose}`);
+if (report.containerDressingFootgun) {
+  const f = report.containerDressingFootgun;
+  console.log(`  container-dressing footgun: raw ArenaLevel default ${f.unsafeDefaultPathThrew ? 'THREW (reproduced)' : 'did NOT throw'}`
+    + ` → createRelayLevel ${f.factoryDefaultSafe && f.factoryExplicitUndefinedSafe ? 'SAFE (default + explicit undefined)' : 'FAILED'}`);
+}
 for (const a of report.assertions) {
   console.log(`  [${a.passed ? 'PASS' : 'FAIL'}] ${a.name} → ${JSON.stringify(a.actual)}`);
 }

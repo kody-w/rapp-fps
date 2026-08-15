@@ -1,7 +1,7 @@
 {
   "url": "http://127.0.0.1:5294/src/level/missions/relay/fixtures/relay-integrity.harness.html",
   "consoleErrors": [],
-  "at": "2026-08-15T16:18:17.807Z",
+  "at": "2026-08-15T17:01:51.526Z",
   "ok": true,
   "renderer": "real THREE.WebGLRenderer (headless WebGL2)",
   "correspondenceChecks": [
@@ -51,6 +51,12 @@
   "lifecycle": {
     "geomAfterBuild": 9,
     "geomAfterDispose": 0
+  },
+  "containerDressingFootgun": {
+    "unsafeDefaultPathThrew": true,
+    "unsafeError": "Cannot read properties of undefined (reading 'index')",
+    "factoryDefaultSafe": true,
+    "factoryExplicitUndefinedSafe": true
   },
   "assertions": [
     {
@@ -226,6 +232,38 @@
         }
       },
       "expected": "the rebuilt merged geometry is identical to the first build (deterministic)"
+    },
+    {
+      "name": "unsafe_default_path_throws",
+      "passed": true,
+      "actual": {
+        "threw": true,
+        "error": "Cannot read properties of undefined (reading 'index')"
+      },
+      "expected": "raw new ArenaLevel(def, world) with DEFAULT options throws building container dressing on the relay's empty container selection (the integration footgun) — and not from a correspondence failure"
+    },
+    {
+      "name": "factory_default_path_survives",
+      "passed": true,
+      "actual": {
+        "threw": false,
+        "error": null,
+        "correspondenceOk": true,
+        "mounted": true,
+        "dressingLayer": "none"
+      },
+      "expected": "createRelayLevel() builds + passes correspondence on the same default-shaped path that crashes raw ArenaLevel, and builds NO container-dressing layer"
+    },
+    {
+      "name": "factory_explicit_undefined_resolves_off",
+      "passed": true,
+      "actual": {
+        "threw": false,
+        "error": null,
+        "correspondenceOk": true,
+        "dressingLayer": "none"
+      },
+      "expected": "createRelayLevel({ containerDressing: undefined }) still resolves to OFF via `?? false`, so the explicit-undefined path never throws either"
     }
   ]
 }
