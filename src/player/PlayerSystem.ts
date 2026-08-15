@@ -75,6 +75,31 @@ export class PlayerSystem implements System {
     this.requestedSpawn = options.spawn?.clone();
   }
 
+  copyFeetPosition(out: THREE.Vector3): boolean {
+    if (!this.motor) return false;
+    out.copy(this.motor.position);
+    return true;
+  }
+
+  copyEyePosition(out: THREE.Vector3): boolean {
+    const motor = this.motor;
+    if (!motor) return false;
+    const crouchT = THREE.MathUtils.clamp(
+      (this.tuning.standingHeight - motor.colliderHeight)
+        / (this.tuning.standingHeight - this.tuning.crouchingHeight),
+      0,
+      1,
+    );
+    const eye = THREE.MathUtils.lerp(
+      this.tuning.standingEyeHeight,
+      this.tuning.crouchingEyeHeight,
+      crouchT,
+    );
+    out.copy(motor.position);
+    out.y += eye;
+    return true;
+  }
+
   init(ctx: EngineContext): void {
     // The registration guard. A degenerate, out-of-bounds — or non-axis-aligned,
     // which cannot be expressed — world throws here rather than degrading.

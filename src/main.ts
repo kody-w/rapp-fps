@@ -8,34 +8,69 @@
 import * as THREE from 'three';
 import { Engine } from './core/engine.js';
 import { RenderSystem } from './render/RenderSystem.js';
-import { TestLevel } from './level/TestLevel.js';
+import {
+  ArenaLevel,
+  buildArena,
+  buildStaticWorld,
+} from './level/index.js';
 import { CombatFX } from './fx/CombatFX.js';
 import { AudioSystem } from './audio/AudioSystem.js';
 import { CombatHud } from './hud/CombatHud.js';
+import { createPlayer } from './player/index.js';
+import { WeaponSystem } from './weapons/index.js';
+import { AiSystem } from './ai/AiSystem.js';
+import {
+  CombatSystem,
+  createAiArenaBinding,
+} from './game/index.js';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const engine = new Engine(canvas);
 
-// A minimal input stub so systems can read the shape before the player
-// controller lands. Replaced wholesale, not extended.
-const held = new Set<string>();
-const edge = new Set<string>();
-engine.input = {
-  move: { x: 0, y: 0 },
-  look: { x: 0, y: 0 },
-  jump: false, crouch: false, sprint: false,
-  fire: false, aim: false, reload: false,
-  pressed: (a: string) => edge.has(a),
-};
-const onKeyDown = (event: KeyboardEvent): void => {
-  if (!held.has(event.code)) edge.add(event.code);
-  held.add(event.code);
-};
-const onKeyUp = (event: KeyboardEvent): void => { held.delete(event.code); };
-addEventListener('keydown', onKeyDown);
-addEventListener('keyup', onKeyUp);
-
 const render = new RenderSystem();
+const arenaDefinition = buildArena();
+const staticWorld = buildStaticWorld(arenaDefinition);
+const level = new ArenaLevel(arenaDefinition, staticWorld);
+const playerSpawn = new THREE.Vector3(...arenaDefinition.playerSpawn);
+const { input, system: player } = createPlayer(canvas, {
+  world: staticWorld,
+  spawn: playerSpawn,
+});
+engine.input = input;
+
+const playerEye = new THREE.Vector3();
+const playerFeet = new THREE.Vector3();
+const combat = new CombatSystem({
+  world: staticWorld,
+  playerEyeProvider: (ctx) => (
+    player.copyEyePosition(playerEye) ? playerEye : ctx.camera.position
+  ),
+});
+const aiBinding = createAiArenaBinding(arenaDefinition, staticWorld);
+const ai = new AiSystem({
+  arena: aiBinding.arena,
+  spawn: aiBinding.spawn,
+  yaw: aiBinding.yaw,
+  renderWorld: false,
+  combatSink: combat.enemySink,
+  playerProvider: () => {
+    const hasFeet = player.copyFeetPosition(playerFeet);
+    return {
+      position: hasFeet
+        ? { x: playerFeet.x, y: playerFeet.y, z: playerFeet.z }
+        : {
+          x: arenaDefinition.playerSpawn[0],
+          y: arenaDefinition.playerSpawn[1],
+          z: arenaDefinition.playerSpawn[2],
+        },
+      alive: combat.isPlayerAlive,
+    };
+  },
+});
+combat.bindEnemy(ai);
+const weapon = new WeaponSystem();
+weapon.useStaticWorld(staticWorld);
+
 const fx = new CombatFX();
 const audio = new AudioSystem();
 const hud = new CombatHud({
@@ -59,12 +94,22 @@ const integrationOmit = import.meta.env.DEV
 const enabled = (name: 'fx' | 'audio' | 'hud'): boolean => integrationOmit !== name;
 
 engine.add(render);
-engine.add(new TestLevel());
+engine.add(level);
+engine.add(player);
 if (enabled('fx')) engine.add(fx);
 if (enabled('audio')) engine.add(audio);
 if (enabled('hud')) engine.add(hud);
+engine.add(combat);
+engine.add(ai);
+engine.add(weapon);
 
 await engine.init();
+if (enabled('hud')) {
+  hud.setObjective({
+    title: 'SECURE THE CARGO BAY',
+    detail: 'Eliminate the hostile at the beacon.',
+  });
+}
 
 // The pipeline owns presentation once it is initialised.
 // `renderer.info` resets on every render call, so reading it after the composer
@@ -76,16 +121,21 @@ engine.renderer.info.autoReset = false;
 engine.present = () => {
   const info = engine.renderer.info;
   info.reset();
-  render.render();
-  (window as unknown as Record<string, unknown>).__SCENE_STATS__ = {
-    // Totals for the WHOLE frame, scene plus post. Labelled as such so nobody
-    // compares it against a scene-only figure from another engine.
-    drawCallsPerFrame: info.render.calls,
-    trianglesPerFrame: info.render.triangles,
-    textures: info.memory.textures,
-    geometries: info.memory.geometries,
-    programs: info.programs?.length ?? 0,
-  };
+  player.applyViewEffects();
+  try {
+    render.render();
+    (window as unknown as Record<string, unknown>).__SCENE_STATS__ = {
+      // Totals for the WHOLE frame, scene plus post. Labelled as such so nobody
+      // compares it against a scene-only figure from another engine.
+      drawCallsPerFrame: info.render.calls,
+      trianglesPerFrame: info.render.triangles,
+      textures: info.memory.textures,
+      geometries: info.memory.geometries,
+      programs: info.programs?.length ?? 0,
+    };
+  } finally {
+    player.restoreView();
+  }
 };
 
 engine.start();
@@ -152,13 +202,14 @@ if (enabled('audio')) {
   document.documentElement.dataset.audio = 'omitted';
 }
 
-// Clear edge-triggered input after every frame, once, in one place.
-let clearEdgesRaf = 0;
-const clearEdges = () => {
-  edge.clear();
-  clearEdgesRaf = requestAnimationFrame(clearEdges);
+// Clear semantic input edges after every engine frame, once all systems have
+// had a chance to observe them.
+let clearInputRaf = 0;
+const clearInput = () => {
+  input.endFrame();
+  clearInputRaf = requestAnimationFrame(clearInput);
 };
-clearEdgesRaf = requestAnimationFrame(clearEdges);
+clearInputRaf = requestAnimationFrame(clearInput);
 
 // A screenshot harness needs to know the first real frame has been presented,
 // not merely that the page loaded — otherwise it captures an empty buffer and
@@ -181,17 +232,34 @@ const disposeApp = (): void => {
   disposed = true;
   removeAudioArmListeners();
   unsubscribeAudioStatus();
-  removeEventListener('keydown', onKeyDown);
-  removeEventListener('keyup', onKeyUp);
-  if (clearEdgesRaf) cancelAnimationFrame(clearEdgesRaf);
+  if (clearInputRaf) cancelAnimationFrame(clearInputRaf);
   if (readyRaf) cancelAnimationFrame(readyRaf);
   engine.dispose();
+};
+
+const gameplay = {
+  get state() {
+    return {
+      worldBoxes: staticWorld.boxes.length,
+      playerHealth: combat.currentPlayerHealth,
+      enemyHealth: ai.currentHealth,
+      enemyState: ai.state,
+      weaponAmmo: weapon.magazineAmmo,
+      weaponReserve: weapon.reserveAmmo,
+    };
+  },
 };
 
 Object.assign(window as unknown as Record<string, unknown>, {
   engine,
   THREE,
-  __INTEGRATION__: { fx, audio, hud, dispose: disposeApp },
+  __INTEGRATION__: {
+    fx,
+    audio,
+    hud,
+    gameplay,
+    dispose: disposeApp,
+  },
 });
 
 addEventListener('pagehide', (event) => {

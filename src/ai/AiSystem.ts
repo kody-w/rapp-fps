@@ -23,7 +23,7 @@ import type {
 import { EnemyAgent } from './agent.js';
 import { DEFAULT_ENEMY_CONFIG } from './config.js';
 import {
-  ARENA_ENEMY_SPAWN, ARENA_ENEMY_YAW, buildArena,
+  ARENA_ENEMY_SPAWN, ARENA_ENEMY_YAW, buildArena, lineOfSightClear,
 } from './world.js';
 import type { Arena } from './world.js';
 import type {
@@ -39,6 +39,12 @@ export interface PlayerSample {
 
 export interface AiSystemOptions {
   config?: EnemyConfig;
+  /** Canonical host arena. The private calibration arena remains the fallback. */
+  arena?: Arena;
+  spawn?: Vec3;
+  yaw?: number;
+  /** Host combat output; visual output is always preserved and forwarded. */
+  combatSink?: CombatSink;
   /** Supplies the player each fixed step. Defaults to the camera's ground point. */
   playerProvider?: (ctx: EngineContext) => PlayerSample | null;
   /** Draw the arena cover boxes. The level owns these in a full game. */
@@ -70,6 +76,8 @@ export class AiSystem implements System {
   frozen = false;
   private readonly config: EnemyConfig;
   private readonly sink: CombatSink;
+  private readonly spawn: Vec3;
+  private readonly spawnYaw: number;
 
   // ── Live CPU probe (secondary, in-browser cross-check) ──────────────────
   lastStepMs = 0;
@@ -78,8 +86,12 @@ export class AiSystem implements System {
   sampledSteps = 0;
   private stepMsTotal = 0;
 
-  private readonly opts: Required<Omit<AiSystemOptions, 'config' | 'playerProvider' | 'enemyId'>>
-    & Pick<AiSystemOptions, 'playerProvider' | 'enemyId'>;
+  private readonly opts: {
+    renderWorld: boolean;
+    targetId: string;
+    playerProvider?: (ctx: EngineContext) => PlayerSample | null;
+    enemyId: string | number;
+  };
 
   // Per-tick input buffers, filled by bus subscriptions, drained each step.
   private pendingFootsteps: FootstepStimulus[] = [];
@@ -106,6 +118,8 @@ export class AiSystem implements System {
   private enemyRoot!: THREE.Group; //  moved + oriented to the agent each frame
   private body!: THREE.Group; //       child of enemyRoot; topples on death
   private visor!: THREE.MeshStandardMaterial;
+  private visorGlow!: THREE.Sprite;
+  private visorGlowMat!: THREE.SpriteMaterial;
   private gaze!: THREE.Mesh;
   private gazeMat!: THREE.MeshBasicMaterial;
   private telegraph!: THREE.Mesh;
@@ -121,9 +135,11 @@ export class AiSystem implements System {
 
   private readonly scratch = new THREE.Vector3();
   private readonly upAxis = new THREE.Vector3(0, 1, 0);
+  private readonly glowFrom: Vec3 = { x: 0, y: 0, z: 0 };
+  private readonly glowTo: Vec3 = { x: 0, y: 0, z: 0 };
 
   constructor(options: AiSystemOptions = {}) {
-    this.arena = buildArena();
+    this.arena = options.arena ?? buildArena();
     this.opts = {
       renderWorld: options.renderWorld ?? true,
       targetId: options.targetId ?? 'player',
@@ -131,12 +147,20 @@ export class AiSystem implements System {
       enemyId: options.enemyId ?? 'enemy-01',
     };
 
+    this.spawn = options.spawn ?? ARENA_ENEMY_SPAWN;
+    this.spawnYaw = options.yaw ?? ARENA_ENEMY_YAW;
+
+    const hostSink = options.combatSink;
     const sink: CombatSink = {
+      onAim: (aim, time) => hostSink?.onAim?.(aim, time),
+      onTelegraph: (aim, windup, time) => hostSink?.onTelegraph?.(aim, windup, time),
       onFire: (shot: FireShot) => {
         this.shotOrigin.set(shot.origin.x, shot.origin.y, shot.origin.z);
         this.shotDir.set(shot.direction.x, shot.direction.y, shot.direction.z);
         this.firedThisFrame = true;
+        hostSink?.onFire?.(shot);
       },
+      onCease: (reason, time) => hostSink?.onCease?.(reason, time),
     };
     this.sink = sink;
     this.config = options.config ?? DEFAULT_ENEMY_CONFIG;
@@ -147,6 +171,11 @@ export class AiSystem implements System {
     this.prevYaw = this.currYaw = this.agent.yaw;
   }
 
+  get enemyId(): string | number { return this.opts.enemyId; }
+  get currentHealth(): number { return this.agent.health; }
+  get maxHealth(): number { return this.config.maxHealth; }
+  get state(): AiState { return this.agent.state; }
+
   init(ctx: EngineContext): void {
     const { scene } = ctx;
     this.root = new THREE.Group();
@@ -154,6 +183,9 @@ export class AiSystem implements System {
     scene.add(this.root);
     this.enemyRoot = new THREE.Group();
     this.enemyRoot.name = 'ai-enemy';
+    this.enemyRoot.userData.ballisticCollider = true;
+    this.enemyRoot.userData.damageTargetId = this.opts.enemyId;
+    this.enemyRoot.userData.surface = 'flesh';
     this.enemyRoot.position.set(
       this.agent.position.x, this.agent.position.y, this.agent.position.z,
     );
@@ -200,6 +232,7 @@ export class AiSystem implements System {
     };
 
     const t0 = performance.now();
+    const previousState = this.agent.state;
     this.agent.fixedStep(step, input);
     const dtMs = performance.now() - t0;
 
@@ -208,6 +241,18 @@ export class AiSystem implements System {
 
     this.currPos.set(this.agent.position.x, this.agent.position.y, this.agent.position.z);
     this.currYaw = this.agent.yaw;
+    // Ballistics runs on the fixed step. Keep its dynamic collider at the
+    // authoritative current pose; presentation interpolates it later.
+    this.enemyRoot.position.copy(this.currPos);
+    this.enemyRoot.rotation.set(0, -this.currYaw, 0);
+    this.enemyRoot.updateMatrixWorld(true);
+
+    if (previousState !== 'dead' && this.agent.state === 'dead') {
+      ctx.bus.emit(Events.Elimination, {
+        id: this.opts.enemyId,
+        label: 'HOSTILE DOWN',
+      });
+    }
 
     // Discard warm-up steps; the JIT is not representative of steady state.
     if (this.agent.tick > WARMUP_STEPS) {
@@ -219,7 +264,7 @@ export class AiSystem implements System {
     }
   }
 
-  update(u: UpdateContext, _ctx: EngineContext): void {
+  update(u: UpdateContext, ctx: EngineContext): void {
     const a = this.agent;
     const alpha = a.state === 'dead' ? 1 : u.alpha;
 
@@ -234,6 +279,19 @@ export class AiSystem implements System {
     const color = STATE_COLOR[a.state];
     this.visor.emissive.setHex(color);
     this.visor.color.setHex(color);
+    this.visorGlowMat.color.setHex(color);
+    this.visorGlowMat.opacity = a.state === 'dead' ? 0.12 : 0.7;
+    this.glowFrom.x = a.position.x;
+    this.glowFrom.y = a.position.y + a.config.eyeHeight;
+    this.glowFrom.z = a.position.z;
+    this.glowTo.x = ctx.camera.position.x;
+    this.glowTo.y = ctx.camera.position.y;
+    this.glowTo.z = ctx.camera.position.z;
+    this.visorGlow.visible = lineOfSightClear(
+      this.arena.world,
+      this.glowFrom,
+      this.glowTo,
+    );
 
     this.updateDeath(a.state, a.deathSeconds);
     this.updateGaze(a.state);
@@ -257,7 +315,7 @@ export class AiSystem implements System {
   private buildAgent(): EnemyAgent {
     return new EnemyAgent(
       this.config, this.arena.world, this.arena.cover, this.arena.halfExtent,
-      { spawn: ARENA_ENEMY_SPAWN, yaw: ARENA_ENEMY_YAW, combat: this.sink },
+      { spawn: this.spawn, yaw: this.spawnYaw, combat: this.sink },
     );
   }
 
@@ -366,6 +424,38 @@ export class AiSystem implements System {
     visor.position.set(0, bodyH + 0.14, -0.18);
     this.body.add(visor);
     this.disposables.push(visorGeo, this.visor);
+
+    // One local, depth-tested glow preserves the visor's combat saliency
+    // without paying for a fullscreen bloom pyramid. It is generated at boot,
+    // procedural, and occluded by cover like the visor it belongs to.
+    const glowCanvas = document.createElement('canvas');
+    glowCanvas.width = 64;
+    glowCanvas.height = 64;
+    const glowCtx = glowCanvas.getContext('2d');
+    if (!glowCtx) throw new Error('AiSystem: visor glow canvas unavailable');
+    const gradient = glowCtx.createRadialGradient(32, 32, 2, 32, 32, 32);
+    gradient.addColorStop(0, 'rgba(255,255,255,0.95)');
+    gradient.addColorStop(0.2, 'rgba(255,255,255,0.55)');
+    gradient.addColorStop(1, 'rgba(255,255,255,0)');
+    glowCtx.fillStyle = gradient;
+    glowCtx.fillRect(0, 0, 64, 64);
+    const glowTexture = new THREE.CanvasTexture(glowCanvas);
+    glowTexture.colorSpace = THREE.SRGBColorSpace;
+    this.visorGlowMat = new THREE.SpriteMaterial({
+      map: glowTexture,
+      color: 0x36d17a,
+      transparent: true,
+      opacity: 0.7,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false,
+    });
+    this.visorGlow = new THREE.Sprite(this.visorGlowMat);
+    this.visorGlow.raycast = () => {};
+    this.visorGlow.position.set(0, bodyH + 0.14, -0.215);
+    this.visorGlow.scale.setScalar(0.9);
+    this.body.add(this.visorGlow);
+    this.disposables.push(glowTexture, this.visorGlowMat);
   }
 
   private buildEffects(): void {
