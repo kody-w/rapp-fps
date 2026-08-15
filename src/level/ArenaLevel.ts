@@ -26,20 +26,32 @@ import { checkCorrespondence, formatReport, type CorrespondenceReport } from './
 export class ArenaLevel implements System {
   readonly name = 'level';
 
-  private readonly def: ArenaDefinition = buildArena();
+  private readonly def: ArenaDefinition;
   private root = new THREE.Group();
   private materials?: ArenaMaterials;
   private groups: MergedGroup[] = [];
   private lights: THREE.Object3D[] = [];
   private beaconMat?: THREE.MeshStandardMaterial;
 
-  private world?: StaticWorld;
+  private readonly world: StaticWorld;
   private report?: CorrespondenceReport;
   private installedShotHook = false;
 
-  /** Exposed so a player/AI motor can collide against the built world. */
-  get staticWorld(): StaticWorld | undefined {
+  constructor(
+    definition: ArenaDefinition = buildArena(),
+    world: StaticWorld = buildStaticWorld(definition),
+  ) {
+    this.def = definition;
+    this.world = world;
+  }
+
+  /** Available before init so every simulation receives this exact instance. */
+  get staticWorld(): StaticWorld {
     return this.world;
+  }
+
+  get definition(): ArenaDefinition {
+    return this.def;
   }
 
   get correspondence(): CorrespondenceReport | undefined {
@@ -52,8 +64,6 @@ export class ArenaLevel implements System {
     scene.add(this.root);
 
     // ── Collision, derived from the same solids as the geometry ───────────
-    this.world = buildStaticWorld(this.def);
-
     // ── Geometry: merge by material, one mesh per group ───────────────────
     this.materials = createArenaMaterials(ctx.renderer);
     this.groups = mergeSolidsByMaterial(this.def.solids);

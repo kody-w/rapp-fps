@@ -86,10 +86,12 @@ export interface ArenaDefinition {
   readonly solids: readonly Solid[];
   readonly lights: readonly LightSpec[];
   readonly shots: readonly ShotSpec[];
-  /** Where the player begins, eye-height already applied for the camera. */
+  /** Player capsule feet position. Eye height is owned by PlayerSystem. */
   readonly playerSpawn: Vec3;
-  /** Where a single enemy holds — exposed to the overwatch deck on purpose. */
+  /** Enemy ground position. */
   readonly enemySpawn: Vec3;
+  /** Authored solids the enemy may rank as cover; every id must collide. */
+  readonly enemyCoverIds: readonly string[];
   readonly fog: { readonly color: number; readonly density: number };
 }
 
@@ -348,8 +350,15 @@ export function buildArena(): ArenaDefinition {
     solids,
     lights,
     shots,
-    playerSpawn: [0, 1.7, -1.6],
-    enemySpawn: [1.6, 1.7, -15.6],
+    playerSpawn: [0, 0, -1.6],
+    enemySpawn: [1.6, 0, -15.6],
+    enemyCoverIds: [
+      'cont-a',
+      'cont-c',
+      'jersey-w2',
+      'crate-w1',
+      'parapet-w',
+    ],
     fog: { color: 0x223041, density: 0.026 },
   };
 }

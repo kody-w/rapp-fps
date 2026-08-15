@@ -12,6 +12,9 @@ import {
 } from '../../core/contracts.js';
 import type { StaticWorld } from '../../core/collision.js';
 import type { BulletImpactPayload } from '../../weapons/events.js';
+import { buildArena } from '../../level/arena.js';
+import { buildStaticWorld } from '../../level/staticWorld.js';
+import { createAiArenaBinding } from '../AiArenaAdapter.js';
 import { CombatSystem } from '../CombatSystem.js';
 
 interface Outcome {
@@ -168,9 +171,50 @@ function testEnemyShotHonorsPlayerAndCover(): Outcome {
   };
 }
 
+function testCanonicalArenaBinding(): Outcome {
+  const failures: string[] = [];
+  const definition = buildArena();
+  const coreWorld = buildStaticWorld(definition);
+  const binding = createAiArenaBinding(definition, coreWorld);
+
+  if (binding.arena.world.boxes.length !== coreWorld.boxes.length) {
+    failures.push('AI and core world box counts differ');
+  }
+  const expectedCover = definition.enemyCoverIds.join(',');
+  const actualCover = binding.arena.cover.map((cover) => cover.id).join(',');
+  if (actualCover !== expectedCover) {
+    failures.push(`cover ids ${actualCover} != ${expectedCover}`);
+  }
+  if (binding.spawn.y !== 0) {
+    failures.push(`enemy spawn y ${binding.spawn.y} is not a ground/feet coordinate`);
+  }
+  for (let i = 0; i < coreWorld.boxes.length; i++) {
+    const core = coreWorld.boxes[i];
+    const ai = binding.arena.world.boxes[i];
+    const flat = [ai.min.x, ai.min.y, ai.min.z, ai.max.x, ai.max.y, ai.max.z];
+    if (flat.join(',') !== [...core.min, ...core.max].join(',')) {
+      failures.push(`box ${i} differs between core and AI`);
+      break;
+    }
+  }
+
+  return {
+    name: 'canonicalArenaBinding',
+    pass: failures.length === 0,
+    failures,
+    detail: {
+      boxes: coreWorld.boxes.length,
+      cover: binding.arena.cover.map((item) => item.id),
+      spawn: binding.spawn,
+      yaw: binding.yaw,
+    },
+  };
+}
+
 const tests = [
   testPlayerImpactBecomesEnemyDamage(),
   testEnemyShotHonorsPlayerAndCover(),
+  testCanonicalArenaBinding(),
 ];
 const result = {
   status: tests.every((test) => test.pass) ? 'passed' : 'failed',
