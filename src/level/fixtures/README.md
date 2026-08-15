@@ -1,6 +1,11 @@
-# `src/level/fixtures` — traversal proof
+# `src/level/fixtures` — proofs the player subsystem can trust
 
-One fixture lives here: **deck-traversal**, the answer to issue #43.
+Two fixtures live here:
+
+- **deck-traversal** — the answer to issue #43: can the shipping player motor
+  actually walk floor→deck up the geometry correspondence proves is *there*?
+- **contact-shadows** — the answer to issue #60: is the authored floor-grounding
+  layer selected correctly, footprint-exact, render-only and within budget?
 
 ## Why
 
@@ -75,3 +80,68 @@ node src/level/fixtures/run-deck-traversal.mjs \
   reverted) is blocked at the base of the 1.60 m first tread and never reaches
   the deck (2 assertions FAIL). Proof the fixture fails on the defect it guards,
   rather than passing vacuously.
+
+---
+
+# contact-shadows (#60)
+
+## Why
+
+With `N8AO` off (it breaks the 16.7 ms budget), the shipped lighting darkens the
+floor under cover so little that a direct on/off framebuffer diff moves 0.77 % of
+pixels at mean 0.154/255 — visually nothing — so the crates and jersey barriers
+read as floating. `contactShadows.ts` authors the missing grounding cue as one
+`InstancedMesh` of soft, footprint-sized floor marks. This fixture proves that
+layer is honest: correctly *selected*, footprint-*exact*, *render-only*, and
+*cheap* — the four ways an authored cheat like this could quietly go wrong.
+
+## What it does
+
+`contact-shadows.harness.mjs` (loaded by `contact-shadows.harness.html`) builds
+the **real** layer from the shipped modules (`selectGroundContactSolids`,
+`createContactShadowLayer`) against `buildArena()` and gates 13 assertions:
+
+1. **selection** — exactly the 10 authored floor-standing solids, no more.
+2. **selected_are_floor_standing** — every selected solid is collidable and rests
+   on `y=0`.
+3. **footprint_exact_from_solid** — each mark's centre/size equals the solid's
+   `(min+max)/2` and `(max−min)`, to the micron — no duplicated coordinates.
+4. **marks_horizontal** + **y_offset_measured** — the quad normal is +Y and the
+   mark sits a measured 6 mm above the floor.
+5. **adds_no_collider** + **marks_not_mistaken_for_geometry** — the layer adds no
+   collision box and its corner-keys never intersect a collider corner-key.
+6. **correspondence_still_5_of_5** — the arena's own proof still passes with the
+   layer composed.
+7. **negative_control_rejected** — the floor slab, a perimeter wall, a stair
+   tread, a stacked crate and the beacon are each **rejected** (an ineligible
+   floor/wall/stair cannot sneak a mark).
+8. **lifecycle_repeatable_clean** — build→dispose→build leaves no orphaned parent
+   and disposes mesh/geometry/material.
+9. **one_additional_draw** + **zero_generated_textures** — measured with two fresh
+   renderers: the layer costs exactly +1 draw call and 0 generated textures.
+10. **pixel_diff_meaningful_and_local** — an on/off `readPixels` diff shows the
+    mark is both visible where it should be and absent everywhere else.
+
+`run-contact-shadows.mjs` loads it in headless Chromium, prints the assertion
+table + selection/resource/pixel-diff summary, archives
+`../evidence/contact-shadows.report.json`, and exits non-zero on any failed
+assertion or console error.
+
+Unlike deck-traversal, this fixture needs **no** external subsystem — it binds
+only `src/level` — so it runs on this branch as-is.
+
+## Run it
+
+```sh
+npm exec --prefix <repo> -- vite <repo> --host 127.0.0.1 --port 5283 --strictPort
+node src/level/fixtures/run-contact-shadows.mjs \
+  --url http://127.0.0.1:5283/src/level/fixtures/contact-shadows.harness.html
+```
+
+## Evidence
+
+- `../evidence/contact-shadows.report.json` — **13/13 PASS**, 10 marks, +1 draw /
+  +0 texture; on/off pixel diff 1.15 % of pixels at mean 16.9/255 where changed
+  (vs the VSM baseline 0.77 % / 0.154).
+- `../evidence/contact-on/*` vs `../evidence/contact-off/*` — matched 1920×1080
+  frames (`grounding`, `lane_west`, `materials`) with the layer on and off.

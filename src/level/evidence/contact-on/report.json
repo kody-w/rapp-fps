@@ -1,0 +1,52 @@
+{
+  "at": "2026-08-15T13:28:44.518Z",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "cpuThrottleRate": 1,
+  "rafDelayMs": 0,
+  "frameBudgetMs": 16.7,
+  "overBudget": false,
+  "performance": {
+    "gpuSupported": true,
+    "gpuCounterBits": 64,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 6.63,
+      "p95": 9.909,
+      "worst": 12.156
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 1.2,
+      "p95": 1.5,
+      "worst": 1.7
+    },
+    "rafIntervalMs": {
+      "samples": 122,
+      "median": 16.7,
+      "p95": 17.4,
+      "worst": 17.7
+    },
+    "budgetFrameMsMedian": 6.63,
+    "budgetFrameMsP95": 9.909,
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 6.63,
+      "p95": 9.909,
+      "worst": 12.156
+    },
+    "gpuDisjointCount": 0,
+    "note": "budget uses max(CPU, GPU); rAF interval is scheduler cadence only",
+    "drawCallsPerFrame": 27,
+    "trianglesPerFrame": 878,
+    "programs": 13,
+    "textures": 23,
+    "geometries": 14
+  },
+  "shots": [
+    "src/level/evidence/contact-on/grounding.png",
+    "src/level/evidence/contact-on/lane_west.png",
+    "src/level/evidence/contact-on/materials.png"
+  ],
+  "consoleErrors": []
+}

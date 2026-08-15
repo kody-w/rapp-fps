@@ -22,6 +22,21 @@ import { createArenaMaterials, type ArenaMaterials } from './materials.js';
 import { mergeSolidsByMaterial, type MergedGroup } from './geometry.js';
 import { buildStaticWorld } from './staticWorld.js';
 import { checkCorrespondence, formatReport, type CorrespondenceReport } from './correspondence.js';
+import {
+  createContactShadowLayer,
+  selectGroundContactSolids,
+  type ContactShadowLayer,
+} from './contactShadows.js';
+
+export interface ArenaLevelOptions {
+  /**
+   * Draw the authored floor contact-grounding marks under floor-standing cover.
+   * Defaults to the `contact` URL flag (on unless `?contact=0`), so production
+   * always grounds its cover while the evidence harness can capture a matched
+   * "off" frame from the same build.
+   */
+  readonly contactShadows?: boolean;
+}
 
 export class ArenaLevel implements System {
   readonly name = 'level';
@@ -32,6 +47,8 @@ export class ArenaLevel implements System {
   private groups: MergedGroup[] = [];
   private lights: THREE.Object3D[] = [];
   private beaconMat?: THREE.MeshStandardMaterial;
+  private contact?: ContactShadowLayer;
+  private readonly contactShadowsOption?: boolean;
 
   private readonly world: StaticWorld;
   private report?: CorrespondenceReport;
@@ -40,9 +57,11 @@ export class ArenaLevel implements System {
   constructor(
     definition: ArenaDefinition = buildArena(),
     world: StaticWorld = buildStaticWorld(definition),
+    options: ArenaLevelOptions = {},
   ) {
     this.def = definition;
     this.world = world;
+    this.contactShadowsOption = options.contactShadows;
   }
 
   /** Available before init so every simulation receives this exact instance. */
@@ -56,6 +75,11 @@ export class ArenaLevel implements System {
 
   get correspondence(): CorrespondenceReport | undefined {
     return this.report;
+  }
+
+  /** The contact-shadow layer, once built by init. Exposed for the fixture. */
+  get contactShadows(): ContactShadowLayer | undefined {
+    return this.contact;
   }
 
   init(ctx: EngineContext): void {
@@ -93,6 +117,29 @@ export class ArenaLevel implements System {
       // Loud failure: the running game must not present cover the player cannot
       // trust. This is the guard #8 lacked.
       throw new Error(`arena render/collision correspondence FAILED\n${formatReport(this.report)}`);
+    }
+
+    // ── Contact grounding: authored floor marks under floor-standing cover ──
+    // Purely render-only: derived from the same collidable `Solid` records the
+    // proof above just validated, added as ONE extra InstancedMesh, and never
+    // fed to the collider — so it grounds the cover without touching the 5/5
+    // correspondence. Off with `?contact=0` for a matched evidence frame.
+    if (this.contactShadowsEnabled()) {
+      this.contact = createContactShadowLayer(selectGroundContactSolids(this.def));
+      this.root.add(this.contact.mesh);
+    }
+    if (typeof window !== 'undefined') {
+      (window as unknown as Record<string, unknown>).__CONTACT_SHADOWS__ = this.contact
+        ? {
+          enabled: true,
+          count: this.contact.instances.length,
+          ids: this.contact.instances.map((c) => c.id),
+          penumbra: this.contact.penumbra,
+          yOffset: this.contact.yOffset,
+          peak: this.contact.peak,
+          instances: this.contact.instances,
+        }
+        : { enabled: false };
     }
 
     // ── Lighting: blue-hour ambient, warm practicals ──────────────────────
@@ -163,6 +210,13 @@ export class ArenaLevel implements System {
     this.installedShotHook = true;
   }
 
+  /** Constructor override wins; otherwise the `contact` URL flag (default on). */
+  private contactShadowsEnabled(): boolean {
+    if (this.contactShadowsOption !== undefined) return this.contactShadowsOption;
+    if (typeof location === 'undefined') return true;
+    return new URLSearchParams(location.search).get('contact') !== '0';
+  }
+
   update(u: UpdateContext): void {
     // A slow, deterministic beacon pulse — a little life at the objective end
     // without perturbing frame timing. Everything else is static.
@@ -175,6 +229,8 @@ export class ArenaLevel implements System {
     this.root.parent?.remove(this.root);
     for (const group of this.groups) group.geometry.dispose();
     this.groups = [];
+    this.contact?.dispose();
+    this.contact = undefined;
     this.materials?.dispose();
     this.materials = undefined;
     for (const light of this.lights) light.parent?.remove(light);
@@ -186,6 +242,7 @@ export class ArenaLevel implements System {
       delete w.__ARENA_CHECK__;
       delete w.__LEVEL_STATIC_WORLD__;
       delete w.__ARENA_SPAWNS__;
+      delete w.__CONTACT_SHADOWS__;
       this.installedShotHook = false;
     }
   }
