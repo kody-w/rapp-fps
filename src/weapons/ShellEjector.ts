@@ -1,6 +1,7 @@
 /** Cosmetic brass ejection in one pooled InstancedMesh (one draw call). */
 
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 interface ShellState {
   readonly position: THREE.Vector3;
@@ -16,6 +17,7 @@ interface ShellState {
 const UNIT_SCALE = new THREE.Vector3(1, 1, 1);
 const ZERO_SCALE = new THREE.Vector3(0, 0, 0);
 const GRAVITY = -9.81;
+export const SHELL_MAX_END_ON_PIXELS = 20;
 
 export class ShellEjector {
   readonly mesh: THREE.InstancedMesh;
@@ -26,11 +28,13 @@ export class ShellEjector {
   private next = 0;
 
   constructor(private readonly poolSize = 12, private readonly floorY = 0) {
-    const geometry = new THREE.CylinderGeometry(0.006, 0.007, 0.028, 8, 1);
+    const geometry = createShellGeometry();
     const material = new THREE.MeshStandardMaterial({
-      color: 0xc49a43,
-      metalness: 1,
+      color: 0xffffff,
+      vertexColors: true,
+      metalness: 0.88,
       roughness: 0.32,
+      side: THREE.DoubleSide,
     });
     this.mesh = new THREE.InstancedMesh(geometry, material, poolSize);
     this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -133,4 +137,49 @@ export class ShellEjector {
     const materials = Array.isArray(this.mesh.material) ? this.mesh.material : [this.mesh.material];
     for (const material of materials) material.dispose();
   }
+}
+
+function createShellGeometry(): THREE.BufferGeometry {
+  const brass = new THREE.Color(0xc49a43);
+  const mouth = new THREE.Color(0x120c07);
+  const primer = new THREE.Color(0x5a3518);
+
+  // One merged geometry + one vertex-colour material keeps the existing
+  // one-draw-call pool while making each end unmistakably asymmetric.
+  const body = paint(
+    new THREE.CylinderGeometry(0.0044, 0.0048, 0.026, 10, 1, true),
+    brass,
+  );
+  const extractionRim = paint(
+    new THREE.CylinderGeometry(0.0052, 0.0052, 0.002, 10, 1, false)
+      .translate(0, -0.014, 0),
+    brass,
+  );
+  const openMouth = paint(
+    new THREE.CircleGeometry(0.00425, 10)
+      .rotateX(-Math.PI / 2)
+      .translate(0, 0.0131, 0),
+    mouth,
+  );
+  const primerDisc = paint(
+    new THREE.CircleGeometry(0.0022, 10)
+      .rotateX(Math.PI / 2)
+      .translate(0, -0.0151, 0),
+    primer,
+  );
+  const parts = [body, extractionRim, openMouth, primerDisc];
+  const merged = mergeGeometries(parts, false);
+  for (const part of parts) part.dispose();
+  if (!merged) throw new Error('ShellEjector: could not merge casing geometry');
+  merged.computeBoundingBox();
+  merged.computeBoundingSphere();
+  return merged;
+}
+
+function paint(geometry: THREE.BufferGeometry, color: THREE.Color): THREE.BufferGeometry {
+  const count = geometry.attributes.position.count;
+  const colors = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) color.toArray(colors, i * 3);
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return geometry;
 }
