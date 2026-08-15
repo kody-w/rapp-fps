@@ -15,4 +15,5 @@
  */
 
 export { cargoBreach, cargoBreachDerivedSpawn } from './cargoBreach.js';
-
+export { relayBlackout } from './relayBlackout.js';
+export { foundryLastLight } from './foundryLastLight.js';

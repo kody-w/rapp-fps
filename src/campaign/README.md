@@ -1,33 +1,24 @@
 # Campaign library (`src/campaign`)
 
-A **renderer-light campaign contract** plus the one reviewed mission that ships
-today. It lets a parent integration build a validated mission catalog, run the
-whole progression state machine, resolve deep links, and persist progress
-**without importing `three`, the DOM, the HUD, the player/AI/weapon systems, or
-any not-yet-existing Relay/Foundry branch**. The one and only dependency into the
-rest of the codebase is the level's pure `ArenaDefinition` type from
-`../level/arena.js` — the same data the shipping level already produces.
+A renderer-light campaign core plus the production bridge for three reviewed
+missions: **Cargo Breach**, **Relay Blackout**, and **Foundry Last Light**. The
+core validates catalogs, runs progression, resolves deep links, and persists
+schema-versioned progress without importing rendering or gameplay systems.
+`CampaignSystem` is the deliberately browser-facing edge: it selects one
+mission before engine construction, bridges combat events into progression,
+updates the HUD, and reloads between missions so teardown is complete.
 
-The core is **generic**: it exports the reviewed **Cargo Breach** mission
-(mission 1, adapted from the shipping `buildArena()`) and the
-catalog/progress/persistence/deep-link machinery. The rest of the campaign —
-Relay Blackout and Foundry Last Light — is owned by the sibling boot/level-factory
-branches; once their PRs merge, integration composes the full catalog with
-`createCampaignCatalog([cargoBreach, relayBlackout, foundryLastLight])`. This
-branch deliberately ships **no** placeholder "shipping campaign", so nothing here
-can masquerade as a reviewed mission it is not.
-
-> Scope: this branch owns `src/campaign/**` and its own tests/evidence only. It
-> does **not** edit `src/main.ts` or any existing level/weapon/player/AI/render/HUD
-> file, and it imports no sibling unmerged branch. Production wiring (bus bridge,
-> real `localStorage`, real query/reload) and the Relay/Foundry mission
-> definitions land later; this library exposes the seams they plug into. Refs #70.
+The production catalog is assembled only from the reviewed mission adapters in
+`production.ts`. It fingerprints all three real arenas and throws if two are
+structurally identical. No placeholder world can masquerade as a campaign slot.
+`?campaignFixture=1&mission=<id>` selects a mission with memory-only progress;
+the fixture can never unlock or complete the persisted campaign.
 
 ## Why it exists
 
-The campaign has to be authored, validated and simulated **before** the boot
-(Relay) and level-factory (Foundry) branches exist, and without importing their
-half-written code. So everything here is pure logic over injected adapters:
+The campaign must remain authorable, validatable, and simulatable independently
+of the browser-facing composition. The generic core therefore stays pure logic
+over injected adapters:
 
 - geometry is validated against the **real** collidable solids of each arena;
 - progression is a set of pure reducers plus a thin stateful wrapper;
@@ -36,16 +27,15 @@ half-written code. So everything here is pure logic over injected adapters:
 
 ## Public surface
 
-Import everything from `./index.js`. Typical wiring once the sibling
-Relay/Foundry branches land and integration supplies their reviewed missions:
+The generic core remains available from `./index.js`:
 
 ```ts
 import {
-  createCampaignCatalog, cargoBreach, CampaignRuntime,
+  createCampaignCatalog, cargoBreach, relayBlackout, foundryLastLight,
+  CampaignRuntime,
   createLocalStoragePersistence, createQueryNavigation,
 } from './campaign/index.js';
 
-// cargoBreach ships here; relayBlackout/foundryLastLight arrive from siblings.
 const catalog = createCampaignCatalog([cargoBreach, relayBlackout, foundryLastLight]);
 const runtime = CampaignRuntime.create({
   catalog,
@@ -54,14 +44,15 @@ const runtime = CampaignRuntime.create({
   emit: (e) => bus.emit(e.type, e),      // bridge to the core EventBus
 });
 
-const arena = runtime.currentArena();    // hand to the Foundry/level factory
+const arena = runtime.currentArena();     // hand to ArenaLevel
 const spawn = runtime.spawnSlot();        // hand to the player system
 const hud   = runtime.snapshot();         // hand to the HUD (plain data)
 ```
 
-`createCampaignCatalog([cargoBreach])` is itself a valid one-mission catalog, so
-integration can wire the campaign incrementally as each mission is reviewed.
-Nothing above forces a browser: swap `createLocalStoragePersistence` for
+Production `main.ts` uses `CampaignSystem.create(...)`, which owns the real
+storage/query/reload bridge and exposes the selected definition and spawn before
+the engine is composed. Nothing in the generic core forces a browser: swap
+`createLocalStoragePersistence` for
 `createInMemoryPersistence()` and `createQueryNavigation` for
 `new InMemoryNavigation()` and it runs headless — which is exactly what the proof
 suite does.
@@ -73,8 +64,12 @@ suite does.
 | `ids.ts` | Branded `MissionId`, kebab-case pattern, `asMissionId`/`tryMissionId`/`isMissionId`. |
 | `types.ts` | The `MissionDefinition` contract: spawns, enemies/cover, objective (`title`+`summary`), completion/failure/checkpoint policy, optional visual metadata. |
 | `spawns.ts` | AABB capsule-vs-solid clearance geometry; `deriveClearFloorSpawn` (throws rather than invent a point inside solids). |
-| `missions/cargoBreach.ts` | The one reviewed mission — the shipping `buildArena()` adapted; objective title `SECURE THE CARGO BAY`; second spawn derived + validated. |
-| `missions/index.ts` | Exports the reviewed `cargoBreach` adapter only — no bundled "default campaign". |
+| `missions/cargoBreach.ts` | Cargo Breach adapter over shipping `buildArena()`; second spawn derived + validated. |
+| `missions/relayBlackout.ts` | Relay Blackout adapter over the reviewed switchyard mission library. |
+| `missions/foundryLastLight.ts` | Foundry Last Light adapter over the reviewed foundry mission library. |
+| `missions/index.ts` | Exports the three reviewed mission adapters. |
+| `production.ts` | Ordered production catalog plus fail-fast cross-mission topology uniqueness. |
+| `CampaignSystem.ts` | Browser/gameplay bridge: mission selection, HUD, combat progression, memory-only fixtures, reload lifecycle, and evidence seam. |
 | `catalog.ts` | `createCampaignCatalog` — validates ids/orders/spawns/cover/objective (title+summary)/progression against real geometry; every rejection is a typed `CampaignValidationError.code`. |
 | `progress.ts` | Pure `CampaignProgress` state machine: locked→unlocked→current→completed, elimination→unlock, death→checkpoint retry, finale→campaign complete. A current mission and `campaignComplete` are mutually exclusive by construction. |
 | `deepLink.ts` | `resolveDeepLink` — explicit `resolved`/`locked`/`unknown`/`absent` union, each carrying a `fallbackMissionId` (`defaultMissionId`) for URL normalization; **never forges completion**. |
@@ -125,8 +120,8 @@ imports the emitted entry, runs the suite, prints a per-case summary, and writes
 | Gate | Statement | Status |
 | --- | --- | --- |
 | G1 | `npx tsc --noEmit` passes repo-wide with the campaign added | ✅ 0 errors |
-| G2 | Working tree touches only `src/campaign/**` (+ ignored `dist/`) | ✅ campaign-only |
-| G3 | Library imports no `three`/DOM/render/HUD/player/AI/weapon/`main`; only `../level/arena.js`; no sibling branch | ✅ grep-clean |
+| G2 | Production catalog contains Cargo → Relay → Foundry, with two clear spawn slots and collidable enemy cover in each | ✅ validated |
+| G3 | All three arena topology fingerprints are distinct; duplicate mutation fails | ✅ fail-fast |
 | G4 | Browser-free Node suite runs green over every enumerated scenario | ✅ 19/19, exit 0 |
 | G5 | Catalog rejects dup id/order, gaps, `<2` spawns, missing cover/objective (title+summary), invalid progression | ✅ each throws a typed code |
 | G6 | Deep link unknown/locked returns an explicit resolution and normalizes the URL to the default mission, never forges completion | ✅ union + normalization proven |
@@ -134,6 +129,8 @@ imports the emitted entry, runs the suite, prints a per-case summary, and writes
 | G8 | Mission 1's second spawn is derived and validated clear of collidable solids | ✅ clearance asserted |
 | G9 | Navigation/reload is an interface; tests never mutate `location` | ✅ in-memory double |
 | G10 | `campaignComplete` and a current mission are mutually exclusive; post-finale deploy/replay reopen cleanly; a completed reload stays complete | ✅ invariant + reload identity proven |
+| G11 | Browser contract proves locked links, retry reload, progression hydration, one HUD/canvas, and explicit finale | ✅ `tools/verify-campaign.mjs` |
+| G12 | Every mission passes the production gameplay judge three times on hardware GPU | ✅ 9/9; worst p95 9.424 ms |
 
 Scenario coverage in `test/run.ts`: default fresh state · deep link
 locked/unlocked/unknown/absent + URL normalization · elimination progression ·
@@ -166,25 +163,23 @@ scenarios compose `cargoBreach` with two synthetic `fixture-*` missions
   angle. The reviewed mission 1 (which must not edit its level file) derives its
   second slot this way; integration-supplied missions are free to author or derive
   theirs. The synthetic test fixtures hand-place both slots.
-- **Only one reviewed mission ships here.** Relay Blackout and Foundry Last Light
-  arrive from sibling branches; this library exports the generic core plus Cargo
-  Breach and nothing else. Multi-mission behaviour is proven against synthetic
-  `fixture-*` missions (`test/fixtures.ts`) that are test-only and never exported,
-  so no unreviewed geometry can masquerade as a shipping mission.
+- **One defender per mission.** The catalog supports multiple enemy placements,
+  but the current production AI/Combat composition binds one defender. Each
+  mission therefore completes on one independently confirmed elimination.
 - **Migration covers exactly one prior version (v1→v2).** Anything older than v1,
   or a future version, is refused (clean fresh start), never guessed at. That is
   deliberate — a downgrade must not reinterpret data it does not understand — but
   it means old saves beyond one hop are simply dropped.
-- **`CampaignRuntime` completion is driven by explicit `reportElimination()` /
-  `reportPlayerDeath()` calls.** Wiring those to real gameplay signals (the enemy
-  `death` event, the player `death` event) is the parent's job; this library does
-  not subscribe to a bus, by design.
+- **Transitions reload the document.** This is intentional: it guarantees the
+  level, renderer resources, HUD, audio, input listeners, and campaign
+  subscriptions are torn down before the next mission is built. It costs a
+  loading boundary rather than attempting a risky in-place object-graph swap.
 - **The proof compiles to `dist/campaign/` and dynamic-imports the emitted JS.**
   Node 20 cannot execute the repo's `.js`-specifier-to-`.ts` imports directly, so
   the suite runs against compiled output. It is the same JS `tsc` would emit, but
   it is one build hop removed from the `.ts` sources (mitigated by G1 typechecking
   the sources directly, repo-wide, every run).
-- **No visual/screenshot evidence.** The reviewed mission reuses the shipping
-  arena and the synthetic fixtures are test-only geometry with no rendered capture
-  in this branch (rendering is out of scope and would require the forbidden
-  subsystems). Correctness is asserted structurally, not visually.
+- **Visual evidence is machine-specific.** Relay and Foundry carry authored
+  1920×1080 frames, and the integrated browser gate captures all three cold
+  roots. Performance qualification is Apple M4/Metal evidence, not a claim about
+  every gaming PC GPU.

@@ -25,14 +25,14 @@
         "snapshot": {
           "snapshotVersion": 2,
           "currentMissionId": "cargo-breach",
-          "currentTitle": "Cargo Breach",
+          "currentTitle": "CARGO BREACH",
           "currentObjective": "Eliminate the defender holding the beacon terminal.",
           "currentObjectiveTitle": "SECURE THE CARGO BAY",
           "missions": [
             {
               "id": "cargo-breach",
               "order": 1,
-              "title": "Cargo Breach",
+              "title": "CARGO BREACH",
               "status": "current",
               "objective": "Eliminate the defender holding the beacon terminal.",
               "objectiveTitle": "SECURE THE CARGO BAY"
@@ -214,7 +214,7 @@
             {
               "id": "cargo-breach",
               "order": 1,
-              "title": "Cargo Breach",
+              "title": "CARGO BREACH",
               "status": "completed",
               "objective": "Eliminate the defender holding the beacon terminal.",
               "objectiveTitle": "SECURE THE CARGO BAY"
@@ -315,7 +315,7 @@
             {
               "id": "cargo-breach",
               "order": 1,
-              "title": "Cargo Breach",
+              "title": "CARGO BREACH",
               "status": "completed",
               "objective": "Eliminate the defender holding the beacon terminal.",
               "objectiveTitle": "SECURE THE CARGO BAY"

@@ -1,5 +1,5 @@
 {
-  "at": "2026-08-15T16:00:02.668Z",
+  "at": "2026-08-15T18:15:59.091Z",
   "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
   "viewport": "1920x1080",
   "cpuThrottleRate": 1,
@@ -11,34 +11,34 @@
     "gpuCounterBits": 64,
     "gpuFrameMs": {
       "samples": 120,
-      "median": 4.667,
-      "p95": 6.655,
-      "worst": 7.69
+      "median": 4.541,
+      "p95": 6.454,
+      "worst": 7.491
     },
     "cpuFrameMs": {
       "samples": 122,
-      "median": 0.9,
-      "p95": 1.5,
-      "worst": 2.1
+      "median": 0.5,
+      "p95": 1.3,
+      "worst": 1.5
     },
     "rafIntervalMs": {
       "samples": 122,
       "median": 16.7,
-      "p95": 17.2,
+      "p95": 17.4,
       "worst": 17.5
     },
-    "budgetFrameMsMedian": 4.667,
-    "budgetFrameMsP95": 6.655,
+    "budgetFrameMsMedian": 4.541,
+    "budgetFrameMsP95": 6.454,
     "budgetFrameMs": {
       "samples": 120,
-      "median": 4.667,
-      "p95": 6.655,
-      "worst": 7.69
+      "median": 4.541,
+      "p95": 6.454,
+      "worst": 7.491
     },
     "gpuDisjointCount": 0,
     "note": "budget uses max(CPU, GPU); rAF interval is scheduler cadence only",
     "drawCallsPerFrame": 25,
-    "trianglesPerFrame": 1056,
+    "trianglesPerFrame": 1080,
     "programs": 12,
     "textures": 22,
     "geometries": 13

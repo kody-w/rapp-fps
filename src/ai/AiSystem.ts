@@ -193,6 +193,11 @@ export class AiSystem implements System {
   get maxHealth(): number { return this.config.maxHealth; }
   get state(): AiState { return this.agent.state; }
 
+  copyPosition(out: THREE.Vector3): boolean {
+    out.set(this.agent.position.x, this.agent.position.y, this.agent.position.z);
+    return this.agent.state !== 'dead';
+  }
+
   init(ctx: EngineContext): void {
     const { scene } = ctx;
     this.root = new THREE.Group();
