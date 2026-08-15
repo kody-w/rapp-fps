@@ -1,0 +1,21 @@
+{
+  "//": "Emit-only config for the browser-free Node proof of the co-op gamepad input library. Node 20 cannot run the repo's .js-specifier-to-.ts imports directly, so (exactly like src/campaign/test) this compiles the fixture and its transitive library imports to the gitignored dist/coop-input and the runner imports the emitted JS. rootDir is src because the library imports the InputState TYPE from ../../core/contracts.ts; that import is erased by verbatimModuleSyntax, so nothing outside this directory is emitted or shipped.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "rootDir": "../../..",
+    "outDir": "../../../../dist/coop-input",
+    "types": []
+  },
+  "include": ["two-slot-isolation.ts"]
+}
