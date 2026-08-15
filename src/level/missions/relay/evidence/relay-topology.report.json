@@ -1,0 +1,638 @@
+{
+  "url": "http://127.0.0.1:5294/src/level/missions/relay/fixtures/relay-topology.harness.html",
+  "consoleErrors": [],
+  "at": "2026-08-15T16:10:01.887Z",
+  "ok": true,
+  "mission": {
+    "id": "relay-blackout",
+    "index": 2,
+    "codename": "RELAY BLACKOUT",
+    "name": "Relay Blackout",
+    "biome": "rain-blue electrical relay / utility switchyard",
+    "synopsis": "A blacked-out switchyard: push from the south gate up a staggered transformer aisle, climb the central access stair, and take the raised control deck to restore the relay the lone defender is holding.",
+    "enemyCount": 1,
+    "players": {
+      "now": 1,
+      "max": 2
+    }
+  },
+  "losPolicy": {
+    "name": "screened-entry",
+    "statement": "No initial line of sight from the enemy to either player deploy pad: the staggered transformer banks and the central switch-house screen the switchyard entry, so two players deploy safely and the fight opens only as they push a lane. The two pads share mutual sightline for a coordinated deploy, and the relay objective is not visible from either pad — it is a fought-for hold, not a spawn-camp target.",
+    "eyeHeight": 1.66
+  },
+  "losMeasured": {
+    "enemyToSpawnA": "blocked",
+    "enemyToSpawnB": "blocked",
+    "spawnAToSpawnB": "clear",
+    "spawnAToObjective": "blocked",
+    "spawnBToObjective": "blocked",
+    "enemyToObjective": "clear"
+  },
+  "budget": {
+    "collidableCount": 31,
+    "ceiling": 45,
+    "solidCount": 46
+  },
+  "bounds": {
+    "relay": {
+      "min": [
+        -14.6,
+        -0.6,
+        -18.6
+      ],
+      "max": [
+        14.6,
+        5.6,
+        4.6
+      ],
+      "size": [
+        29.2,
+        6.2,
+        23.2
+      ]
+    },
+    "cargo": {
+      "min": [
+        -12.6,
+        -0.6,
+        -20.6
+      ],
+      "max": [
+        12.6,
+        6,
+        1.6
+      ],
+      "size": [
+        25.2,
+        6.6,
+        22.2
+      ]
+    }
+  },
+  "comparison": {
+    "boundsDiffer": true,
+    "collidableCountDiffer": true,
+    "idSetDiffer": true,
+    "sharedIdCount": 13,
+    "uniqueToA": 18,
+    "uniqueToB": 16,
+    "surfaceHistogramDiffer": true,
+    "routeDiffer": true,
+    "sightlineDiffer": true,
+    "requiredAxesDistinct": true,
+    "distinct": true
+  },
+  "fingerprints": {
+    "relay": {
+      "bounds": {
+        "min": [
+          -14.6,
+          -0.6,
+          -18.6
+        ],
+        "max": [
+          14.6,
+          5.6,
+          4.6
+        ],
+        "size": [
+          29.2,
+          6.2,
+          23.2
+        ]
+      },
+      "solidCount": 46,
+      "collidableCount": 31,
+      "collidableIds": [
+        "breaker-w",
+        "cabinet-e",
+        "cabinet-w",
+        "deck",
+        "drum-n",
+        "floor",
+        "parapet-e",
+        "parapet-s-e",
+        "parapet-s-w",
+        "parapet-w",
+        "reel-e",
+        "reel-w",
+        "relay-core",
+        "relaybox-e",
+        "step-0",
+        "step-1",
+        "step-2",
+        "step-3",
+        "step-4",
+        "step-5",
+        "switchhouse",
+        "transformer-e1",
+        "transformer-e2",
+        "transformer-w1",
+        "transformer-w2",
+        "wall-e",
+        "wall-n",
+        "wall-s-east",
+        "wall-s-gantry",
+        "wall-s-west",
+        "wall-w"
+      ],
+      "idSetHash": 1239270846,
+      "surfaceHistogram": {
+        "concrete": 9,
+        "metal": 20,
+        "wood": 2
+      },
+      "materialHistogram": {
+        "concrete": 6,
+        "concreteDark": 3,
+        "darkMetal": 8,
+        "galvanized": 9,
+        "rust": 3,
+        "wood": 2
+      },
+      "heightBands": {
+        "low": 12,
+        "wall": 5,
+        "mid": 7,
+        "flat": 2,
+        "tall": 5
+      },
+      "route": {
+        "stepCount": 6,
+        "deckTop": 1.6,
+        "deckCentroid": [
+          0,
+          1.4,
+          -15.25
+        ],
+        "spawnCount": 2,
+        "spawnCentroids": [
+          [
+            -4.2,
+            0,
+            0.9
+          ],
+          [
+            4.2,
+            0,
+            0.9
+          ]
+        ],
+        "enemySpawn": [
+          3.4,
+          0,
+          -9.8
+        ],
+        "objective": [
+          0,
+          1.6,
+          -14
+        ],
+        "coverCount": 6
+      },
+      "sightline": {
+        "k": 7,
+        "eyeHeight": 1.66,
+        "probeCount": 98,
+        "blockedNorthSouth": 31,
+        "blockedEastWest": 35,
+        "blockedTotal": 66,
+        "ratio": 0.6735,
+        "hash": 2314055479
+      }
+    },
+    "cargo": {
+      "bounds": {
+        "min": [
+          -12.6,
+          -0.6,
+          -20.6
+        ],
+        "max": [
+          12.6,
+          6,
+          1.6
+        ],
+        "size": [
+          25.2,
+          6.6,
+          22.2
+        ]
+      },
+      "solidCount": 36,
+      "collidableCount": 29,
+      "collidableIds": [
+        "cont-a",
+        "cont-b",
+        "cont-c",
+        "crate-w1",
+        "crate-w2",
+        "crate-w3",
+        "deck",
+        "dock-obj",
+        "drum-n1",
+        "floor",
+        "jersey-n1",
+        "jersey-w1",
+        "jersey-w2",
+        "pallet-n",
+        "parapet-s-e",
+        "parapet-s-w",
+        "parapet-w",
+        "step-0",
+        "step-1",
+        "step-2",
+        "step-3",
+        "step-4",
+        "step-5",
+        "wall-e",
+        "wall-n-east",
+        "wall-n-lintel",
+        "wall-n-west",
+        "wall-s",
+        "wall-w"
+      ],
+      "idSetHash": 1984275635,
+      "surfaceHistogram": {
+        "concrete": 11,
+        "metal": 14,
+        "wood": 4
+      },
+      "materialHistogram": {
+        "concrete": 9,
+        "concreteDark": 2,
+        "container": 3,
+        "wood": 4,
+        "galvanized": 7,
+        "darkMetal": 3,
+        "rust": 1
+      },
+      "heightBands": {
+        "low": 13,
+        "wall": 6,
+        "tall": 3,
+        "mid": 5,
+        "flat": 2
+      },
+      "route": {
+        "stepCount": 6,
+        "deckTop": 1.6,
+        "deckCentroid": [
+          8.8,
+          1.4,
+          -13.25
+        ],
+        "spawnCount": 1,
+        "spawnCentroids": [
+          [
+            0,
+            0,
+            -1.6
+          ]
+        ],
+        "enemySpawn": [
+          -9,
+          0,
+          -13
+        ],
+        "objective": null,
+        "coverCount": 5
+      },
+      "sightline": {
+        "k": 7,
+        "eyeHeight": 1.66,
+        "probeCount": 98,
+        "blockedNorthSouth": 38,
+        "blockedEastWest": 36,
+        "blockedTotal": 74,
+        "ratio": 0.7551,
+        "hash": 166094059
+      }
+    }
+  },
+  "spawns": [
+    {
+      "name": "deploy-west",
+      "position": [
+        -4.2,
+        0,
+        0.9
+      ],
+      "fits": true,
+      "inBounds": true,
+      "onFloor": true,
+      "insideSolid": null
+    },
+    {
+      "name": "deploy-east",
+      "position": [
+        4.2,
+        0,
+        0.9
+      ],
+      "fits": true,
+      "inBounds": true,
+      "onFloor": true,
+      "insideSolid": null
+    }
+  ],
+  "enemy": {
+    "spawn": [
+      3.4,
+      0,
+      -9.8
+    ],
+    "fits": true,
+    "insideSolid": null
+  },
+  "world": {
+    "boxes": 31,
+    "bounds": {
+      "min": [
+        -15.100000000000001,
+        -1.1,
+        -19.1
+      ],
+      "max": [
+        15.100000000000001,
+        6.1,
+        5.1
+      ]
+    }
+  },
+  "tuning": {
+    "radius": 0.34,
+    "standingHeight": 1.78,
+    "standingEyeHeight": 1.66
+  },
+  "assertions": [
+    {
+      "name": "distinct_bounds",
+      "passed": true,
+      "actual": {
+        "relay": [
+          29.2,
+          6.2,
+          23.2
+        ],
+        "cargo": [
+          25.2,
+          6.6,
+          22.2
+        ]
+      },
+      "expected": "relay and cargo collidable bounds differ"
+    },
+    {
+      "name": "distinct_id_set",
+      "passed": true,
+      "actual": {
+        "idSetDiffer": true,
+        "sharedIdCount": 13,
+        "uniqueToRelay": 18,
+        "uniqueToCargo": 16
+      },
+      "expected": "different id-set hash with many collidable ids unique to each arena (the shared handful are the reused shell vocabulary: floor/wall/deck/step/parapet)"
+    },
+    {
+      "name": "distinct_route_graph",
+      "passed": true,
+      "actual": {
+        "relay": {
+          "stepCount": 6,
+          "deckTop": 1.6,
+          "deckCentroid": [
+            0,
+            1.4,
+            -15.25
+          ],
+          "spawnCount": 2,
+          "spawnCentroids": [
+            [
+              -4.2,
+              0,
+              0.9
+            ],
+            [
+              4.2,
+              0,
+              0.9
+            ]
+          ],
+          "enemySpawn": [
+            3.4,
+            0,
+            -9.8
+          ],
+          "objective": [
+            0,
+            1.6,
+            -14
+          ],
+          "coverCount": 6
+        },
+        "cargo": {
+          "stepCount": 6,
+          "deckTop": 1.6,
+          "deckCentroid": [
+            8.8,
+            1.4,
+            -13.25
+          ],
+          "spawnCount": 1,
+          "spawnCentroids": [
+            [
+              0,
+              0,
+              -1.6
+            ]
+          ],
+          "enemySpawn": [
+            -9,
+            0,
+            -13
+          ],
+          "objective": null,
+          "coverCount": 5
+        }
+      },
+      "expected": "route signatures differ (deck centroid / spawn count / objective / steps)"
+    },
+    {
+      "name": "distinct_sightline",
+      "passed": true,
+      "actual": {
+        "relay": {
+          "k": 7,
+          "eyeHeight": 1.66,
+          "probeCount": 98,
+          "blockedNorthSouth": 31,
+          "blockedEastWest": 35,
+          "blockedTotal": 66,
+          "ratio": 0.6735,
+          "hash": 2314055479
+        },
+        "cargo": {
+          "k": 7,
+          "eyeHeight": 1.66,
+          "probeCount": 98,
+          "blockedNorthSouth": 38,
+          "blockedEastWest": 36,
+          "blockedTotal": 74,
+          "ratio": 0.7551,
+          "hash": 166094059
+        }
+      },
+      "expected": "sightline signature (blocked count / bitmask hash) differs"
+    },
+    {
+      "name": "required_axes_distinct",
+      "passed": true,
+      "actual": {
+        "requiredAxesDistinct": true
+      },
+      "expected": "bounds AND id set AND route AND sightline all distinct"
+    },
+    {
+      "name": "collidable_within_ceiling",
+      "passed": true,
+      "actual": {
+        "collidableCount": 31,
+        "ceiling": 45
+      },
+      "expected": "≤ 45 collidable boxes"
+    },
+    {
+      "name": "two_distinct_spawns",
+      "passed": true,
+      "actual": {
+        "spawns": [
+          [
+            -4.2,
+            0,
+            0.9
+          ],
+          [
+            4.2,
+            0,
+            0.9
+          ]
+        ]
+      },
+      "expected": "exactly two distinct co-op deploy pads"
+    },
+    {
+      "name": "spawns_fit_capsule",
+      "passed": true,
+      "actual": {
+        "spawns": [
+          {
+            "name": "deploy-west",
+            "fits": true
+          },
+          {
+            "name": "deploy-east",
+            "fits": true
+          }
+        ]
+      },
+      "expected": "each pad fits a standing capsule (shipping StaticBoxWorld.canFit)"
+    },
+    {
+      "name": "spawns_on_floor_in_bounds",
+      "passed": true,
+      "actual": {
+        "spawns": [
+          {
+            "name": "deploy-west",
+            "position": [
+              -4.2,
+              0,
+              0.9
+            ],
+            "fits": true,
+            "inBounds": true,
+            "onFloor": true,
+            "insideSolid": null
+          },
+          {
+            "name": "deploy-east",
+            "position": [
+              4.2,
+              0,
+              0.9
+            ],
+            "fits": true,
+            "inBounds": true,
+            "onFloor": true,
+            "insideSolid": null
+          }
+        ]
+      },
+      "expected": "each pad rests on the floor, inside bounds, not inside any solid"
+    },
+    {
+      "name": "enemy_placement_valid",
+      "passed": true,
+      "actual": {
+        "enemyFits": true,
+        "enemyInside": null,
+        "enemySpawn": [
+          3.4,
+          0,
+          -9.8
+        ]
+      },
+      "expected": "enemy spawn fits a capsule and is not inside a solid"
+    },
+    {
+      "name": "cover_ids_collidable_and_enough",
+      "passed": true,
+      "actual": {
+        "count": 6,
+        "ids": [
+          "transformer-e2",
+          "transformer-w2",
+          "relay-core",
+          "drum-n",
+          "relaybox-e",
+          "switchhouse"
+        ]
+      },
+      "expected": "≥ 4 authored enemy cover ids, every one collidable"
+    },
+    {
+      "name": "eye_height_matches_tuning",
+      "passed": true,
+      "actual": {
+        "losEyeHeight": 1.66,
+        "tuningEyeHeight": 1.66
+      },
+      "expected": "LOS eye height equals DEFAULT_PLAYER_TUNING.standingEyeHeight"
+    },
+    {
+      "name": "los_policy_measured_as_declared",
+      "passed": true,
+      "actual": {
+        "measured": {
+          "enemyToSpawnA": "blocked",
+          "enemyToSpawnB": "blocked",
+          "spawnAToSpawnB": "clear",
+          "spawnAToObjective": "blocked",
+          "spawnBToObjective": "blocked",
+          "enemyToObjective": "clear"
+        },
+        "declared": {
+          "enemyToSpawnA": "blocked",
+          "enemyToSpawnB": "blocked",
+          "spawnAToSpawnB": "clear",
+          "spawnAToObjective": "blocked",
+          "spawnBToObjective": "blocked",
+          "enemyToObjective": "clear"
+        }
+      },
+      "expected": "measured enemy/player/objective sightlines match the declared policy"
+    }
+  ]
+}

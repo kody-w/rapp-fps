@@ -1,0 +1,54 @@
+{
+  "at": "2026-08-15T15:59:28.412Z",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "cpuThrottleRate": 1,
+  "rafDelayMs": 0,
+  "frameBudgetMs": 16.7,
+  "overBudget": false,
+  "performance": {
+    "gpuSupported": true,
+    "gpuCounterBits": 64,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 3.892,
+      "p95": 5.624,
+      "worst": 6.667
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 0.2,
+      "p95": 0.3,
+      "worst": 0.9
+    },
+    "rafIntervalMs": {
+      "samples": 122,
+      "median": 16.7,
+      "p95": 17.4,
+      "worst": 17.6
+    },
+    "budgetFrameMsMedian": 3.892,
+    "budgetFrameMsP95": 5.624,
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 3.892,
+      "p95": 5.624,
+      "worst": 6.667
+    },
+    "gpuDisjointCount": 0,
+    "note": "budget uses max(CPU, GPU); rAF interval is scheduler cadence only",
+    "drawCallsPerFrame": 25,
+    "trianglesPerFrame": 1056,
+    "programs": 12,
+    "textures": 22,
+    "geometries": 13
+  },
+  "shots": [
+    "src/level/missions/foundry/evidence/frames/furnace_contrast.png",
+    "src/level/missions/foundry/evidence/frames/casting_lane.png",
+    "src/level/missions/foundry/evidence/frames/gantry_traversal.png",
+    "src/level/missions/foundry/evidence/frames/final_objective.png",
+    "src/level/missions/foundry/evidence/frames/silhouette.png"
+  ],
+  "consoleErrors": []
+}
