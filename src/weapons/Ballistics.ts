@@ -10,6 +10,16 @@ import * as THREE from 'three';
 import { Events, type EventBus, type SurfaceKind, type SurfaceTag } from '../core/contracts.js';
 import type { WeaponConfig } from './WeaponConfig.js';
 import type { BulletImpactPayload, WeaponFiredPayload } from './events.js';
+import { StaticWorldCollider } from './StaticWorldCollider.js';
+
+/** A resolved hitscan impact, normalised across the scene-mesh and static-world paths. */
+interface ResolvedHit {
+  point: THREE.Vector3;
+  /** Already in world space. */
+  normal: THREE.Vector3;
+  material: SurfaceKind;
+  distance: number;
+}
 
 export interface BallisticShot {
   cameraOrigin: THREE.Vector3;
@@ -33,9 +43,17 @@ export class HitscanBallistics {
   private readonly cameraDirection = new THREE.Vector3();
   private readonly muzzleDirection = new THREE.Vector3();
   private readonly aimPoint = new THREE.Vector3();
-  private readonly normal = new THREE.Vector3();
   private readonly instanceMatrix = new THREE.Matrix4();
   private readonly instanceWorldMatrix = new THREE.Matrix4();
+
+  /**
+   * When set, hitscan resolves against the shipping arena's axis-aligned static
+   * world (issue #32) instead of the scene graph. Cosmetic scene meshes never
+   * block a round in the arena; the validated boxes are the only colliders. Left
+   * null the ballistics fall back to the proven scene-mesh raycast, so every
+   * existing harness and evidence capture is unaffected.
+   */
+  private staticWorld: StaticWorldCollider | null = null;
 
   constructor(
     private readonly config: WeaponConfig,
@@ -44,6 +62,11 @@ export class HitscanBallistics {
     private readonly random: () => number,
   ) {
     this.raycaster.near = 0.001;
+  }
+
+  /** Route hitscan through the arena's static world, or back to the scene graph (null). */
+  setStaticWorld(collider: StaticWorldCollider | null): void {
+    this.staticWorld = collider;
   }
 
   damageAt(distance: number): number {
@@ -72,7 +95,7 @@ export class HitscanBallistics {
     // The camera answers only "what is the player aiming at?" It does not
     // resolve the bullet. A close wall beside the camera may block the muzzle
     // ray even when the camera has a clear sight picture.
-    const cameraHit = this.firstHit(
+    const cameraHit = this.resolveHit(
       shot.cameraOrigin,
       this.cameraDirection,
       this.config.range,
@@ -98,13 +121,56 @@ export class HitscanBallistics {
     };
     this.bus.emit(Events.WeaponFired, fired);
 
-    const hit = this.firstHit(
+    const hit = this.resolveHit(
       shot.muzzleOrigin,
       this.muzzleDirection,
       distanceToAim + 0.01,
     );
     if (!hit) return { direction: this.muzzleDirection.clone(), impact: null };
 
+    const impact: BulletImpactPayload = {
+      point: hit.point.clone(),
+      normal: hit.normal.clone(),
+      material: hit.material,
+      distance: hit.distance,
+      damage: this.damageAt(hit.distance),
+    };
+    this.bus.emit(Events.BulletImpact, impact);
+
+    // Ballistics does not own health and cannot know whether this impact is
+    // lethal. A coordinator-owned damage-request contract is required before
+    // character damage is emitted; inventing `lethal: false` is worse than no event.
+    return { direction: this.muzzleDirection.clone(), impact };
+  }
+
+  /**
+   * Resolve the nearest ballistic hit along a ray, normalised across both worlds.
+   * With a static world set, the arena's axis-aligned boxes answer analytically
+   * (world-space axis normal, box material). Otherwise the proven scene-mesh
+   * raycast answers, applying the per-instance transform to the geometry normal
+   * for InstancedMesh hits (defect #1) and falling back to the reversed ray
+   * direction when a hit carries no face.
+   */
+  private resolveHit(
+    origin: THREE.Vector3,
+    direction: THREE.Vector3,
+    far: number,
+  ): ResolvedHit | null {
+    if (this.staticWorld) {
+      const worldHit = this.staticWorld.raycast(origin, direction, far);
+      if (!worldHit) return null;
+      return {
+        point: worldHit.point,
+        normal: worldHit.normal,
+        material: worldHit.material,
+        distance: worldHit.distance,
+      };
+    }
+
+    const hit = this.firstHit(origin, direction, far);
+    if (!hit) return null;
+
+    const normal = new THREE.Vector3();
     if (hit.face) {
       // The geometry normal is in the mesh's local space. For an InstancedMesh
       // the hit instance's true world transform is `matrixWorld × instanceMatrix`,
@@ -116,28 +182,20 @@ export class HitscanBallistics {
       if (instanced.isInstancedMesh === true && hit.instanceId != null) {
         instanced.getMatrixAt(hit.instanceId, this.instanceMatrix);
         this.instanceWorldMatrix.multiplyMatrices(hit.object.matrixWorld, this.instanceMatrix);
-        this.normal.copy(hit.face.normal).transformDirection(this.instanceWorldMatrix).normalize();
+        normal.copy(hit.face.normal).transformDirection(this.instanceWorldMatrix).normalize();
       } else {
-        this.normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld).normalize();
+        normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld).normalize();
       }
     } else {
-      this.normal.copy(this.muzzleDirection).negate();
+      normal.copy(direction).negate();
     }
 
-    const material = this.surfaceOf(hit.object);
-    const impact: BulletImpactPayload = {
+    return {
       point: hit.point.clone(),
-      normal: this.normal.clone(),
-      material,
+      normal,
+      material: this.surfaceOf(hit.object),
       distance: hit.distance,
-      damage: this.damageAt(hit.distance),
     };
-    this.bus.emit(Events.BulletImpact, impact);
-
-    // Ballistics does not own health and cannot know whether this impact is
-    // lethal. A coordinator-owned damage-request contract is required before
-    // character damage is emitted; inventing `lethal: false` is worse than no event.
-    return { direction: this.muzzleDirection.clone(), impact };
   }
 
   private firstHit(

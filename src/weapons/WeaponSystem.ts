@@ -12,6 +12,8 @@ import {
   type WeaponStatusPayload,
 } from '../core/contracts.js';
 import { HitscanBallistics } from './Ballistics.js';
+import { StaticWorldCollider } from './StaticWorldCollider.js';
+import type { StaticWorld } from '../core/collision.js';
 import { DUSKLINE_A7, type WeaponConfig } from './WeaponConfig.js';
 import { RecoilModel, type RecoilSnapshot } from './Recoil.js';
 import { ShellEjector } from './ShellEjector.js';
@@ -44,6 +46,7 @@ export class WeaponSystem implements System {
   private shells!: ShellEjector;
   private ballistics!: HitscanBallistics;
   private ctx!: EngineContext;
+  private staticWorld: StaticWorldCollider | null = null;
 
   private gameplayRandomSource = mulberry32(RANDOM_SEED);
   private readonly gameplayRandom = (): number => this.gameplayRandomSource();
@@ -95,7 +98,20 @@ export class WeaponSystem implements System {
       ctx.bus,
       this.gameplayRandom,
     );
+    this.ballistics.setStaticWorld(this.staticWorld);
     this.emitStatus();
+  }
+
+  /**
+   * Resolve hitscan against the shipping arena's axis-aligned static world
+   * (issue #32) instead of the scene graph. Passing null restores the scene-mesh
+   * raycast. This is the integration seam a coordinator uses to hand the weapon
+   * the arena it fires into; until wired, the weapon defaults to the scene path
+   * so the dev harness and every evidence capture behave exactly as before.
+   */
+  useStaticWorld(world: StaticWorld | null): void {
+    this.staticWorld = world ? new StaticWorldCollider(world) : null;
+    this.ballistics?.setStaticWorld(this.staticWorld);
   }
 
   get aim(): number { return smoothstep(this.adsProgress); }
