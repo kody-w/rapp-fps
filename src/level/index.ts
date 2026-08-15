@@ -6,7 +6,7 @@
  * the `StaticWorld` and spawns), and tests.
  */
 
-export { ArenaLevel } from './ArenaLevel.js';
+export { ArenaLevel, type ArenaLevelOptions } from './ArenaLevel.js';
 export { buildArena } from './arena.js';
 export type {
   ArenaDefinition,
@@ -20,6 +20,17 @@ export type {
 export { buildStaticWorld, collidableSolids } from './staticWorld.js';
 export { mergeSolidsByMaterial, type MergedGroup } from './geometry.js';
 export { createArenaMaterials, type ArenaMaterials } from './materials.js';
+export {
+  selectGroundContactSolids,
+  describeGroundContact,
+  classifyGroundContact,
+  createContactShadowLayer,
+  CONTACT_SHADOW_DEFAULTS,
+  type ContactShadowLayer,
+  type ContactShadowOptions,
+  type ContactInstance,
+  type ContactEligibility,
+} from './contactShadows.js';
 export {
   checkCorrespondence,
   formatReport,

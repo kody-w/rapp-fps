@@ -80,6 +80,72 @@ a cool hemisphere fill, and warm sodium practicals with a single cold accent at
 the objective — the cool/warm split shipped shooters use. `N8AO` is **not** used
 (it is ~8 ms on this machine and alone breaks the 16.7 ms budget, #1/#12).
 
+## Contact-grounding shadows (#60)
+
+Because `N8AO` is off, nothing darkens the floor where cover meets it: a direct
+on/off framebuffer diff of the shipped VSM/IBL pass moved only **0.77 % of pixels
+at mean 0.154/255** under the props — visually negligible — so the crates and the
+jersey barrier read as hovering a millimetre above the slab. `contactShadows.ts`
+authors the missing cue directly instead of paying for a full AO pass: one flat,
+soft dark mark on the floor under each **floor-standing** piece of cover, sized to
+that solid's exact footprint.
+
+**Same-data rule, again.** The marks are derived from the same `Solid` min/max
+records as the geometry and the collider — footprint centre `(min+max)/2`, size
+`(max−min)` on X/Z — so a mark can never drift from the object it grounds (no
+duplicated coordinates). Selection is explicit and auditable
+(`classifyGroundContact`): a solid earns a mark **iff** it is collidable cover
+(drops the render-only lamps, beacon and floor paint), rests on the floor top
+`y=0` (drops the floor slab, every stacked upper solid, and the elevated
+deck/parapets), and is not architecture (an authored `wall`/`step`/`deck`/`parapet`
+id family drops the perimeter walls and the *walkable* stairs). In the shipped
+arena that selects exactly **10** solids: `cont-a, cont-c, jersey-w1, jersey-w2,
+crate-w1, crate-w2, dock-obj, jersey-n1, pallet-n, drum-n1`.
+
+**Render-only, by construction.** The layer is a single `InstancedMesh` added to
+the render group but **never** to the collider and never to the merged solids
+`correspondence.ts` scans, so it cannot enter collision or make the 5/5 proof
+misclassify a mark as geometry (the fixture asserts the mark corner-keys never
+intersect any collider corner-key). The quad is baked flat into the XZ plane — it
+is geometrically horizontal and cannot climb a vertical face — lifted a measured
+**6 mm** with a polygon-offset depth bias, `depthWrite:false` so it occludes
+nothing and `depthTest:true` so cover standing in front hides it.
+
+**Budget: +1 draw, 0 textures.** One `InstancedMesh` is one draw call regardless
+of instance count, and the soft rounded-rectangle penumbra is computed
+analytically in the fragment shader from a per-instance footprint — **no generated
+texture at all**, and footprint-aware (a long container gets a long mark, a drum a
+small square-ish one, with a uniform 0.20 m soft edge — never an oval sticker).
+Nothing is allocated per frame. Matched 1920×1080 on/off captures on this session's
+arena harness measured the delta at exactly **+1 draw call (27 vs 26), +0 textures
+(23 vs 23)**, +20 triangles (the 10 quads).
+
+It composes automatically: `ArenaLevel.init` builds the layer after correspondence
+passes and adds it to the render root; `?contact=0` on any harness or production
+URL disables it for a matched off-frame. Lifecycle is repeatable — `dispose()`
+removes the mesh and disposes the mesh, the one shared geometry and the one
+material.
+
+`fixtures/contact-shadows.harness.mjs` proves all of the above headlessly against
+the shipped modules — selection/count, exact-footprint correspondence,
+horizontality + y-offset, the render-only/no-collider guarantee, correspondence
+still 5/5, a **negative control** (the floor, a perimeter wall, a stair tread, a
+stacked crate and the beacon are all rejected), repeatable lifecycle, the
++1-draw/0-texture budget, and an on/off pixel diff. Run it against the dev server:
+
+```sh
+node src/level/fixtures/run-contact-shadows.mjs \
+  --url http://127.0.0.1:5283/src/level/fixtures/contact-shadows.harness.html
+```
+
+- **13/13 PASS**, 10 marks, **+1 draw / +0 texture**. The on/off pixel diff moves
+  **1.15 % of pixels at mean 16.9/255 where changed** — against the VSM baseline's
+  0.77 % / 0.154 the authored mark lands local and ~110× stronger where it matters,
+  which is the whole point. Report: `evidence/contact-shadows.report.json`.
+- Matched captures: `evidence/contact-on/{grounding,lane_west,materials}.png` vs
+  `evidence/contact-off/…` — the jersey barrier and the crate bases stop floating,
+  with no climbing of vertical faces, no edge-bridging and no z-fighting.
+
 ## Layout
 
 ~24 m × 21 m, tuned for 1 player vs 1 enemy:

@@ -1,0 +1,590 @@
+{
+  "url": "http://127.0.0.1:5287/src/level/fixtures/contact-shadows.harness.html",
+  "consoleErrors": [],
+  "at": "2026-08-15T13:25:53.713Z",
+  "ok": true,
+  "source": "buildArena() → selectGroundContactSolids + createContactShadowLayer (shipped src/level)",
+  "defaults": {
+    "penumbra": 0.2,
+    "yOffset": 0.006,
+    "peak": 0.42
+  },
+  "selection": {
+    "count": 10,
+    "ids": [
+      "cont-a",
+      "cont-c",
+      "jersey-w1",
+      "jersey-w2",
+      "crate-w1",
+      "crate-w2",
+      "dock-obj",
+      "jersey-n1",
+      "pallet-n",
+      "drum-n1"
+    ],
+    "instances": [
+      {
+        "id": "cont-a",
+        "center": [
+          -1.8,
+          -9.3
+        ],
+        "footprint": [
+          6.05,
+          2.44
+        ]
+      },
+      {
+        "id": "cont-c",
+        "center": [
+          2.9,
+          -7.6
+        ],
+        "footprint": [
+          2.44,
+          6.05
+        ]
+      },
+      {
+        "id": "jersey-w1",
+        "center": [
+          -8.6,
+          -4.5
+        ],
+        "footprint": [
+          2.4,
+          0.7
+        ]
+      },
+      {
+        "id": "jersey-w2",
+        "center": [
+          -6.4,
+          -15.5
+        ],
+        "footprint": [
+          2.4,
+          0.7
+        ]
+      },
+      {
+        "id": "crate-w1",
+        "center": [
+          -9.1,
+          -11.6
+        ],
+        "footprint": [
+          1.4,
+          1.4
+        ]
+      },
+      {
+        "id": "crate-w2",
+        "center": [
+          -7.7,
+          -11.9
+        ],
+        "footprint": [
+          1.3,
+          1.3
+        ]
+      },
+      {
+        "id": "dock-obj",
+        "center": [
+          0,
+          -19.3
+        ],
+        "footprint": [
+          9,
+          1.4
+        ]
+      },
+      {
+        "id": "jersey-n1",
+        "center": [
+          1.6,
+          -16.8
+        ],
+        "footprint": [
+          2.4,
+          0.7
+        ]
+      },
+      {
+        "id": "pallet-n",
+        "center": [
+          3.8,
+          -15.4
+        ],
+        "footprint": [
+          1.2,
+          1
+        ]
+      },
+      {
+        "id": "drum-n1",
+        "center": [
+          -0.4,
+          -17.6
+        ],
+        "footprint": [
+          0.7,
+          0.7
+        ]
+      }
+    ]
+  },
+  "eligibilityAudit": [
+    {
+      "id": "floor",
+      "eligible": false,
+      "reason": "not floor-standing (base y=-0.6 != 0)"
+    },
+    {
+      "id": "wall-n-west",
+      "eligible": false,
+      "reason": "architecture (wall/stair/deck/parapet)"
+    },
+    {
+      "id": "wall-n-east",
+      "eligible": false,
+      "reason": "architecture (wall/stair/deck/parapet)"
+    },
+    {
+      "id": "wall-n-lintel",
+      "eligible": false,
+      "reason": "not floor-standing (base y=3.1999999999999997 != 0)"
+    },
+    {
+      "id": "wall-s",
+      "eligible": false,
+      "reason": "architecture (wall/stair/deck/parapet)"
+    },
+    {
+      "id": "wall-w",
+      "eligible": false,
+      "reason": "architecture (wall/stair/deck/parapet)"
+    },
+    {
+      "id": "wall-e",
+      "eligible": false,
+      "reason": "architecture (wall/stair/deck/parapet)"
+    },
+    {
+      "id": "cont-a",
+      "eligible": true,
+      "reason": "floor-standing cover"
+    },
+    {
+      "id": "cont-b",
+      "eligible": false,
+      "reason": "not floor-standing (base y=2.6000000000000005 != 0)"
+    },
+    {
+      "id": "cont-c",
+      "eligible": true,
+      "reason": "floor-standing cover"
+    },
+    {
+      "id": "jersey-w1",
+      "eligible": true,
+      "reason": "floor-standing cover"
+    },
+    {
+      "id": "jersey-w2",
+      "eligible": true,
+      "reason": "floor-standing cover"
+    },
+    {
+      "id": "crate-w1",
+      "eligible": true,
+      "reason": "floor-standing cover"
+    },
+    {
+      "id": "crate-w2",
+      "eligible": true,
+      "reason": "floor-standing cover"
+    },
+    {
+      "id": "crate-w3",
+      "eligible": false,
+      "reason": "not floor-standing (base y=1.4 != 0)"
+    },
+    {
+      "id": "deck",
+      "eligible": false,
+      "reason": "not floor-standing (base y=1.2000000000000002 != 0)"
+    },
+    {
+      "id": "step-0",
+      "eligible": false,
+      "reason": "architecture (wall/stair/deck/parapet)"
+    },
+    {
+      "id": "step-1",
+      "eligible": false,
+      "reason": "architecture (wall/stair/deck/parapet)"
+    },
+    {
+      "id": "step-2",
+      "eligible": false,
+      "reason": "architecture (wall/stair/deck/parapet)"
+    },
+    {
+      "id": "step-3",
+      "eligible": false,
+      "reason": "architecture (wall/stair/deck/parapet)"
+    },
+    {
+      "id": "step-4",
+      "eligible": false,
+      "reason": "architecture (wall/stair/deck/parapet)"
+    },
+    {
+      "id": "step-5",
+      "eligible": false,
+      "reason": "architecture (wall/stair/deck/parapet)"
+    },
+    {
+      "id": "parapet-w",
+      "eligible": false,
+      "reason": "not floor-standing (base y=1.6 != 0)"
+    },
+    {
+      "id": "parapet-s-w",
+      "eligible": false,
+      "reason": "not floor-standing (base y=1.6 != 0)"
+    },
+    {
+      "id": "parapet-s-e",
+      "eligible": false,
+      "reason": "not floor-standing (base y=1.6 != 0)"
+    },
+    {
+      "id": "dock-obj",
+      "eligible": true,
+      "reason": "floor-standing cover"
+    },
+    {
+      "id": "jersey-n1",
+      "eligible": true,
+      "reason": "floor-standing cover"
+    },
+    {
+      "id": "pallet-n",
+      "eligible": true,
+      "reason": "floor-standing cover"
+    },
+    {
+      "id": "drum-n1",
+      "eligible": true,
+      "reason": "floor-standing cover"
+    },
+    {
+      "id": "lamp-w",
+      "eligible": false,
+      "reason": "render-only dressing (collide=false)"
+    },
+    {
+      "id": "lamp-e",
+      "eligible": false,
+      "reason": "render-only dressing (collide=false)"
+    },
+    {
+      "id": "lamp-hang",
+      "eligible": false,
+      "reason": "render-only dressing (collide=false)"
+    },
+    {
+      "id": "beacon",
+      "eligible": false,
+      "reason": "render-only dressing (collide=false)"
+    },
+    {
+      "id": "beacon-cap",
+      "eligible": false,
+      "reason": "render-only dressing (collide=false)"
+    },
+    {
+      "id": "paint-deck",
+      "eligible": false,
+      "reason": "render-only dressing (collide=false)"
+    },
+    {
+      "id": "paint-obj",
+      "eligible": false,
+      "reason": "render-only dressing (collide=false)"
+    }
+  ],
+  "resource": {
+    "additionalDrawCalls": 1,
+    "generatedTextures": 0,
+    "drawCallsOff": 6,
+    "drawCallsOn": 7,
+    "texturesOff": 6,
+    "texturesOn": 6
+  },
+  "pixelDiff": {
+    "viewport": "1280x720",
+    "changedPixelsPct": 1.1461,
+    "meanDeltaAll": 0.196,
+    "meanDeltaChanged": 16.8951,
+    "maxDelta": 54,
+    "baselineVsm": {
+      "changedPixelsPct": 0.7704,
+      "meanDelta": 0.154,
+      "note": "direct on/off VSM diff from #60 situation"
+    }
+  },
+  "lifecycle": [
+    {
+      "pass": 0,
+      "removedFromParent": true,
+      "geometryDisposed": true,
+      "materialDisposed": true
+    },
+    {
+      "pass": 1,
+      "removedFromParent": true,
+      "geometryDisposed": true,
+      "materialDisposed": true
+    }
+  ],
+  "correspondence": [
+    {
+      "name": "core-contract",
+      "ok": true
+    },
+    {
+      "name": "box-count",
+      "ok": true
+    },
+    {
+      "name": "bijection",
+      "ok": true
+    },
+    {
+      "name": "render-backing",
+      "ok": true
+    },
+    {
+      "name": "render-membership",
+      "ok": true
+    }
+  ],
+  "assertions": [
+    {
+      "name": "selection_matches_authored",
+      "passed": true,
+      "actual": {
+        "selected": [
+          "cont-a",
+          "cont-c",
+          "jersey-w1",
+          "jersey-w2",
+          "crate-w1",
+          "crate-w2",
+          "dock-obj",
+          "jersey-n1",
+          "pallet-n",
+          "drum-n1"
+        ]
+      },
+      "expected": {
+        "expected": [
+          "cont-a",
+          "cont-c",
+          "jersey-w1",
+          "jersey-w2",
+          "crate-w1",
+          "crate-w2",
+          "dock-obj",
+          "jersey-n1",
+          "pallet-n",
+          "drum-n1"
+        ]
+      }
+    },
+    {
+      "name": "selected_are_floor_standing",
+      "passed": true,
+      "actual": {
+        "offenders": []
+      },
+      "expected": "each selected solid collides and rests its base on the floor (min.y≈0)"
+    },
+    {
+      "name": "footprint_exact_from_solid",
+      "passed": true,
+      "actual": {
+        "errors": [],
+        "sample": {
+          "id": "cont-a",
+          "center": [
+            -1.8000000000000003,
+            -9.3
+          ],
+          "footprint": [
+            6.05,
+            2.4400000000000013
+          ]
+        }
+      },
+      "expected": "every instance center/footprint equals (min+max)/2 and (max-min) of its source Solid"
+    },
+    {
+      "name": "marks_horizontal",
+      "passed": true,
+      "actual": {
+        "normal": [
+          0,
+          1,
+          0
+        ],
+        "maxInstanceTiltRad": 0
+      },
+      "expected": "plane normal is +Y and no instance is tilted — the mark cannot climb a vertical face"
+    },
+    {
+      "name": "y_offset_measured",
+      "passed": true,
+      "actual": {
+        "yOffset": 0.006
+      },
+      "expected": "a measured 0.006 m lift, equal for every instance"
+    },
+    {
+      "name": "adds_no_collider",
+      "passed": true,
+      "actual": {
+        "boxes": 29,
+        "collidable": 29,
+        "instancesSubsetOfColliders": true
+      },
+      "expected": "the layer contributes zero StaticBoxes and every mark sits under a real collider"
+    },
+    {
+      "name": "marks_not_mistaken_for_geometry",
+      "passed": true,
+      "actual": {
+        "sharedCornerKeys": 0
+      },
+      "expected": "no contact-mark vertex lands on a collider corner (render-backing cannot misclassify it)"
+    },
+    {
+      "name": "correspondence_still_5_of_5",
+      "passed": true,
+      "actual": {
+        "ok": true,
+        "checks": [
+          "core-contract:PASS",
+          "box-count:PASS",
+          "bijection:PASS",
+          "render-backing:PASS",
+          "render-membership:PASS"
+        ]
+      },
+      "expected": "all five correspondence checks pass with the contact layer present"
+    },
+    {
+      "name": "negative_control_rejected",
+      "passed": true,
+      "actual": {
+        "negatives": [
+          {
+            "id": "floor",
+            "eligible": false,
+            "reason": "not floor-standing (base y=-0.6 != 0)",
+            "selected": false
+          },
+          {
+            "id": "wall-n-west",
+            "eligible": false,
+            "reason": "architecture (wall/stair/deck/parapet)",
+            "selected": false
+          },
+          {
+            "id": "step-0",
+            "eligible": false,
+            "reason": "architecture (wall/stair/deck/parapet)",
+            "selected": false
+          },
+          {
+            "id": "cont-b",
+            "eligible": false,
+            "reason": "not floor-standing (base y=2.6000000000000005 != 0)",
+            "selected": false
+          },
+          {
+            "id": "beacon",
+            "eligible": false,
+            "reason": "render-only dressing (collide=false)",
+            "selected": false
+          }
+        ]
+      },
+      "expected": "floor, a perimeter wall, a stair tread, a stacked upper solid and a dressing solid are all rejected"
+    },
+    {
+      "name": "lifecycle_repeatable_clean",
+      "passed": true,
+      "actual": {
+        "lifecycle": [
+          {
+            "pass": 0,
+            "removedFromParent": true,
+            "geometryDisposed": true,
+            "materialDisposed": true
+          },
+          {
+            "pass": 1,
+            "removedFromParent": true,
+            "geometryDisposed": true,
+            "materialDisposed": true
+          }
+        ]
+      },
+      "expected": "build → dispose is repeatable; dispose removes the mesh and frees geometry + material"
+    },
+    {
+      "name": "one_additional_draw",
+      "passed": true,
+      "actual": {
+        "drawsOff": 6,
+        "drawsOn": 7,
+        "delta": 1
+      },
+      "expected": "exactly one extra draw call (the InstancedMesh)"
+    },
+    {
+      "name": "zero_generated_textures",
+      "passed": true,
+      "actual": {
+        "texturesOff": 6,
+        "texturesOn": 6,
+        "delta": 0,
+        "materialTextureMaps": 0
+      },
+      "expected": "the procedural shader material allocates no texture (≤ the one-texture budget)"
+    },
+    {
+      "name": "pixel_diff_meaningful_and_local",
+      "passed": true,
+      "actual": {
+        "viewport": "1280x720",
+        "changedPixelsPct": 1.1461,
+        "meanDeltaAll": 0.196,
+        "meanDeltaChanged": 16.8951,
+        "maxDelta": 54,
+        "baselineVsm": {
+          "changedPixelsPct": 0.7704,
+          "meanDelta": 0.154,
+          "note": "direct on/off VSM diff from #60 situation"
+        }
+      },
+      "expected": "contact layer changes a non-zero, sub-majority region and darkens it well above the VSM baseline"
+    }
+  ]
+}

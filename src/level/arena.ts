@@ -344,6 +344,10 @@ export function buildArena(): ArenaDefinition {
       name: 'materials', position: [-0.6, 1.35, -6.2], lookAt: [-1.8, 1.3, -9.4],
       caption: 'Close on the container faces and floor: procedural concrete/painted-metal/wood variation catching the IBL.',
     },
+    {
+      name: 'grounding', position: [-5.9, 2.5, -8.2], lookAt: [-8.5, 0.12, -12.2],
+      caption: 'Low three-quarter look across the west-lane crate and jersey bases: the authored contact marks sit under each floor-standing solid on its exact footprint, so the cover reads as resting on the floor rather than floating. Compare with ?contact=0.',
+    },
   ];
 
   return {

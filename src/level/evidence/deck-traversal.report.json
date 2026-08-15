@@ -1,7 +1,7 @@
 {
-  "url": "http://127.0.0.1:5283/src/level/fixtures/deck-traversal.harness.html",
+  "url": "http://127.0.0.1:5287/src/level/fixtures/deck-traversal.harness.html",
   "consoleErrors": [],
-  "at": "2026-08-15T05:44:46.867Z",
+  "at": "2026-08-15T13:26:33.254Z",
   "ok": true,
   "fixedStepHz": 120,
   "motor": "shipping PlayerMotor + StaticBoxWorld (src/player, PR #40)",
