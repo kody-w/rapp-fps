@@ -49,6 +49,8 @@ export interface AiSystemOptions {
   playerProvider?: (ctx: EngineContext) => PlayerSample | null;
   /** Draw the arena cover boxes. The level owns these in a full game. */
   renderWorld?: boolean;
+  /** Evidence-only ground-truth player and last-known-position markers. */
+  renderMarkers?: boolean;
   /** Target id the enemy attributes sight/last-known to. */
   targetId?: string;
   /** Bus id this enemy answers to for {@link Events.Damage}. */
@@ -88,6 +90,7 @@ export class AiSystem implements System {
 
   private readonly opts: {
     renderWorld: boolean;
+    renderMarkers: boolean;
     targetId: string;
     playerProvider?: (ctx: EngineContext) => PlayerSample | null;
     enemyId: string | number;
@@ -142,6 +145,7 @@ export class AiSystem implements System {
     this.arena = options.arena ?? buildArena();
     this.opts = {
       renderWorld: options.renderWorld ?? true,
+      renderMarkers: options.renderMarkers ?? true,
       targetId: options.targetId ?? 'player',
       playerProvider: options.playerProvider,
       enemyId: options.enemyId ?? 'enemy-01',
@@ -194,7 +198,7 @@ export class AiSystem implements System {
     if (this.opts.renderWorld) this.buildWorldMeshes();
     this.buildEnemy();
     this.buildEffects();
-    this.buildMarkers();
+    if (this.opts.renderMarkers) this.buildMarkers();
 
     this.unsub.push(ctx.bus.on(Events.Footstep, (p: unknown) => {
       const f = p as { position: THREE.Vector3 | Vec3; loud?: boolean | number };
@@ -297,7 +301,7 @@ export class AiSystem implements System {
     this.updateGaze(a.state);
     this.updateTelegraph();
     this.updateFiring();
-    this.updateMarkers();
+    if (this.opts.renderMarkers) this.updateMarkers();
 
     this.firedThisFrame = false;
   }
@@ -509,6 +513,7 @@ export class AiSystem implements System {
       color: 0x35c6ff, emissive: 0x1a6fb0, emissiveIntensity: 1.2, roughness: 0.5,
     });
     this.playerMarker = new THREE.Mesh(pgeo, pmat);
+    this.playerMarker.name = 'ai-debug-player-marker';
     this.playerMarker.castShadow = true;
     this.root.add(this.playerMarker);
     this.disposables.push(pgeo, pmat);
@@ -520,6 +525,7 @@ export class AiSystem implements System {
       transparent: true, opacity: 0.32, roughness: 0.6,
     });
     this.ghost = new THREE.Mesh(ggeo, this.ghostMat);
+    this.ghost.name = 'ai-debug-last-known-marker';
     this.ghost.visible = false;
     this.root.add(this.ghost);
     this.disposables.push(ggeo, this.ghostMat);
