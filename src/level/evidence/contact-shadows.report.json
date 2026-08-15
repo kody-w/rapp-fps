@@ -1,7 +1,7 @@
 {
   "url": "http://127.0.0.1:5287/src/level/fixtures/contact-shadows.harness.html",
   "consoleErrors": [],
-  "at": "2026-08-15T13:25:53.713Z",
+  "at": "2026-08-15T14:36:51.593Z",
   "ok": true,
   "source": "buildArena() → selectGroundContactSolids + createContactShadowLayer (shipped src/level)",
   "defaults": {
@@ -321,16 +321,16 @@
   "resource": {
     "additionalDrawCalls": 1,
     "generatedTextures": 0,
-    "drawCallsOff": 6,
-    "drawCallsOn": 7,
-    "texturesOff": 6,
-    "texturesOn": 6
+    "drawCallsOff": 7,
+    "drawCallsOn": 8,
+    "texturesOff": 7,
+    "texturesOn": 7
   },
   "pixelDiff": {
     "viewport": "1280x720",
-    "changedPixelsPct": 1.1461,
-    "meanDeltaAll": 0.196,
-    "meanDeltaChanged": 16.8951,
+    "changedPixelsPct": 1.0777,
+    "meanDeltaAll": 0.1793,
+    "meanDeltaChanged": 16.4296,
     "maxDelta": 54,
     "baselineVsm": {
       "changedPixelsPct": 0.7704,
@@ -552,8 +552,8 @@
       "name": "one_additional_draw",
       "passed": true,
       "actual": {
-        "drawsOff": 6,
-        "drawsOn": 7,
+        "drawsOff": 7,
+        "drawsOn": 8,
         "delta": 1
       },
       "expected": "exactly one extra draw call (the InstancedMesh)"
@@ -562,8 +562,8 @@
       "name": "zero_generated_textures",
       "passed": true,
       "actual": {
-        "texturesOff": 6,
-        "texturesOn": 6,
+        "texturesOff": 7,
+        "texturesOn": 7,
         "delta": 0,
         "materialTextureMaps": 0
       },
@@ -574,9 +574,9 @@
       "passed": true,
       "actual": {
         "viewport": "1280x720",
-        "changedPixelsPct": 1.1461,
-        "meanDeltaAll": 0.196,
-        "meanDeltaChanged": 16.8951,
+        "changedPixelsPct": 1.0777,
+        "meanDeltaAll": 0.1793,
+        "meanDeltaChanged": 16.4296,
         "maxDelta": 54,
         "baselineVsm": {
           "changedPixelsPct": 0.7704,

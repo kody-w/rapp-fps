@@ -146,6 +146,93 @@ node src/level/fixtures/run-contact-shadows.mjs \
   `evidence/contact-off/…` — the jersey barrier and the crate bases stop floating,
   with no climbing of vertical faces, no edge-bridging and no z-fighting.
 
+## Container finishing (#67)
+
+The cargo containers shipped as bare `BoxGeometry` cuboids whose only
+"container-ness" was a `sin(x·0.20)` **brightness stripe** painted into the albedo
+(`panelAlbedo`); the `bumpMap`/`roughnessMap` were **unrelated generic metal
+noise**, so the corrugation never actually caught the light, and `cont-a/b/c`
+carried no ironwork at all. #67 authors the finished container in two parts, under
+the same same-data / render-only / budget discipline as the contact layer.
+
+**1 — corrugation that self-shades.** `materials.ts` exports one rib profile,
+`containerRibHeight(x)` at `CONTAINER_RIB_FREQUENCY = 0.20`, and the container
+albedo **and** a new tangent-space **normal map** are both generated from it (plus
+deterministic weathering). The container material now carries that `normalMap`
+(with a tuned `normalScale`) instead of the generic metal `bumpMap`, so the ribs'
+bright edge and geometric slope coincide and the corrugation responds to the sun
+direction. `roughnessMap` stays the deterministic weathering noise (kept on
+purpose, inside the one-texture budget). This is the **one** new generated texture.
+
+**2 — bounds-derived ironwork.** `containerDressing.ts` authors, per container,
+corner castings + full-height corner posts, top/bottom **side and end rails**, an
+inset **end-door** (two leaves) and its **hardware** (locking bars, hinges,
+handles) — ~34 fittings each. Every part is derived from the container's own
+`Solid` min/max: orientation is inferred from the footprint
+(`longAxis = spanX ≥ spanZ ? 'x' : 'z'`) and the door faces the **max end of the
+long axis**, so `cont-a`/`cont-b` run long-X (doors at `x=1.225`/`1.625`) and
+`cont-c` runs long-Z (door at `z=-4.575`, presented to spawn). No coordinate is
+hand-typed — the fixture asserts each assembly's bounds equal its source `Solid`.
+
+**Render-only, by construction.** The ironwork is **one merged, vertex-coloured
+mesh** (bright galvanised castings/rails, dark oxidised hardware) added to the
+render root but **never** to the collider and never to the merged solids
+`correspondence.ts` scans — so the collider stays exactly the container body box
+and the **5/5 correspondence is untouched** (`renderVertexKeys` stays 268). Fittings
+protrude only **centimetre-scale** (`MAX_DRESSING_PROTRUSION = 0.10 m`) and never
+poke above the top or below the base plane, so a mark can't enter collision or
+bridge to the floor. It does **not** cast into the VSM shadow map (sub-texel
+features; the body already casts), which keeps it a single opaque mesh.
+
+**Budget: 1 merged draw, 1 texture, enforced triangle ceiling.** All ~102 fitting
+boxes across the three containers merge into **one** material — 1 224 triangles,
+under the enforced `MAX_DRESSING_TRIANGLES = 3000` ceiling (`createContainerDressingLayer`
+throws if exceeded). Because the shipping `RenderSystem` runs an opaque depth
+pre-pass, that one opaque mesh costs exactly **+2 GPU draw calls** and **+2 448
+rendered triangles** per frame (2× the 1 224 authored) — measured on the arena
+harness as **29 vs 27 draws, 24 vs 23 textures** with dressing on vs off. Inside
+the "≤2 added merged material draws, ≤1 generated texture" budget. Nothing is
+allocated per frame.
+
+It composes automatically: `ArenaLevel.init` builds the dressing after
+correspondence passes and gates it — together with the rib normal map — on the
+`dressing` flag. `?dressing=0` on any harness or production URL restores the exact
+**pre-#67** look (bare cuboid + albedo-only rib + generic metal bump, one fewer
+texture) for a matched off-frame. Lifecycle is repeatable — `dispose()` removes the
+mesh and frees the geometry and the material.
+
+`fixtures/container-art.harness.mjs` proves all of the above headlessly against the
+shipped modules — selection (exactly `cont-a/b/c`, by the real `material` field),
+orientation + door end from bounds, bounds == source `Solid`, centimetre-scale
+fittings, the rib-derived normal (a red-channel scanline of the normal map
+oscillates at the rib frequency), the `?dressing=0` revert, no-collider, dressing
+corners never coincide with a collider corner, correspondence still 5/5, a
+**negative control** (floor, a perimeter wall, a stair tread, a wood crate and a
+steel drum are all rejected), the ≤2-draw/≤1-texture budget on two real renderers,
+and repeatable lifecycle. Run it against the dev server:
+
+```sh
+node src/level/fixtures/run-container-art.mjs \
+  --url http://127.0.0.1:5287/src/level/fixtures/container-art.harness.html
+```
+
+- **16/16 PASS**, 3 containers, 1 224 tris, **+1 merged draw (+2 GPU under the
+  prepass) / +1 texture**. Report: `evidence/container-art.report.json`.
+- Matched captures: `evidence/container-art-on/{containers,materials}.png` vs
+  `evidence/container-art-off/…` — the corrugation goes from flat painted stripes
+  (with a stray generic-bump highlight) to real self-shading ribbing, and each box
+  gains castings, rails and a door end.
+
+**Honest weaknesses.** (1) The `sin(x·0.20)` rib completes ~8.15 periods per
+256 px tile, so there is a faint non-tiling seam once per tile — pre-existing in
+the albedo, now shared by the normal so they stay in phase. (2) `cont-a`'s door
+end (`x=1.225`) faces `cont-c` ~0.45 m away and is partly occluded from some
+angles — the door-end rule is deterministic, not framed for one hero shot.
+(3) `cont-b` is stacked on `cont-a`, so their castings/rails meet coincident at
+`y=2.6`; they share the one dressing material, so the junction reads as solid
+ironwork rather than z-fighting. (4) Roughness is kept as the deterministic
+weathering map (not rib-aware) to stay within the one-texture budget.
+
 ## Layout
 
 ~24 m × 21 m, tuned for 1 player vs 1 enemy:

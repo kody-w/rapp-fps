@@ -348,6 +348,10 @@ export function buildArena(): ArenaDefinition {
       name: 'grounding', position: [-5.9, 2.5, -8.2], lookAt: [-8.5, 0.12, -12.2],
       caption: 'Low three-quarter look across the west-lane crate and jersey bases: the authored contact marks sit under each floor-standing solid on its exact footprint, so the cover reads as resting on the floor rather than floating. Compare with ?contact=0.',
     },
+    {
+      name: 'containers', position: [6.4, 2.2, -2.9], lookAt: [0.4, 1.25, -8.6],
+      caption: 'Three-quarter onto the container cluster from the south-east: the corrugation now reads as real ribbing that self-shades with the sun, and each box carries bounds-derived corner castings, top/bottom rails and an inset end-door with locking bars. cont-c presents its door end to spawn; cont-a runs long across. Compare with ?dressing=0.',
+    },
   ];
 
   return {

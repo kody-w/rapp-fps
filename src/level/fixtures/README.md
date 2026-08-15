@@ -1,11 +1,14 @@
 # `src/level/fixtures` — proofs the player subsystem can trust
 
-Two fixtures live here:
+Three fixtures live here:
 
 - **deck-traversal** — the answer to issue #43: can the shipping player motor
   actually walk floor→deck up the geometry correspondence proves is *there*?
 - **contact-shadows** — the answer to issue #60: is the authored floor-grounding
   layer selected correctly, footprint-exact, render-only and within budget?
+- **container-art** — the answer to issue #67: is the procedural container
+  finishing (rib-derived normal + bounds-derived ironwork) selected correctly,
+  oriented from bounds, render-only and within budget?
 
 ## Why
 
@@ -145,3 +148,62 @@ node src/level/fixtures/run-contact-shadows.mjs \
   (vs the VSM baseline 0.77 % / 0.154).
 - `../evidence/contact-on/*` vs `../evidence/contact-off/*` — matched 1920×1080
   frames (`grounding`, `lane_west`, `materials`) with the layer on and off.
+
+---
+
+# container-art (#67)
+
+## Why
+
+The cargo containers shipped as bare cuboids: the corrugation was an albedo-only
+`sin(x·0.20)` brightness stripe while the bump/roughness maps were unrelated
+generic metal noise, and `cont-a/b/c` carried no ironwork. `materials.ts` (rib
+normal) and `containerDressing.ts` (bounds-derived castings/rails/door/hardware)
+finish them — this fixture proves that finishing is honest, not eyeballed.
+
+## What it does
+
+`container-art.harness.mjs` (loaded by `container-art.harness.html`) builds the
+real selection, assemblies and dressing layer (`selectContainerSolids`,
+`describeContainerAssembly`, `createContainerDressingLayer`) and the real material
+path (`createArenaMaterials`) against `buildArena()`, and gates 16 assertions:
+
+1. selection is exactly `cont-a/b/c`, and **2.** by the real `material` field (not
+   a name heuristic);
+3. long axis + door end are **inferred from each `Solid`'s bounds**;
+4. each assembly's bounds **equal** its source `Solid` (no re-typed coordinates);
+5. every fitting is **centimetre-scale** (≤0.10 m) and never leaves the body
+   vertically; **6.** the merged geometry is within the enforced triangle ceiling;
+7. the container `normalMap` **encodes the rib** — a red-channel scanline of the
+   generated normal oscillates ~8 times (the rib frequency) — with `bumpMap`
+   cleared; **8.** `?dressing=0` reverts to the pre-#67 generic bump + one fewer
+   texture;
+9. it adds **no collider**, and **10.** no dressing corner coincides with a
+   collider corner; **11.** correspondence is still 5/5 with the dressing composed;
+12. a **negative control** (floor, a wall, a stair tread, a wood crate, a steel
+    drum) is rejected;
+13. the dressing is **one merged material draw** (≤2 GPU under the depth-prepass)
+    and **14.** exactly **+1 generated texture**, both measured on two real
+    renderers; **15.** the composed `ArenaLevel` reports correspondence green;
+16. build→dispose is **repeatable and clean**.
+
+`run-container-art.mjs` loads it in headless Chromium, prints the assertion table
+and the per-container assembly summary, archives
+`../evidence/container-art.report.json`, and exits non-zero on any failed
+assertion or console error. Like contact-shadows it binds only shipped
+`src/level` modules — no external subsystem.
+
+## Run it
+
+```sh
+# dev server rooted in this clone (see src/level/README.md), then:
+node src/level/fixtures/run-container-art.mjs \
+  --url http://127.0.0.1:5287/src/level/fixtures/container-art.harness.html
+```
+
+## Evidence
+
+- `../evidence/container-art.report.json` — **16/16 PASS**, 3 containers, 1 224
+  tris, +1 merged draw (+2 GPU under the prepass) / +1 texture.
+- `../evidence/container-art-on/*` vs `../evidence/container-art-off/*` — matched
+  1920×1080 frames (`containers`, `materials`) with the finishing on and off.
