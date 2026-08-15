@@ -1,0 +1,131 @@
+{
+  "at": "2026-08-15T21:18:48.538Z",
+  "target": "http://127.0.0.1:5399/src/coop/render/harness/harness.html",
+  "meta": {
+    "threeRevision": "185",
+    "webgl2": true,
+    "unmaskedRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "timerExt": true,
+    "counterBits": 64,
+    "devicePixelRatio": 1
+  },
+  "sections": [
+    {
+      "name": "slotIsolation",
+      "pass": true,
+      "detail": {
+        "topPixel": [
+          255,
+          0,
+          0,
+          255
+        ],
+        "bottomPixel": [
+          0,
+          0,
+          255,
+          255
+        ],
+        "topChan": "r",
+        "bottomChan": "b",
+        "slotClear": "saturated-green-sentinel",
+        "control": {
+          "top": "r",
+          "bottom": "r",
+          "sameCameraMatches": true
+        }
+      }
+    },
+    {
+      "name": "emptySlotRejection",
+      "pass": true,
+      "detail": {
+        "topPixel": [
+          0,
+          0,
+          0,
+          255
+        ],
+        "bottomPixel": [
+          0,
+          0,
+          0,
+          255
+        ],
+        "hardened": {
+          "top": "none",
+          "bottom": "none",
+          "isolationRejected": true
+        },
+        "naiveArgmax": {
+          "top": "r",
+          "bottom": "r",
+          "misclassifiesBlackAsRed": true
+        },
+        "thresholds": {
+          "minLevel": 96,
+          "margin": 64
+        }
+      }
+    },
+    {
+      "name": "seamTiling",
+      "pass": true,
+      "detail": {
+        "splitY": 180,
+        "backingHeight": 361,
+        "correct": {
+          "greenRows": 0,
+          "firstRed": 180,
+          "lastBlue": 179,
+          "cleanTransition": true
+        },
+        "gapControl": {
+          "rowChecked": 179,
+          "value": "g",
+          "gapDetected": true
+        },
+        "overlapControl": {
+          "rowChecked": 180,
+          "value": "b",
+          "overlapDetected": true
+        }
+      }
+    }
+  ],
+  "gpu": {
+    "verdict": "MEASURED",
+    "budgetMs": 16.7,
+    "trials": [
+      {
+        "samples": 60,
+        "medianMs": 0.135,
+        "p95Ms": 0.387,
+        "disjoint": false,
+        "underBudget": true
+      },
+      {
+        "samples": 60,
+        "medianMs": 0.132,
+        "p95Ms": 0.147,
+        "disjoint": false,
+        "underBudget": true
+      },
+      {
+        "samples": 60,
+        "medianMs": 0.132,
+        "p95Ms": 0.331,
+        "disjoint": false,
+        "underBudget": true
+      }
+    ],
+    "allUnderBudget": true,
+    "halfResBacking": {
+      "width": 960,
+      "height": 540
+    }
+  },
+  "harnessErrors": [],
+  "consoleErrors": [],
+  "pageErrors": []
+}

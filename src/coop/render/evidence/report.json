@@ -1,0 +1,419 @@
+{
+  "library": "coop/render",
+  "threeRevision": "185",
+  "ok": true,
+  "passed": 11,
+  "total": 11,
+  "failures": [],
+  "sections": [
+    {
+      "name": "singlePlayerFullscreen",
+      "pass": true,
+      "failures": [],
+      "detail": [
+        {
+          "input": {
+            "cssWidth": 1920,
+            "cssHeight": 1080,
+            "pixelRatio": 2,
+            "players": 1
+          },
+          "backing": {
+            "width": 3840,
+            "height": 2160
+          },
+          "slot": [
+            0,
+            0,
+            3840,
+            2160
+          ],
+          "aspect": 1.7777777777777777
+        },
+        {
+          "input": {
+            "cssWidth": 801,
+            "cssHeight": 601,
+            "pixelRatio": 1,
+            "players": 1
+          },
+          "backing": {
+            "width": 801,
+            "height": 601
+          },
+          "slot": [
+            0,
+            0,
+            801,
+            601
+          ],
+          "aspect": 1.3327787021630615
+        },
+        {
+          "input": {
+            "cssWidth": 1280,
+            "cssHeight": 720,
+            "pixelRatio": 1.5,
+            "players": 1
+          },
+          "backing": {
+            "width": 1920,
+            "height": 1080
+          },
+          "slot": [
+            0,
+            0,
+            1920,
+            1080
+          ],
+          "aspect": 1.7777777777777777
+        },
+        {
+          "input": {
+            "cssWidth": 375,
+            "cssHeight": 812,
+            "pixelRatio": 3,
+            "players": 1
+          },
+          "backing": {
+            "width": 1125,
+            "height": 2436
+          },
+          "slot": [
+            0,
+            0,
+            1125,
+            2436
+          ],
+          "aspect": 0.4618226600985222
+        }
+      ]
+    },
+    {
+      "name": "horizontalSplitTiling",
+      "pass": true,
+      "failures": [],
+      "detail": [
+        {
+          "size": {
+            "cssWidth": 1920,
+            "cssHeight": 1080,
+            "pixelRatio": 2
+          },
+          "backing": {
+            "width": 3840,
+            "height": 2160
+          },
+          "top": [
+            0,
+            1080,
+            3840,
+            1080
+          ],
+          "bottom": [
+            0,
+            0,
+            3840,
+            1080
+          ],
+          "oddHeight": false
+        },
+        {
+          "size": {
+            "cssWidth": 1280,
+            "cssHeight": 720,
+            "pixelRatio": 1
+          },
+          "backing": {
+            "width": 1280,
+            "height": 720
+          },
+          "top": [
+            0,
+            360,
+            1280,
+            360
+          ],
+          "bottom": [
+            0,
+            0,
+            1280,
+            360
+          ],
+          "oddHeight": false
+        },
+        {
+          "size": {
+            "cssWidth": 801,
+            "cssHeight": 601,
+            "pixelRatio": 1
+          },
+          "backing": {
+            "width": 801,
+            "height": 601
+          },
+          "top": [
+            0,
+            300,
+            801,
+            301
+          ],
+          "bottom": [
+            0,
+            0,
+            801,
+            300
+          ],
+          "oddHeight": true
+        },
+        {
+          "size": {
+            "cssWidth": 1024,
+            "cssHeight": 769,
+            "pixelRatio": 1
+          },
+          "backing": {
+            "width": 1024,
+            "height": 769
+          },
+          "top": [
+            0,
+            384,
+            1024,
+            385
+          ],
+          "bottom": [
+            0,
+            0,
+            1024,
+            384
+          ],
+          "oddHeight": true
+        },
+        {
+          "size": {
+            "cssWidth": 640,
+            "cssHeight": 361,
+            "pixelRatio": 1
+          },
+          "backing": {
+            "width": 640,
+            "height": 361
+          },
+          "top": [
+            0,
+            180,
+            640,
+            181
+          ],
+          "bottom": [
+            0,
+            0,
+            640,
+            180
+          ],
+          "oddHeight": true
+        },
+        {
+          "size": {
+            "cssWidth": 333,
+            "cssHeight": 667,
+            "pixelRatio": 2
+          },
+          "backing": {
+            "width": 666,
+            "height": 1334
+          },
+          "top": [
+            0,
+            667,
+            666,
+            667
+          ],
+          "bottom": [
+            0,
+            0,
+            666,
+            667
+          ],
+          "oddHeight": false
+        },
+        {
+          "size": {
+            "cssWidth": 1080,
+            "cssHeight": 2337,
+            "pixelRatio": 1
+          },
+          "backing": {
+            "width": 1080,
+            "height": 2337
+          },
+          "top": [
+            0,
+            1168,
+            1080,
+            1169
+          ],
+          "bottom": [
+            0,
+            0,
+            1080,
+            1168
+          ],
+          "oddHeight": true
+        },
+        {
+          "size": {
+            "cssWidth": 1366,
+            "cssHeight": 768,
+            "pixelRatio": 1.25
+          },
+          "backing": {
+            "width": 1707,
+            "height": 960
+          },
+          "top": [
+            0,
+            480,
+            1707,
+            480
+          ],
+          "bottom": [
+            0,
+            0,
+            1707,
+            480
+          ],
+          "oddHeight": false
+        }
+      ]
+    },
+    {
+      "name": "seamNegativeControl",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "gap": "rows cover 600 of 601 backing px",
+        "overlap": "row gap/overlap at y=301: slot 0 starts at y=300",
+        "naive": "rows cover 602 of 601 backing px"
+      }
+    },
+    {
+      "name": "zeroSizeRefusal",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "refusedCount": 11,
+        "acceptedCount": 2
+      }
+    },
+    {
+      "name": "resizeDeterminism",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "identical": true,
+        "steps": 7
+      }
+    },
+    {
+      "name": "coordinatorSplit",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "slots": [
+          [
+            0,
+            540,
+            1920,
+            540
+          ],
+          [
+            0,
+            0,
+            1920,
+            540
+          ]
+        ],
+        "applied": [
+          [
+            0,
+            1080,
+            3840,
+            1080
+          ],
+          [
+            0,
+            0,
+            3840,
+            1080
+          ]
+        ],
+        "ops": [
+          "setScissorTest:true",
+          "setViewport",
+          "setScissor",
+          "setClearColor",
+          "clear",
+          "render",
+          "setViewport",
+          "setScissor",
+          "setClearColor",
+          "clear",
+          "render",
+          "setClearColor",
+          "setViewport",
+          "setScissor",
+          "setScissorTest:false"
+        ]
+      }
+    },
+    {
+      "name": "coordinatorRestoresOnThrow",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "threw": true,
+        "message": "FakeRenderer forced failure on draw 1"
+      }
+    },
+    {
+      "name": "isolationOracleControl",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "leakReason": "gap/overlap at y=300, band starts 0"
+      }
+    },
+    {
+      "name": "singlePlayerCoordinator",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "slot": [
+          0,
+          0,
+          1600,
+          900
+        ]
+      }
+    },
+    {
+      "name": "coordinatorDeterminism",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "identical": true
+      }
+    },
+    {
+      "name": "refusalIsInert",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "zeroReason": "non-positive or non-finite logical size 0x720",
+        "mismatchReason": "expected 2 camera(s) for 2-player plan, got 1"
+      }
+    }
+  ]
+}
