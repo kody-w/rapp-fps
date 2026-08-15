@@ -1,0 +1,5296 @@
+{
+  "capturedAt": "2026-08-08T02:06:15.900Z",
+  "vitePort": 5341,
+  "schemaVersion": 1,
+  "passed": true,
+  "fixedStep": {
+    "hz": 120,
+    "seconds": 0.008333333333333333
+  },
+  "behavior": {
+    "archetype": "industrial-security",
+    "stateFlow": [
+      "idle",
+      "patrol",
+      "suspicious",
+      "investigate",
+      "engage",
+      "suppress",
+      "reposition",
+      "search",
+      "return",
+      "eliminated"
+    ]
+  },
+  "scenarios": {
+    "patrolSilence": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 2,
+      "finalState": "patrol",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "no LOS plus no sound stays patrol",
+          "passed": true,
+          "expected": "patrol",
+          "actual": "patrol",
+          "summary": "PASS no LOS plus no sound stays patrol: expected patrol; actual patrol"
+        },
+        {
+          "name": "occluded target produces no state transition",
+          "passed": true,
+          "expected": [],
+          "actual": [],
+          "summary": "PASS occluded target produces no state transition: expected []; actual []"
+        }
+      ]
+    },
+    "soundInvestigation": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 2.6,
+      "finalState": "search",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 12,
+          "atSeconds": 0.1,
+          "kind": "stimulus",
+          "data": {
+            "label": "Footstep",
+            "position": {
+              "x": 4,
+              "y": 0,
+              "z": 4
+            },
+            "surface": "metal",
+            "loud": 0.82
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 12,
+          "atSeconds": 0.1,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "footstep-heard"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 42,
+          "atSeconds": 0.35,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "investigate",
+            "reason": "suspicion-confirmed"
+          }
+        },
+        {
+          "sequence": 4,
+          "tick": 258,
+          "atSeconds": 2.15,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "investigate",
+            "to": "search",
+            "reason": "investigation-expired"
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "audible canonical Footstep is consumed",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS audible canonical Footstep is consumed: expected true; actual true"
+        },
+        {
+          "name": "sound enters suspicious",
+          "passed": true,
+          "expected": true,
+          "actual": [
+            "suspicious",
+            "investigate",
+            "search"
+          ],
+          "summary": "PASS sound enters suspicious: expected true; actual [\"suspicious\",\"investigate\",\"search\"]"
+        },
+        {
+          "name": "sound advances to investigate",
+          "passed": true,
+          "expected": true,
+          "actual": [
+            "suspicious",
+            "investigate",
+            "search"
+          ],
+          "summary": "PASS sound advances to investigate: expected true; actual [\"suspicious\",\"investigate\",\"search\"]"
+        },
+        {
+          "name": "sound alone never enters engage",
+          "passed": true,
+          "expected": false,
+          "actual": false,
+          "summary": "PASS sound alone never enters engage: expected false; actual false"
+        }
+      ]
+    },
+    "hearingThreshold": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 1,
+      "finalState": "patrol",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 6,
+          "atSeconds": 0.05,
+          "kind": "stimulus",
+          "data": {
+            "label": "quiet-Footstep",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 18
+            },
+            "loud": 0.08
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "subthreshold Footstep is rejected",
+          "passed": true,
+          "expected": false,
+          "actual": false,
+          "summary": "PASS subthreshold Footstep is rejected: expected false; actual false"
+        },
+        {
+          "name": "subthreshold Footstep leaves patrol unchanged",
+          "passed": true,
+          "expected": [],
+          "actual": [],
+          "summary": "PASS subthreshold Footstep leaves patrol unchanged: expected []; actual []"
+        }
+      ],
+      "debug": {
+        "accepted": false
+      }
+    },
+    "reactionDelay": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 2,
+      "finalState": "suppress",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 24,
+          "atSeconds": 0.2,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-confirmable",
+            "position": {
+              "x": 0,
+              "y": 1.45,
+              "z": 9
+            }
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 25,
+          "atSeconds": 0.208333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "visual-cue"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 79,
+          "atSeconds": 0.658333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "engage",
+            "reason": "target-confirmed"
+          }
+        },
+        {
+          "sequence": 4,
+          "tick": 79,
+          "atSeconds": 0.658333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0389,
+              "y": 1.45,
+              "z": 9.0126
+            },
+            "yawErrorRadians": 0.016203,
+            "pitchErrorRadians": 0.013653
+          }
+        },
+        {
+          "sequence": 5,
+          "tick": 79,
+          "atSeconds": 0.658333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0389,
+              "y": 1.45,
+              "z": 9.0126
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.109633,
+            "firstShotAtSeconds": 0.708333,
+            "yawErrorRadians": 0.016203,
+            "pitchErrorRadians": 0.013653,
+            "burstId": 1,
+            "finalShotAtSeconds": 1.037232,
+            "cooldownSeconds": 0.547141,
+            "nextBurstNotBeforeSeconds": 1.584372
+          }
+        },
+        {
+          "sequence": 6,
+          "tick": 191,
+          "atSeconds": 1.591667,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0558,
+              "y": 1.45,
+              "z": 9.0181
+            },
+            "yawErrorRadians": 0.017877,
+            "pitchErrorRadians": -0.003984
+          }
+        },
+        {
+          "sequence": 7,
+          "tick": 191,
+          "atSeconds": 1.591667,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0558,
+              "y": 1.45,
+              "z": 9.0181
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.10138,
+            "firstShotAtSeconds": 1.641667,
+            "yawErrorRadians": 0.017877,
+            "pitchErrorRadians": -0.003984,
+            "burstId": 2,
+            "finalShotAtSeconds": 1.945807,
+            "cooldownSeconds": 0.407723,
+            "nextBurstNotBeforeSeconds": 2.35353
+          }
+        },
+        {
+          "sequence": 8,
+          "tick": 217,
+          "atSeconds": 1.808333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "engage",
+            "to": "suppress",
+            "reason": "tactical-cycle"
+          }
+        },
+        {
+          "sequence": 9,
+          "tick": 217,
+          "atSeconds": 1.808333,
+          "kind": "suppress",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0052,
+              "y": 1.45,
+              "z": 9.0315
+            },
+            "durationSeconds": 0.72
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "LOS first creates a suspicious visual cue",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS LOS first creates a suspicious visual cue: expected true; actual true"
+        },
+        {
+          "name": "confirmed LOS eventually enters engage",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS confirmed LOS eventually enters engage: expected true; actual true"
+        },
+        {
+          "name": "LOS reaction delay is preserved before engage",
+          "passed": true,
+          "expected": ">= 0.45s",
+          "actual": "0.45s",
+          "summary": "PASS LOS reaction delay is preserved before engage: expected >= 0.45s; actual 0.45s"
+        },
+        {
+          "name": "burst intent is not scheduled before engage",
+          "passed": true,
+          "expected": "first burst tick >= engage tick",
+          "actual": {
+            "burstTick": 79,
+            "engageTick": 79
+          },
+          "summary": "PASS burst intent is not scheduled before engage: expected first burst tick >= engage tick; actual {\"burstTick\":79,\"engageTick\":79}"
+        }
+      ],
+      "debug": {
+        "states": [
+          "suspicious",
+          "engage",
+          "suppress"
+        ],
+        "reactionDelaySeconds": 0.45
+      }
+    },
+    "occlusionMemory": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 7.2,
+      "finalState": "patrol",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-on",
+            "position": {
+              "x": 0,
+              "y": 1.45,
+              "z": 9
+            }
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 1,
+          "atSeconds": 0.008333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "visual-cue"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "engage",
+            "reason": "target-confirmed"
+          }
+        },
+        {
+          "sequence": 4,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0389,
+              "y": 1.45,
+              "z": 9.0126
+            },
+            "yawErrorRadians": 0.016203,
+            "pitchErrorRadians": 0.013653
+          }
+        },
+        {
+          "sequence": 5,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0389,
+              "y": 1.45,
+              "z": 9.0126
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.109633,
+            "firstShotAtSeconds": 0.508333,
+            "yawErrorRadians": 0.016203,
+            "pitchErrorRadians": 0.013653,
+            "burstId": 1,
+            "finalShotAtSeconds": 0.837232,
+            "cooldownSeconds": 0.547141,
+            "nextBurstNotBeforeSeconds": 1.384372
+          }
+        },
+        {
+          "sequence": 6,
+          "tick": 167,
+          "atSeconds": 1.391667,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0558,
+              "y": 1.45,
+              "z": 9.0181
+            },
+            "yawErrorRadians": 0.017877,
+            "pitchErrorRadians": -0.003984
+          }
+        },
+        {
+          "sequence": 7,
+          "tick": 167,
+          "atSeconds": 1.391667,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0558,
+              "y": 1.45,
+              "z": 9.0181
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.10138,
+            "firstShotAtSeconds": 1.441667,
+            "yawErrorRadians": 0.017877,
+            "pitchErrorRadians": -0.003984,
+            "burstId": 2,
+            "finalShotAtSeconds": 1.745807,
+            "cooldownSeconds": 0.407723,
+            "nextBurstNotBeforeSeconds": 2.15353
+          }
+        },
+        {
+          "sequence": 8,
+          "tick": 193,
+          "atSeconds": 1.608333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "engage",
+            "to": "suppress",
+            "reason": "tactical-cycle"
+          }
+        },
+        {
+          "sequence": 9,
+          "tick": 193,
+          "atSeconds": 1.608333,
+          "kind": "suppress",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0052,
+              "y": 1.45,
+              "z": 9.0315
+            },
+            "durationSeconds": 0.72
+          }
+        },
+        {
+          "sequence": 10,
+          "tick": 228,
+          "atSeconds": 1.9,
+          "kind": "stimulus",
+          "data": {
+            "label": "occlusion-on"
+          }
+        },
+        {
+          "sequence": 11,
+          "tick": 270,
+          "atSeconds": 2.25,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suppress",
+            "to": "search",
+            "reason": "target-occluded"
+          }
+        },
+        {
+          "sequence": 12,
+          "tick": 270,
+          "atSeconds": 2.25,
+          "kind": "cease",
+          "data": {
+            "agentId": "security-01",
+            "reason": "lost-target"
+          }
+        },
+        {
+          "sequence": 13,
+          "tick": 642,
+          "atSeconds": 5.35,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "search",
+            "to": "return",
+            "reason": "search-expired"
+          }
+        },
+        {
+          "sequence": 14,
+          "tick": 750,
+          "atSeconds": 6.25,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "return",
+            "to": "idle",
+            "reason": "returned-home"
+          }
+        },
+        {
+          "sequence": 15,
+          "tick": 804,
+          "atSeconds": 6.7,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "idle",
+            "to": "patrol",
+            "reason": "idle-complete"
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "occlusion after engage enters search",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS occlusion after engage enters search: expected true; actual true"
+        },
+        {
+          "name": "target memory decays while occluded",
+          "passed": true,
+          "expected": "< 1",
+          "actual": 0.58,
+          "summary": "PASS target memory decays while occluded: expected < 1; actual 0.58"
+        },
+        {
+          "name": "search transitions to return after memory is no longer actionable",
+          "passed": true,
+          "expected": "return tick > search tick",
+          "actual": {
+            "searchTick": 270,
+            "returnTick": 642
+          },
+          "summary": "PASS search transitions to return after memory is no longer actionable: expected return tick > search tick; actual {\"searchTick\":270,\"returnTick\":642}"
+        },
+        {
+          "name": "return completes through idle back to patrol",
+          "passed": true,
+          "expected": "patrol",
+          "actual": "patrol",
+          "summary": "PASS return completes through idle back to patrol: expected patrol; actual patrol"
+        }
+      ],
+      "debug": {
+        "occlusionTick": 228,
+        "memorySamples": [
+          {
+            "tick": 228,
+            "confidence": 1,
+            "state": "suppress"
+          },
+          {
+            "tick": 408,
+            "confidence": 0.58,
+            "state": "search"
+          }
+        ],
+        "states": [
+          "suspicious",
+          "engage",
+          "suppress",
+          "search",
+          "return",
+          "idle",
+          "patrol"
+        ]
+      }
+    },
+    "occludedCoverMemory": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 2.5833333333333335,
+      "finalState": "search",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-on",
+            "position": {
+              "x": 0,
+              "y": 1.45,
+              "z": 9
+            }
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 1,
+          "atSeconds": 0.008333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "visual-cue"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "engage",
+            "reason": "target-confirmed"
+          }
+        },
+        {
+          "sequence": 4,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0389,
+              "y": 1.45,
+              "z": 9.0126
+            },
+            "yawErrorRadians": 0.016203,
+            "pitchErrorRadians": 0.013653
+          }
+        },
+        {
+          "sequence": 5,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0389,
+              "y": 1.45,
+              "z": 9.0126
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.109633,
+            "firstShotAtSeconds": 0.508333,
+            "yawErrorRadians": 0.016203,
+            "pitchErrorRadians": 0.013653,
+            "burstId": 1,
+            "finalShotAtSeconds": 0.837232,
+            "cooldownSeconds": 0.547141,
+            "nextBurstNotBeforeSeconds": 1.384372
+          }
+        },
+        {
+          "sequence": 6,
+          "tick": 167,
+          "atSeconds": 1.391667,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0558,
+              "y": 1.45,
+              "z": 9.0181
+            },
+            "yawErrorRadians": 0.017877,
+            "pitchErrorRadians": -0.003984
+          }
+        },
+        {
+          "sequence": 7,
+          "tick": 167,
+          "atSeconds": 1.391667,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0558,
+              "y": 1.45,
+              "z": 9.0181
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.10138,
+            "firstShotAtSeconds": 1.441667,
+            "yawErrorRadians": 0.017877,
+            "pitchErrorRadians": -0.003984,
+            "burstId": 2,
+            "finalShotAtSeconds": 1.745807,
+            "cooldownSeconds": 0.407723,
+            "nextBurstNotBeforeSeconds": 2.15353
+          }
+        },
+        {
+          "sequence": 8,
+          "tick": 193,
+          "atSeconds": 1.608333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "engage",
+            "to": "suppress",
+            "reason": "tactical-cycle"
+          }
+        },
+        {
+          "sequence": 9,
+          "tick": 193,
+          "atSeconds": 1.608333,
+          "kind": "suppress",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0052,
+              "y": 1.45,
+              "z": 9.0315
+            },
+            "durationSeconds": 0.72
+          }
+        },
+        {
+          "sequence": 10,
+          "tick": 250,
+          "atSeconds": 2.083333,
+          "kind": "stimulus",
+          "data": {
+            "label": "occlusion-and-target-move",
+            "rememberedAtOcclusion": {
+              "x": -0.042626566253602505,
+              "y": 1.45,
+              "z": 8.95510515847709
+            },
+            "liveDestination": {
+              "x": 12,
+              "y": 1.45,
+              "z": 20
+            }
+          }
+        },
+        {
+          "sequence": 11,
+          "tick": 280,
+          "atSeconds": 2.333333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suppress",
+            "to": "reposition",
+            "reason": "cover-selected"
+          }
+        },
+        {
+          "sequence": 12,
+          "tick": 280,
+          "atSeconds": 2.333333,
+          "kind": "reposition",
+          "data": {
+            "agentId": "security-01",
+            "coverId": "barrier-right",
+            "destination": {
+              "x": 3.4,
+              "y": 0,
+              "z": 4.8
+            },
+            "score": 0.777657
+          }
+        },
+        {
+          "sequence": 13,
+          "tick": 292,
+          "atSeconds": 2.433333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "reposition",
+            "to": "search",
+            "reason": "target-occluded"
+          }
+        },
+        {
+          "sequence": 14,
+          "tick": 292,
+          "atSeconds": 2.433333,
+          "kind": "cease",
+          "data": {
+            "agentId": "security-01",
+            "reason": "lost-target"
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "cover is evaluated during the occlusion grace window",
+          "passed": true,
+          "expected": "> 0",
+          "actual": 1,
+          "summary": "PASS cover is evaluated during the occlusion grace window: expected > 0; actual 1"
+        },
+        {
+          "name": "occluded cover scoring uses last-known target memory",
+          "passed": true,
+          "expected": {
+            "x": -0.042626566253602505,
+            "y": 1.45,
+            "z": 8.95510515847709
+          },
+          "actual": {
+            "x": -0.042626566253602505,
+            "y": 1.45,
+            "z": 8.95510515847709
+          },
+          "summary": "PASS occluded cover scoring uses last-known target memory: expected {\"x\":-0.042626566253602505,\"y\":1.45,\"z\":8.95510515847709}; actual {\"x\":-0.042626566253602505,\"y\":1.45,\"z\":8.95510515847709}"
+        },
+        {
+          "name": "occluded moving target does not leak live coordinates into cover scoring",
+          "passed": true,
+          "expected": "> 5m from moved live target",
+          "actual": "16.34058m",
+          "summary": "PASS occluded moving target does not leak live coordinates into cover scoring: expected > 5m from moved live target; actual 16.34058m"
+        },
+        {
+          "name": "memory-based cover can still produce a reposition intent",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS memory-based cover can still produce a reposition intent: expected true; actual true"
+        },
+        {
+          "name": "tick-0 LOS history remains original after tick-250 target movement",
+          "passed": true,
+          "expected": {
+            "x": 0,
+            "y": 1.45,
+            "z": 9
+          },
+          "actual": {
+            "x": 0,
+            "y": 1.45,
+            "z": 9
+          },
+          "summary": "PASS tick-0 LOS history remains original after tick-250 target movement: expected {\"x\":0,\"y\":1.45,\"z\":9}; actual {\"x\":0,\"y\":1.45,\"z\":9}"
+        }
+      ],
+      "debug": {
+        "occlusionTick": 250,
+        "rememberedAtOcclusion": {
+          "x": -0.042626566253602505,
+          "y": 1.45,
+          "z": 8.95510515847709
+        },
+        "movedLiveTarget": {
+          "x": 12,
+          "y": 1.45,
+          "z": 20
+        },
+        "coverQueryTarget": {
+          "x": -0.042626566253602505,
+          "y": 1.45,
+          "z": 8.95510515847709
+        },
+        "historicalLosPosition": {
+          "x": 0,
+          "y": 1.45,
+          "z": 9
+        },
+        "memoryDistance": 0,
+        "liveDistance": 16.34058
+      }
+    },
+    "mixedCoverReachability": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 2.5833333333333335,
+      "finalState": "reposition",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-on"
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 1,
+          "atSeconds": 0.008333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "visual-cue"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "engage",
+            "reason": "target-confirmed"
+          }
+        },
+        {
+          "sequence": 4,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0389,
+              "y": 1.45,
+              "z": 9.0126
+            },
+            "yawErrorRadians": 0.016203,
+            "pitchErrorRadians": 0.013653
+          }
+        },
+        {
+          "sequence": 5,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0389,
+              "y": 1.45,
+              "z": 9.0126
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.109633,
+            "firstShotAtSeconds": 0.508333,
+            "yawErrorRadians": 0.016203,
+            "pitchErrorRadians": 0.013653,
+            "burstId": 1,
+            "finalShotAtSeconds": 0.837232,
+            "cooldownSeconds": 0.547141,
+            "nextBurstNotBeforeSeconds": 1.384372
+          }
+        },
+        {
+          "sequence": 6,
+          "tick": 167,
+          "atSeconds": 1.391667,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0558,
+              "y": 1.45,
+              "z": 9.0181
+            },
+            "yawErrorRadians": 0.017877,
+            "pitchErrorRadians": -0.003984
+          }
+        },
+        {
+          "sequence": 7,
+          "tick": 167,
+          "atSeconds": 1.391667,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0558,
+              "y": 1.45,
+              "z": 9.0181
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.10138,
+            "firstShotAtSeconds": 1.441667,
+            "yawErrorRadians": 0.017877,
+            "pitchErrorRadians": -0.003984,
+            "burstId": 2,
+            "finalShotAtSeconds": 1.745807,
+            "cooldownSeconds": 0.407723,
+            "nextBurstNotBeforeSeconds": 2.15353
+          }
+        },
+        {
+          "sequence": 8,
+          "tick": 193,
+          "atSeconds": 1.608333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "engage",
+            "to": "suppress",
+            "reason": "tactical-cycle"
+          }
+        },
+        {
+          "sequence": 9,
+          "tick": 193,
+          "atSeconds": 1.608333,
+          "kind": "suppress",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0052,
+              "y": 1.45,
+              "z": 9.0315
+            },
+            "durationSeconds": 0.72
+          }
+        },
+        {
+          "sequence": 10,
+          "tick": 259,
+          "atSeconds": 2.158333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0426,
+              "y": 1.45,
+              "z": 8.9551
+            },
+            "yawErrorRadians": -0.023491,
+            "pitchErrorRadians": -0.009234
+          }
+        },
+        {
+          "sequence": 11,
+          "tick": 259,
+          "atSeconds": 2.158333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0426,
+              "y": 1.45,
+              "z": 8.9551
+            },
+            "shotCount": 3,
+            "shotIntervalSeconds": 0.117504,
+            "firstShotAtSeconds": 2.208333,
+            "yawErrorRadians": -0.023491,
+            "pitchErrorRadians": -0.009234,
+            "burstId": 3,
+            "finalShotAtSeconds": 2.443341,
+            "cooldownSeconds": 0.404849,
+            "nextBurstNotBeforeSeconds": 2.84819
+          }
+        },
+        {
+          "sequence": 12,
+          "tick": 280,
+          "atSeconds": 2.333333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suppress",
+            "to": "reposition",
+            "reason": "cover-selected"
+          }
+        },
+        {
+          "sequence": 13,
+          "tick": 280,
+          "atSeconds": 2.333333,
+          "kind": "reposition",
+          "data": {
+            "agentId": "security-01",
+            "coverId": "barrier-right",
+            "destination": {
+              "x": 3.4,
+              "y": 0,
+              "z": 4.8
+            },
+            "score": 0.596588
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "non-finite estimate rejects a candidate despite stale low path cost",
+          "passed": true,
+          "expected": "not compressor-left",
+          "actual": "barrier-right",
+          "summary": "PASS non-finite estimate rejects a candidate despite stale low path cost: expected not compressor-left; actual barrier-right"
+        },
+        {
+          "name": "zero-node candidate loses to a reachable candidate",
+          "passed": true,
+          "expected": "barrier-right",
+          "actual": "barrier-right",
+          "summary": "PASS zero-node candidate loses to a reachable candidate: expected barrier-right; actual barrier-right"
+        },
+        {
+          "name": "reposition is emitted only with a usable staged path",
+          "passed": true,
+          "expected": "pathCount >= 2",
+          "actual": 3,
+          "summary": "PASS reposition is emitted only with a usable staged path: expected pathCount >= 2; actual 3"
+        },
+        {
+          "name": "cover selection probes alternate routes after rejection",
+          "passed": true,
+          "expected": ">= 2",
+          "actual": 2,
+          "summary": "PASS cover selection probes alternate routes after rejection: expected >= 2; actual 2"
+        }
+      ],
+      "debug": {
+        "selectedCover": "barrier-right",
+        "pathCount": 3,
+        "pathRequests": 2
+      }
+    },
+    "allCoverUnreachable": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 2.5833333333333335,
+      "finalState": "engage",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-on"
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 1,
+          "atSeconds": 0.008333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "visual-cue"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "engage",
+            "reason": "target-confirmed"
+          }
+        },
+        {
+          "sequence": 4,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0389,
+              "y": 1.45,
+              "z": 9.0126
+            },
+            "yawErrorRadians": 0.016203,
+            "pitchErrorRadians": 0.013653
+          }
+        },
+        {
+          "sequence": 5,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0389,
+              "y": 1.45,
+              "z": 9.0126
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.109633,
+            "firstShotAtSeconds": 0.508333,
+            "yawErrorRadians": 0.016203,
+            "pitchErrorRadians": 0.013653,
+            "burstId": 1,
+            "finalShotAtSeconds": 0.837232,
+            "cooldownSeconds": 0.547141,
+            "nextBurstNotBeforeSeconds": 1.384372
+          }
+        },
+        {
+          "sequence": 6,
+          "tick": 167,
+          "atSeconds": 1.391667,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0558,
+              "y": 1.45,
+              "z": 9.0181
+            },
+            "yawErrorRadians": 0.017877,
+            "pitchErrorRadians": -0.003984
+          }
+        },
+        {
+          "sequence": 7,
+          "tick": 167,
+          "atSeconds": 1.391667,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0558,
+              "y": 1.45,
+              "z": 9.0181
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.10138,
+            "firstShotAtSeconds": 1.441667,
+            "yawErrorRadians": 0.017877,
+            "pitchErrorRadians": -0.003984,
+            "burstId": 2,
+            "finalShotAtSeconds": 1.745807,
+            "cooldownSeconds": 0.407723,
+            "nextBurstNotBeforeSeconds": 2.15353
+          }
+        },
+        {
+          "sequence": 8,
+          "tick": 193,
+          "atSeconds": 1.608333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "engage",
+            "to": "suppress",
+            "reason": "tactical-cycle"
+          }
+        },
+        {
+          "sequence": 9,
+          "tick": 193,
+          "atSeconds": 1.608333,
+          "kind": "suppress",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0052,
+              "y": 1.45,
+              "z": 9.0315
+            },
+            "durationSeconds": 0.72
+          }
+        },
+        {
+          "sequence": 10,
+          "tick": 259,
+          "atSeconds": 2.158333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0426,
+              "y": 1.45,
+              "z": 8.9551
+            },
+            "yawErrorRadians": -0.023491,
+            "pitchErrorRadians": -0.009234
+          }
+        },
+        {
+          "sequence": 11,
+          "tick": 259,
+          "atSeconds": 2.158333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0426,
+              "y": 1.45,
+              "z": 8.9551
+            },
+            "shotCount": 3,
+            "shotIntervalSeconds": 0.117504,
+            "firstShotAtSeconds": 2.208333,
+            "yawErrorRadians": -0.023491,
+            "pitchErrorRadians": -0.009234,
+            "burstId": 3,
+            "finalShotAtSeconds": 2.443341,
+            "cooldownSeconds": 0.404849,
+            "nextBurstNotBeforeSeconds": 2.84819
+          }
+        },
+        {
+          "sequence": 12,
+          "tick": 280,
+          "atSeconds": 2.333333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suppress",
+            "to": "engage",
+            "reason": "no-cover"
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "all unreachable cover emits no reposition intent",
+          "passed": true,
+          "expected": false,
+          "actual": false,
+          "summary": "PASS all unreachable cover emits no reposition intent: expected false; actual false"
+        },
+        {
+          "name": "all unreachable cover never enters reposition",
+          "passed": true,
+          "expected": false,
+          "actual": false,
+          "summary": "PASS all unreachable cover never enters reposition: expected false; actual false"
+        },
+        {
+          "name": "all unreachable cover falls back through no-cover",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS all unreachable cover falls back through no-cover: expected true; actual true"
+        },
+        {
+          "name": "failed cover leaves no staged path",
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "summary": "PASS failed cover leaves no staged path: expected 0; actual 0"
+        }
+      ],
+      "debug": {
+        "pathRequests": 3
+      }
+    },
+    "burstBoundary": {
+      "passed": true,
+      "seed": 67,
+      "durationSeconds": 10.041666666666666,
+      "finalState": "suppress",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 67
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-on",
+            "seed": 67
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 1,
+          "atSeconds": 0.008333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "visual-cue"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "engage",
+            "reason": "target-confirmed"
+          }
+        },
+        {
+          "sequence": 4,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0474,
+              "y": 1.45,
+              "z": 8.9804
+            },
+            "yawErrorRadians": 0.010546,
+            "pitchErrorRadians": 0.01068
+          }
+        },
+        {
+          "sequence": 5,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0474,
+              "y": 1.45,
+              "z": 8.9804
+            },
+            "shotCount": 2,
+            "shotIntervalSeconds": 0.114544,
+            "firstShotAtSeconds": 0.508333,
+            "yawErrorRadians": 0.010546,
+            "pitchErrorRadians": 0.01068,
+            "burstId": 1,
+            "finalShotAtSeconds": 0.622878,
+            "cooldownSeconds": 0.378007,
+            "nextBurstNotBeforeSeconds": 1.000884
+          }
+        },
+        {
+          "sequence": 6,
+          "tick": 121,
+          "atSeconds": 1.008333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0801,
+              "y": 1.45,
+              "z": 8.957
+            },
+            "yawErrorRadians": -0.002794,
+            "pitchErrorRadians": 0.013775
+          }
+        },
+        {
+          "sequence": 7,
+          "tick": 121,
+          "atSeconds": 1.008333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0801,
+              "y": 1.45,
+              "z": 8.957
+            },
+            "shotCount": 3,
+            "shotIntervalSeconds": 0.115049,
+            "firstShotAtSeconds": 1.058333,
+            "yawErrorRadians": -0.002794,
+            "pitchErrorRadians": 0.013775,
+            "burstId": 2,
+            "finalShotAtSeconds": 1.288431,
+            "cooldownSeconds": 0.374174,
+            "nextBurstNotBeforeSeconds": 1.662605
+          }
+        },
+        {
+          "sequence": 8,
+          "tick": 193,
+          "atSeconds": 1.608333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "engage",
+            "to": "suppress",
+            "reason": "tactical-cycle"
+          }
+        },
+        {
+          "sequence": 9,
+          "tick": 193,
+          "atSeconds": 1.608333,
+          "kind": "suppress",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0554,
+              "y": 1.45,
+              "z": 9.0813
+            },
+            "durationSeconds": 0.72
+          }
+        },
+        {
+          "sequence": 10,
+          "tick": 200,
+          "atSeconds": 1.666667,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0554,
+              "y": 1.45,
+              "z": 9.0813
+            },
+            "yawErrorRadians": 0.020759,
+            "pitchErrorRadians": -0.008425
+          }
+        },
+        {
+          "sequence": 11,
+          "tick": 200,
+          "atSeconds": 1.666667,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0554,
+              "y": 1.45,
+              "z": 9.0813
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.107038,
+            "firstShotAtSeconds": 1.716667,
+            "yawErrorRadians": 0.020759,
+            "pitchErrorRadians": -0.008425,
+            "burstId": 3,
+            "finalShotAtSeconds": 2.03778,
+            "cooldownSeconds": 0.526887,
+            "nextBurstNotBeforeSeconds": 2.564667
+          }
+        },
+        {
+          "sequence": 12,
+          "tick": 280,
+          "atSeconds": 2.333333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suppress",
+            "to": "reposition",
+            "reason": "cover-selected"
+          }
+        },
+        {
+          "sequence": 13,
+          "tick": 280,
+          "atSeconds": 2.333333,
+          "kind": "reposition",
+          "data": {
+            "agentId": "security-01",
+            "coverId": "crate-center",
+            "destination": {
+              "x": 0.4,
+              "y": 0,
+              "z": 3.7
+            },
+            "score": 0.692724
+          }
+        },
+        {
+          "sequence": 14,
+          "tick": 388,
+          "atSeconds": 3.233333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "reposition",
+            "to": "engage",
+            "reason": "tactical-cycle"
+          }
+        },
+        {
+          "sequence": 15,
+          "tick": 388,
+          "atSeconds": 3.233333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0736,
+              "y": 1.45,
+              "z": 8.993
+            },
+            "yawErrorRadians": 0.000896,
+            "pitchErrorRadians": 0.01288
+          }
+        },
+        {
+          "sequence": 16,
+          "tick": 388,
+          "atSeconds": 3.233333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0736,
+              "y": 1.45,
+              "z": 8.993
+            },
+            "shotCount": 2,
+            "shotIntervalSeconds": 0.113841,
+            "firstShotAtSeconds": 3.283333,
+            "yawErrorRadians": 0.000896,
+            "pitchErrorRadians": 0.01288,
+            "burstId": 4,
+            "finalShotAtSeconds": 3.397174,
+            "cooldownSeconds": 0.409246,
+            "nextBurstNotBeforeSeconds": 3.806419
+          }
+        },
+        {
+          "sequence": 17,
+          "tick": 457,
+          "atSeconds": 3.808333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0777,
+              "y": 1.45,
+              "z": 9.072
+            },
+            "yawErrorRadians": 0.006321,
+            "pitchErrorRadians": 0.014059
+          }
+        },
+        {
+          "sequence": 18,
+          "tick": 457,
+          "atSeconds": 3.808333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0777,
+              "y": 1.45,
+              "z": 9.072
+            },
+            "shotCount": 3,
+            "shotIntervalSeconds": 0.093465,
+            "firstShotAtSeconds": 3.858333,
+            "yawErrorRadians": 0.006321,
+            "pitchErrorRadians": 0.014059,
+            "burstId": 5,
+            "finalShotAtSeconds": 4.045264,
+            "cooldownSeconds": 0.53694,
+            "nextBurstNotBeforeSeconds": 4.582204
+          }
+        },
+        {
+          "sequence": 19,
+          "tick": 526,
+          "atSeconds": 4.383333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "engage",
+            "to": "suppress",
+            "reason": "tactical-cycle"
+          }
+        },
+        {
+          "sequence": 20,
+          "tick": 526,
+          "atSeconds": 4.383333,
+          "kind": "suppress",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0661,
+              "y": 1.45,
+              "z": 9.0577
+            },
+            "durationSeconds": 0.72
+          }
+        },
+        {
+          "sequence": 21,
+          "tick": 550,
+          "atSeconds": 4.583333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0415,
+              "y": 1.45,
+              "z": 9.0503
+            },
+            "yawErrorRadians": 0.020888,
+            "pitchErrorRadians": 0.004746
+          }
+        },
+        {
+          "sequence": 22,
+          "tick": 550,
+          "atSeconds": 4.583333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0415,
+              "y": 1.45,
+              "z": 9.0503
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.109916,
+            "firstShotAtSeconds": 4.633333,
+            "yawErrorRadians": 0.020888,
+            "pitchErrorRadians": 0.004746,
+            "burstId": 6,
+            "finalShotAtSeconds": 4.96308,
+            "cooldownSeconds": 0.514029,
+            "nextBurstNotBeforeSeconds": 5.477109
+          }
+        },
+        {
+          "sequence": 23,
+          "tick": 613,
+          "atSeconds": 5.108333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suppress",
+            "to": "reposition",
+            "reason": "cover-selected"
+          }
+        },
+        {
+          "sequence": 24,
+          "tick": 613,
+          "atSeconds": 5.108333,
+          "kind": "reposition",
+          "data": {
+            "agentId": "security-01",
+            "coverId": "crate-center",
+            "destination": {
+              "x": 0.4,
+              "y": 0,
+              "z": 3.7
+            },
+            "score": 0.799432
+          }
+        },
+        {
+          "sequence": 25,
+          "tick": 721,
+          "atSeconds": 6.008333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "reposition",
+            "to": "engage",
+            "reason": "tactical-cycle"
+          }
+        },
+        {
+          "sequence": 26,
+          "tick": 721,
+          "atSeconds": 6.008333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0612,
+              "y": 1.45,
+              "z": 9.0406
+            },
+            "yawErrorRadians": 0.006437,
+            "pitchErrorRadians": 0.014178
+          }
+        },
+        {
+          "sequence": 27,
+          "tick": 721,
+          "atSeconds": 6.008333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0612,
+              "y": 1.45,
+              "z": 9.0406
+            },
+            "shotCount": 2,
+            "shotIntervalSeconds": 0.118899,
+            "firstShotAtSeconds": 6.058333,
+            "yawErrorRadians": 0.006437,
+            "pitchErrorRadians": 0.014178,
+            "burstId": 7,
+            "finalShotAtSeconds": 6.177233,
+            "cooldownSeconds": 0.428309,
+            "nextBurstNotBeforeSeconds": 6.605542
+          }
+        },
+        {
+          "sequence": 28,
+          "tick": 793,
+          "atSeconds": 6.608333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0126,
+              "y": 1.45,
+              "z": 8.9298
+            },
+            "yawErrorRadians": 0.015979,
+            "pitchErrorRadians": 0.012002
+          }
+        },
+        {
+          "sequence": 29,
+          "tick": 793,
+          "atSeconds": 6.608333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0126,
+              "y": 1.45,
+              "z": 8.9298
+            },
+            "shotCount": 2,
+            "shotIntervalSeconds": 0.108961,
+            "firstShotAtSeconds": 6.658333,
+            "yawErrorRadians": 0.015979,
+            "pitchErrorRadians": 0.012002,
+            "burstId": 8,
+            "finalShotAtSeconds": 6.767294,
+            "cooldownSeconds": 0.556623,
+            "nextBurstNotBeforeSeconds": 7.323918
+          }
+        },
+        {
+          "sequence": 30,
+          "tick": 859,
+          "atSeconds": 7.158333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "engage",
+            "to": "suppress",
+            "reason": "tactical-cycle"
+          }
+        },
+        {
+          "sequence": 31,
+          "tick": 859,
+          "atSeconds": 7.158333,
+          "kind": "suppress",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0475,
+              "y": 1.45,
+              "z": 9.0043
+            },
+            "durationSeconds": 0.72
+          }
+        },
+        {
+          "sequence": 32,
+          "tick": 879,
+          "atSeconds": 7.325,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0833,
+              "y": 1.45,
+              "z": 8.962
+            },
+            "yawErrorRadians": -0.006556,
+            "pitchErrorRadians": 0.009214
+          }
+        },
+        {
+          "sequence": 33,
+          "tick": 879,
+          "atSeconds": 7.325,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0833,
+              "y": 1.45,
+              "z": 8.962
+            },
+            "shotCount": 2,
+            "shotIntervalSeconds": 0.092762,
+            "firstShotAtSeconds": 7.375,
+            "yawErrorRadians": -0.006556,
+            "pitchErrorRadians": 0.009214,
+            "burstId": 9,
+            "finalShotAtSeconds": 7.467762,
+            "cooldownSeconds": 0.550815,
+            "nextBurstNotBeforeSeconds": 8.018576
+          }
+        },
+        {
+          "sequence": 34,
+          "tick": 946,
+          "atSeconds": 7.883333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suppress",
+            "to": "reposition",
+            "reason": "cover-selected"
+          }
+        },
+        {
+          "sequence": 35,
+          "tick": 946,
+          "atSeconds": 7.883333,
+          "kind": "reposition",
+          "data": {
+            "agentId": "security-01",
+            "coverId": "crate-center",
+            "destination": {
+              "x": 0.4,
+              "y": 0,
+              "z": 3.7
+            },
+            "score": 0.778844
+          }
+        },
+        {
+          "sequence": 36,
+          "tick": 1054,
+          "atSeconds": 8.783333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "reposition",
+            "to": "engage",
+            "reason": "tactical-cycle"
+          }
+        },
+        {
+          "sequence": 37,
+          "tick": 1054,
+          "atSeconds": 8.783333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0576,
+              "y": 1.45,
+              "z": 8.994
+            },
+            "yawErrorRadians": -0.005307,
+            "pitchErrorRadians": 0.009668
+          }
+        },
+        {
+          "sequence": 38,
+          "tick": 1054,
+          "atSeconds": 8.783333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0576,
+              "y": 1.45,
+              "z": 8.994
+            },
+            "shotCount": 2,
+            "shotIntervalSeconds": 0.086816,
+            "firstShotAtSeconds": 8.833333,
+            "yawErrorRadians": -0.005307,
+            "pitchErrorRadians": 0.009668,
+            "burstId": 10,
+            "finalShotAtSeconds": 8.920149,
+            "cooldownSeconds": 0.418378,
+            "nextBurstNotBeforeSeconds": 9.338527
+          }
+        },
+        {
+          "sequence": 39,
+          "tick": 1121,
+          "atSeconds": 9.341667,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0841,
+              "y": 1.45,
+              "z": 9.0766
+            },
+            "yawErrorRadians": -0.00899,
+            "pitchErrorRadians": -0.012538
+          }
+        },
+        {
+          "sequence": 40,
+          "tick": 1121,
+          "atSeconds": 9.341667,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0841,
+              "y": 1.45,
+              "z": 9.0766
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.121647,
+            "firstShotAtSeconds": 9.391667,
+            "yawErrorRadians": -0.00899,
+            "pitchErrorRadians": -0.012538,
+            "burstId": 11,
+            "finalShotAtSeconds": 9.756607,
+            "cooldownSeconds": 0.403309,
+            "nextBurstNotBeforeSeconds": 10.159916
+          }
+        },
+        {
+          "sequence": 41,
+          "tick": 1192,
+          "atSeconds": 9.933333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "engage",
+            "to": "suppress",
+            "reason": "tactical-cycle"
+          }
+        },
+        {
+          "sequence": 42,
+          "tick": 1192,
+          "atSeconds": 9.933333,
+          "kind": "suppress",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0397,
+              "y": 1.45,
+              "z": 9.0077
+            },
+            "durationSeconds": 0.72
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "seed 67 reaches the reviewed engage-to-suppress boundary",
+          "passed": true,
+          "expected": "tick 1192",
+          "actual": 1192,
+          "summary": "PASS seed 67 reaches the reviewed engage-to-suppress boundary: expected tick 1192; actual 1192"
+        },
+        {
+          "name": "tactical boundary schedules at most one burst",
+          "passed": true,
+          "expected": "0..1",
+          "actual": [],
+          "summary": "PASS tactical boundary schedules at most one burst: expected 0..1; actual []"
+        },
+        {
+          "name": "burst schedule has no duplicate tick emissions",
+          "passed": true,
+          "expected": [],
+          "actual": [],
+          "summary": "PASS burst schedule has no duplicate tick emissions: expected []; actual []"
+        },
+        {
+          "name": "every burst waits for the previous final-shot plus cooldown deadline",
+          "passed": true,
+          "expected": [],
+          "actual": [],
+          "summary": "PASS every burst waits for the previous final-shot plus cooldown deadline: expected []; actual []"
+        }
+      ],
+      "debug": {
+        "boundaryTick": 1192,
+        "boundaryBurstIds": [],
+        "deadlineViolations": []
+      }
+    },
+    "burstCooldownDeadline": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 2.8333333333333335,
+      "finalState": "reposition",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-on"
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 1,
+          "atSeconds": 0.008333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "visual-cue"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "engage",
+            "reason": "target-confirmed"
+          }
+        },
+        {
+          "sequence": 4,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0389,
+              "y": 1.45,
+              "z": 9.0126
+            },
+            "yawErrorRadians": 0.016203,
+            "pitchErrorRadians": 0.013653
+          }
+        },
+        {
+          "sequence": 5,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0389,
+              "y": 1.45,
+              "z": 9.0126
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.109633,
+            "firstShotAtSeconds": 0.508333,
+            "yawErrorRadians": 0.016203,
+            "pitchErrorRadians": 0.013653,
+            "burstId": 1,
+            "finalShotAtSeconds": 0.837232,
+            "cooldownSeconds": 0.547141,
+            "nextBurstNotBeforeSeconds": 1.384372
+          }
+        },
+        {
+          "sequence": 6,
+          "tick": 167,
+          "atSeconds": 1.391667,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0558,
+              "y": 1.45,
+              "z": 9.0181
+            },
+            "yawErrorRadians": 0.017877,
+            "pitchErrorRadians": -0.003984
+          }
+        },
+        {
+          "sequence": 7,
+          "tick": 167,
+          "atSeconds": 1.391667,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0558,
+              "y": 1.45,
+              "z": 9.0181
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.10138,
+            "firstShotAtSeconds": 1.441667,
+            "yawErrorRadians": 0.017877,
+            "pitchErrorRadians": -0.003984,
+            "burstId": 2,
+            "finalShotAtSeconds": 1.745807,
+            "cooldownSeconds": 0.407723,
+            "nextBurstNotBeforeSeconds": 2.15353
+          }
+        },
+        {
+          "sequence": 8,
+          "tick": 193,
+          "atSeconds": 1.608333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "engage",
+            "to": "suppress",
+            "reason": "tactical-cycle"
+          }
+        },
+        {
+          "sequence": 9,
+          "tick": 193,
+          "atSeconds": 1.608333,
+          "kind": "suppress",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0052,
+              "y": 1.45,
+              "z": 9.0315
+            },
+            "durationSeconds": 0.72
+          }
+        },
+        {
+          "sequence": 10,
+          "tick": 259,
+          "atSeconds": 2.158333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0426,
+              "y": 1.45,
+              "z": 8.9551
+            },
+            "yawErrorRadians": -0.023491,
+            "pitchErrorRadians": -0.009234
+          }
+        },
+        {
+          "sequence": 11,
+          "tick": 259,
+          "atSeconds": 2.158333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0426,
+              "y": 1.45,
+              "z": 8.9551
+            },
+            "shotCount": 3,
+            "shotIntervalSeconds": 0.117504,
+            "firstShotAtSeconds": 2.208333,
+            "yawErrorRadians": -0.023491,
+            "pitchErrorRadians": -0.009234,
+            "burstId": 3,
+            "finalShotAtSeconds": 2.443341,
+            "cooldownSeconds": 0.404849,
+            "nextBurstNotBeforeSeconds": 2.84819
+          }
+        },
+        {
+          "sequence": 12,
+          "tick": 280,
+          "atSeconds": 2.333333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suppress",
+            "to": "reposition",
+            "reason": "cover-selected"
+          }
+        },
+        {
+          "sequence": 13,
+          "tick": 280,
+          "atSeconds": 2.333333,
+          "kind": "reposition",
+          "data": {
+            "agentId": "security-01",
+            "coverId": "compressor-left",
+            "destination": {
+              "x": -3.8,
+              "y": 0,
+              "z": 4.6
+            },
+            "score": 0.7242
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "reviewed engage-to-suppress transition is present",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS reviewed engage-to-suppress transition is present: expected true; actual true"
+        },
+        {
+          "name": "transition occurs while the prior burst still has scheduled shots",
+          "passed": true,
+          "expected": "transition before 1.745807s final shot",
+          "actual": 1.608333,
+          "summary": "PASS transition occurs while the prior burst still has scheduled shots: expected transition before 1.745807s final shot; actual 1.608333"
+        },
+        {
+          "name": "next burst waits through prior final shot and cooldown",
+          "passed": true,
+          "expected": ">= 2.15353s",
+          "actual": 2.158333,
+          "summary": "PASS next burst waits through prior final shot and cooldown: expected >= 2.15353s; actual 2.158333"
+        }
+      ],
+      "debug": {
+        "transitionAtSeconds": 1.608333,
+        "priorBurst": {
+          "burstId": 2,
+          "scheduledAtSeconds": 1.391667,
+          "finalShotAtSeconds": 1.745807,
+          "nextBurstNotBeforeSeconds": 2.15353
+        },
+        "nextBurst": {
+          "burstId": 3,
+          "scheduledAtSeconds": 2.158333
+        }
+      }
+    },
+    "targetIdentityReaction": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 1,
+      "finalState": "engage",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-on",
+            "targetId": "target-a"
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 1,
+          "atSeconds": 0.008333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "visual-cue"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 30,
+          "atSeconds": 0.25,
+          "kind": "stimulus",
+          "data": {
+            "label": "target-identity-switch",
+            "from": "target-a",
+            "to": "target-b"
+          }
+        },
+        {
+          "sequence": 4,
+          "tick": 85,
+          "atSeconds": 0.708333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "engage",
+            "reason": "target-confirmed"
+          }
+        },
+        {
+          "sequence": 5,
+          "tick": 85,
+          "atSeconds": 0.708333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-b",
+            "aimPoint": {
+              "x": 2.0545,
+              "y": 1.45,
+              "z": 9.0707
+            },
+            "yawErrorRadians": -0.005004,
+            "pitchErrorRadians": -0.01629
+          }
+        },
+        {
+          "sequence": 6,
+          "tick": 85,
+          "atSeconds": 0.708333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-b",
+            "aimPoint": {
+              "x": 2.0545,
+              "y": 1.45,
+              "z": 9.0707
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.117077,
+            "firstShotAtSeconds": 0.758333,
+            "yawErrorRadians": -0.005004,
+            "pitchErrorRadians": -0.01629,
+            "burstId": 1,
+            "finalShotAtSeconds": 1.109565,
+            "cooldownSeconds": 0.556134,
+            "nextBurstNotBeforeSeconds": 1.665699
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "target B eventually enters engage",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS target B eventually enters engage: expected true; actual true"
+        },
+        {
+          "name": "target B receives the full reaction delay",
+          "passed": true,
+          "expected": ">= 0.45s",
+          "actual": "0.45s",
+          "summary": "PASS target B receives the full reaction delay: expected >= 0.45s; actual 0.45s"
+        },
+        {
+          "name": "first burst after the switch targets B",
+          "passed": true,
+          "expected": "target-b",
+          "actual": "target-b",
+          "summary": "PASS first burst after the switch targets B: expected target-b; actual target-b"
+        },
+        {
+          "name": "memory sampling resets to target B",
+          "passed": true,
+          "expected": "target-b",
+          "actual": "target-b",
+          "summary": "PASS memory sampling resets to target B: expected target-b; actual target-b"
+        },
+        {
+          "name": "confirmation identity tracks target B",
+          "passed": true,
+          "expected": "target-b",
+          "actual": "target-b",
+          "summary": "PASS confirmation identity tracks target B: expected target-b; actual target-b"
+        }
+      ],
+      "debug": {
+        "switchTick": 30,
+        "detectionTick": 31,
+        "engageTick": 85,
+        "delaySeconds": 0.45
+      }
+    },
+    "occludedRetargetMemoryIdentity": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 1.75,
+      "finalState": "suppress",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-on",
+            "targetId": "target-a"
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 1,
+          "atSeconds": 0.008333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "visual-cue"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "engage",
+            "reason": "target-confirmed"
+          }
+        },
+        {
+          "sequence": 4,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-a",
+            "aimPoint": {
+              "x": -0.0389,
+              "y": 1.45,
+              "z": 9.0126
+            },
+            "yawErrorRadians": 0.016203,
+            "pitchErrorRadians": 0.013653
+          }
+        },
+        {
+          "sequence": 5,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-a",
+            "aimPoint": {
+              "x": -0.0389,
+              "y": 1.45,
+              "z": 9.0126
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.109633,
+            "firstShotAtSeconds": 0.508333,
+            "yawErrorRadians": 0.016203,
+            "pitchErrorRadians": 0.013653,
+            "burstId": 1,
+            "finalShotAtSeconds": 0.837232,
+            "cooldownSeconds": 0.547141,
+            "nextBurstNotBeforeSeconds": 1.384372
+          }
+        },
+        {
+          "sequence": 6,
+          "tick": 167,
+          "atSeconds": 1.391667,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-a",
+            "aimPoint": {
+              "x": 0.0558,
+              "y": 1.45,
+              "z": 9.0181
+            },
+            "yawErrorRadians": 0.017877,
+            "pitchErrorRadians": -0.003984
+          }
+        },
+        {
+          "sequence": 7,
+          "tick": 167,
+          "atSeconds": 1.391667,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-a",
+            "aimPoint": {
+              "x": 0.0558,
+              "y": 1.45,
+              "z": 9.0181
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.10138,
+            "firstShotAtSeconds": 1.441667,
+            "yawErrorRadians": 0.017877,
+            "pitchErrorRadians": -0.003984,
+            "burstId": 2,
+            "finalShotAtSeconds": 1.745807,
+            "cooldownSeconds": 0.407723,
+            "nextBurstNotBeforeSeconds": 2.15353
+          }
+        },
+        {
+          "sequence": 8,
+          "tick": 180,
+          "atSeconds": 1.5,
+          "kind": "stimulus",
+          "data": {
+            "label": "occluded-retarget",
+            "memoryTargetId": "target-a",
+            "sampledTargetId": "target-b",
+            "rememberedA": {
+              "x": 0.036272689502220595,
+              "y": 1.45,
+              "z": 9.057284522627015
+            }
+          }
+        },
+        {
+          "sequence": 9,
+          "tick": 193,
+          "atSeconds": 1.608333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "engage",
+            "to": "suppress",
+            "reason": "tactical-cycle"
+          }
+        },
+        {
+          "sequence": 10,
+          "tick": 193,
+          "atSeconds": 1.608333,
+          "kind": "suppress",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-a",
+            "aimPoint": {
+              "x": 0.0363,
+              "y": 1.45,
+              "z": 9.0573
+            },
+            "durationSeconds": 0.72
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "occluded retarget reaches suppression during A memory grace",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS occluded retarget reaches suppression during A memory grace: expected true; actual true"
+        },
+        {
+          "name": "suppression at A memory keeps target A identity",
+          "passed": true,
+          "expected": "target-a",
+          "actual": "target-a",
+          "summary": "PASS suppression at A memory keeps target A identity: expected target-a; actual target-a"
+        },
+        {
+          "name": "suppression coordinates remain at A memory",
+          "passed": true,
+          "expected": "< 0.001m",
+          "actual": "0.000031m",
+          "summary": "PASS suppression coordinates remain at A memory: expected < 0.001m; actual 0.000031m"
+        },
+        {
+          "name": "no combat intent labels A memory as target B",
+          "passed": true,
+          "expected": [],
+          "actual": [],
+          "summary": "PASS no combat intent labels A memory as target B: expected []; actual []"
+        }
+      ],
+      "debug": {
+        "switchTick": 180,
+        "rememberedA": {
+          "x": 0.036272689502220595,
+          "y": 1.45,
+          "z": 9.057284522627015
+        },
+        "sampledTargetB": {
+          "x": 12,
+          "y": 1.45,
+          "z": 20
+        },
+        "suppressionTargetId": "target-a",
+        "suppressionPoint": {
+          "x": 0.0363,
+          "y": 1.45,
+          "z": 9.0573
+        },
+        "memoryDistance": 0.000031
+      }
+    },
+    "retainedBurstOwnership": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 0.625,
+      "finalState": "engage",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657,
+            "mutation": "scalar-owned-aim"
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-on",
+            "position": {
+              "x": 0,
+              "y": 1.45,
+              "z": 9
+            }
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 1,
+          "atSeconds": 0.008333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "visual-cue"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "engage",
+            "reason": "target-confirmed"
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "first burst intent is retained by the sink",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS first burst intent is retained by the sink: expected true; actual true"
+        },
+        {
+          "name": "later memory sampling changes the reusable source vector",
+          "passed": true,
+          "expected": "> 0.001m",
+          "actual": "0.096292m",
+          "summary": "PASS later memory sampling changes the reusable source vector: expected > 0.001m; actual 0.096292m"
+        },
+        {
+          "name": "ownership probe runs before the retained burst final shot",
+          "passed": true,
+          "expected": "< 0.837232s",
+          "actual": 0.625,
+          "summary": "PASS ownership probe runs before the retained burst final shot: expected < 0.837232s; actual 0.625"
+        },
+        {
+          "name": "retained burst intent remains byte-identical through memory updates",
+          "passed": true,
+          "expected": "e5aa5931",
+          "actual": "e5aa5931",
+          "summary": "PASS retained burst intent remains byte-identical through memory updates: expected e5aa5931; actual e5aa5931"
+        }
+      ],
+      "debug": {
+        "aliasedAimSource": false,
+        "capturedAtTick": 55,
+        "observedAtTick": 75,
+        "finalShotAtSeconds": 0.837232,
+        "observationAtSeconds": 0.625,
+        "memoryMovedMeters": 0.096292,
+        "beforeHash": "e5aa5931",
+        "afterHash": "e5aa5931",
+        "retainedBurst": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": -0.03885790188214741,
+            "y": 1.45,
+            "z": 9.01255613968242
+          },
+          "shotCount": 4,
+          "shotIntervalSeconds": 0.10963274944573641,
+          "firstShotAtSeconds": 0.5083333333333333,
+          "yawErrorRadians": 0.016203045301139352,
+          "pitchErrorRadians": 0.013653344388818371,
+          "burstId": 1,
+          "nextBurstNotBeforeSeconds": 1.3843723059569795
+        }
+      }
+    },
+    "stimulusValueOwnership": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 0,
+      "finalState": "patrol",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-on",
+            "position": {
+              "x": 0,
+              "y": 1.45,
+              "z": 9
+            }
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "historical tick-0 LOS position remains the original value",
+          "passed": true,
+          "expected": {
+            "x": 0,
+            "y": 1.45,
+            "z": 9
+          },
+          "actual": {
+            "x": 0,
+            "y": 1.45,
+            "z": 9
+          },
+          "summary": "PASS historical tick-0 LOS position remains the original value: expected {\"x\":0,\"y\":1.45,\"z\":9}; actual {\"x\":0,\"y\":1.45,\"z\":9}"
+        },
+        {
+          "name": "nested stimulus history remains byte-identical after source mutation",
+          "passed": true,
+          "expected": "49c42b4f",
+          "actual": "49c42b4f",
+          "summary": "PASS nested stimulus history remains byte-identical after source mutation: expected 49c42b4f; actual 49c42b4f"
+        }
+      ],
+      "debug": {
+        "originalPosition": {
+          "x": 0,
+          "y": 1.45,
+          "z": 9
+        },
+        "movedSourcePosition": {
+          "x": 12,
+          "y": 1.45,
+          "z": 20
+        },
+        "recordedPosition": {
+          "x": 0,
+          "y": 1.45,
+          "z": 9
+        },
+        "beforeHash": "49c42b4f",
+        "afterHash": "49c42b4f"
+      }
+    },
+    "resolvedDamage": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 1.1,
+      "finalState": "eliminated",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "resolved-damage-input",
+            "remainingHealth": 42,
+            "maxHealth": 100,
+            "eliminated": false
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "damage-source"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 12,
+          "atSeconds": 0.1,
+          "kind": "stimulus",
+          "data": {
+            "label": "resolved-damage-input",
+            "remainingHealth": 0,
+            "maxHealth": 100,
+            "eliminated": true
+          }
+        },
+        {
+          "sequence": 4,
+          "tick": 12,
+          "atSeconds": 0.1,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "eliminated",
+            "reason": "resolved-damage-eliminated"
+          }
+        },
+        {
+          "sequence": 5,
+          "tick": 12,
+          "atSeconds": 0.1,
+          "kind": "cease",
+          "data": {
+            "agentId": "security-01",
+            "reason": "eliminated"
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "host-resolved damage input is accepted",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS host-resolved damage input is accepted: expected true; actual true"
+        },
+        {
+          "name": "host-resolved elimination input is accepted",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS host-resolved elimination input is accepted: expected true; actual true"
+        },
+        {
+          "name": "elimination enters terminal state",
+          "passed": true,
+          "expected": "eliminated",
+          "actual": "eliminated",
+          "summary": "PASS elimination enters terminal state: expected eliminated; actual eliminated"
+        },
+        {
+          "name": "elimination emits cease intent rather than Damage",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS elimination emits cease intent rather than Damage: expected true; actual true"
+        },
+        {
+          "name": "eliminated AI schedules no further bursts",
+          "passed": true,
+          "expected": 0,
+          "actual": 0,
+          "summary": "PASS eliminated AI schedules no further bursts: expected 0; actual 0"
+        }
+      ]
+    },
+    "lethalDamagePriority": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 0,
+      "finalState": "eliminated",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "eliminated",
+            "reason": "resolved-damage-eliminated"
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "cease",
+          "data": {
+            "agentId": "security-01",
+            "reason": "eliminated"
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "lethal resolved damage input is accepted",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS lethal resolved damage input is accepted: expected true; actual true"
+        },
+        {
+          "name": "lethal damage produces one direct patrol-to-eliminated transition",
+          "passed": true,
+          "expected": [
+            {
+              "from": "patrol",
+              "to": "eliminated"
+            }
+          ],
+          "actual": [
+            {
+              "from": "patrol",
+              "to": "eliminated"
+            }
+          ],
+          "summary": "PASS lethal damage produces one direct patrol-to-eliminated transition: expected [{\"from\":\"patrol\",\"to\":\"eliminated\"}]; actual [{\"from\":\"patrol\",\"to\":\"eliminated\"}]"
+        },
+        {
+          "name": "lethal damage never emits an intermediate suspicious transition",
+          "passed": true,
+          "expected": false,
+          "actual": false,
+          "summary": "PASS lethal damage never emits an intermediate suspicious transition: expected false; actual false"
+        }
+      ]
+    },
+    "searchDamageRefresh": {
+      "passed": true,
+      "seed": 1371568657,
+      "durationSeconds": 5.15,
+      "finalState": "investigate",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "footstep-heard"
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 30,
+          "atSeconds": 0.25,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "investigate",
+            "reason": "suspicion-confirmed"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 246,
+          "atSeconds": 2.05,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "investigate",
+            "to": "search",
+            "reason": "investigation-expired"
+          }
+        },
+        {
+          "sequence": 4,
+          "tick": 617,
+          "atSeconds": 5.141667,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "search",
+            "to": "investigate",
+            "reason": "damage-source"
+          }
+        }
+      ],
+      "assertions": [
+        {
+          "name": "search state is reached before the sourced hit",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS search state is reached before the sourced hit: expected true; actual true"
+        },
+        {
+          "name": "surviving sourced damage is accepted",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS surviving sourced damage is accepted: expected true; actual true"
+        },
+        {
+          "name": "search hit immediately restarts investigate",
+          "passed": true,
+          "expected": "investigate",
+          "actual": "investigate",
+          "summary": "PASS search hit immediately restarts investigate: expected investigate; actual investigate"
+        },
+        {
+          "name": "search hit replaces the path with the damage source",
+          "passed": true,
+          "expected": {
+            "x": 7,
+            "y": 0,
+            "z": -3
+          },
+          "actual": {
+            "x": 7,
+            "y": 0,
+            "z": -3
+          },
+          "summary": "PASS search hit replaces the path with the damage source: expected {\"x\":7,\"y\":0,\"z\":-3}; actual {\"x\":7,\"y\":0,\"z\":-3}"
+        },
+        {
+          "name": "refreshed investigate persists through the next fixed tick",
+          "passed": true,
+          "expected": "investigate",
+          "actual": "investigate",
+          "summary": "PASS refreshed investigate persists through the next fixed tick: expected investigate; actual investigate"
+        },
+        {
+          "name": "search hit does not immediately expire to return",
+          "passed": true,
+          "expected": false,
+          "actual": false,
+          "summary": "PASS search hit does not immediately expire to return: expected false; actual false"
+        },
+        {
+          "name": "search hit records a damage-source transition",
+          "passed": true,
+          "expected": true,
+          "actual": true,
+          "summary": "PASS search hit records a damage-source transition: expected true; actual true"
+        }
+      ],
+      "debug": {
+        "searchEntryTick": 246,
+        "damageTick": 617,
+        "immediateState": "investigate",
+        "nextTickState": "investigate",
+        "pathEnd": {
+          "x": 7,
+          "y": 0,
+          "z": -3
+        },
+        "pathDistance": 0
+      }
+    }
+  },
+  "determinism": {
+    "passed": true,
+    "assertions": [
+      {
+        "name": "same seed and input are byte-identical",
+        "passed": true,
+        "expected": "6fee0ad6",
+        "actual": "6fee0ad6",
+        "summary": "PASS same seed and input are byte-identical: expected 6fee0ad6; actual 6fee0ad6"
+      },
+      {
+        "name": "different seed changes tactical choices",
+        "passed": true,
+        "expected": "different tactical bytes",
+        "actual": {
+          "first": "be6e797a",
+          "alternate": "5394adff"
+        },
+        "summary": "PASS different seed changes tactical choices: expected different tactical bytes; actual {\"first\":\"be6e797a\",\"alternate\":\"5394adff\"}"
+      },
+      {
+        "name": "different seed preserves the state sequence",
+        "passed": true,
+        "expected": [
+          {
+            "state": "suspicious",
+            "tick": 1
+          },
+          {
+            "state": "engage",
+            "tick": 55
+          },
+          {
+            "state": "suppress",
+            "tick": 193
+          },
+          {
+            "state": "reposition",
+            "tick": 280
+          },
+          {
+            "state": "engage",
+            "tick": 388
+          },
+          {
+            "state": "suppress",
+            "tick": 526
+          }
+        ],
+        "actual": [
+          {
+            "state": "suspicious",
+            "tick": 1
+          },
+          {
+            "state": "engage",
+            "tick": 55
+          },
+          {
+            "state": "suppress",
+            "tick": 193
+          },
+          {
+            "state": "reposition",
+            "tick": 280
+          },
+          {
+            "state": "engage",
+            "tick": 388
+          },
+          {
+            "state": "suppress",
+            "tick": 526
+          }
+        ],
+        "summary": "PASS different seed preserves the state sequence: expected [{\"state\":\"suspicious\",\"tick\":1},{\"state\":\"engage\",\"tick\":55},{\"state\":\"suppress\",\"tick\":193},{\"state\":\"reposition\",\"tick\":280},{\"state\":\"engage\",\"tick\":388},{\"state\":\"suppress\",\"tick\":526}]; actual [{\"state\":\"suspicious\",\"tick\":1},{\"state\":\"engage\",\"tick\":55},{\"state\":\"suppress\",\"tick\":193},{\"state\":\"reposition\",\"tick\":280},{\"state\":\"engage\",\"tick\":388},{\"state\":\"suppress\",\"tick\":526}]"
+      },
+      {
+        "name": "different seed preserves bounded state timing",
+        "passed": true,
+        "expected": "<= 0.25s",
+        "actual": "0s",
+        "summary": "PASS different seed preserves bounded state timing: expected <= 0.25s; actual 0s"
+      },
+      {
+        "name": "tactical trace reaches engage",
+        "passed": true,
+        "expected": true,
+        "actual": [
+          "suspicious",
+          "engage",
+          "suppress",
+          "reposition",
+          "engage",
+          "suppress"
+        ],
+        "summary": "PASS tactical trace reaches engage: expected true; actual [\"suspicious\",\"engage\",\"suppress\",\"reposition\",\"engage\",\"suppress\"]"
+      },
+      {
+        "name": "tactical trace reaches suppress",
+        "passed": true,
+        "expected": true,
+        "actual": [
+          "suspicious",
+          "engage",
+          "suppress",
+          "reposition",
+          "engage",
+          "suppress"
+        ],
+        "summary": "PASS tactical trace reaches suppress: expected true; actual [\"suspicious\",\"engage\",\"suppress\",\"reposition\",\"engage\",\"suppress\"]"
+      },
+      {
+        "name": "tactical trace reaches reposition",
+        "passed": true,
+        "expected": true,
+        "actual": [
+          "suspicious",
+          "engage",
+          "suppress",
+          "reposition",
+          "engage",
+          "suppress"
+        ],
+        "summary": "PASS tactical trace reaches reposition: expected true; actual [\"suspicious\",\"engage\",\"suppress\",\"reposition\",\"engage\",\"suppress\"]"
+      },
+      {
+        "name": "burst scheduler emits bounded intents",
+        "passed": true,
+        "expected": "1..31",
+        "actual": 7,
+        "summary": "PASS burst scheduler emits bounded intents: expected 1..31; actual 7"
+      },
+      {
+        "name": "tactical trace reaches engage",
+        "passed": true,
+        "expected": true,
+        "actual": [
+          "suspicious",
+          "engage",
+          "suppress",
+          "reposition",
+          "engage",
+          "suppress"
+        ],
+        "summary": "PASS tactical trace reaches engage: expected true; actual [\"suspicious\",\"engage\",\"suppress\",\"reposition\",\"engage\",\"suppress\"]"
+      },
+      {
+        "name": "tactical trace reaches suppress",
+        "passed": true,
+        "expected": true,
+        "actual": [
+          "suspicious",
+          "engage",
+          "suppress",
+          "reposition",
+          "engage",
+          "suppress"
+        ],
+        "summary": "PASS tactical trace reaches suppress: expected true; actual [\"suspicious\",\"engage\",\"suppress\",\"reposition\",\"engage\",\"suppress\"]"
+      },
+      {
+        "name": "tactical trace reaches reposition",
+        "passed": true,
+        "expected": true,
+        "actual": [
+          "suspicious",
+          "engage",
+          "suppress",
+          "reposition",
+          "engage",
+          "suppress"
+        ],
+        "summary": "PASS tactical trace reaches reposition: expected true; actual [\"suspicious\",\"engage\",\"suppress\",\"reposition\",\"engage\",\"suppress\"]"
+      },
+      {
+        "name": "burst scheduler emits bounded intents",
+        "passed": true,
+        "expected": "1..31",
+        "actual": 6,
+        "summary": "PASS burst scheduler emits bounded intents: expected 1..31; actual 6"
+      }
+    ],
+    "sameSeedHash": "6fee0ad6",
+    "alternateSeedHash": "78884015",
+    "trace": [
+      {
+        "sequence": 0,
+        "tick": 0,
+        "atSeconds": 0,
+        "kind": "stimulus",
+        "data": {
+          "label": "scenario-start",
+          "state": "patrol",
+          "seed": 1371568657
+        }
+      },
+      {
+        "sequence": 1,
+        "tick": 0,
+        "atSeconds": 0,
+        "kind": "stimulus",
+        "data": {
+          "label": "LOS-on",
+          "position": {
+            "x": 0,
+            "y": 1.45,
+            "z": 9
+          }
+        }
+      },
+      {
+        "sequence": 2,
+        "tick": 1,
+        "atSeconds": 0.008333,
+        "kind": "transition",
+        "data": {
+          "agentId": "security-01",
+          "from": "patrol",
+          "to": "suspicious",
+          "reason": "visual-cue"
+        }
+      },
+      {
+        "sequence": 3,
+        "tick": 55,
+        "atSeconds": 0.458333,
+        "kind": "transition",
+        "data": {
+          "agentId": "security-01",
+          "from": "suspicious",
+          "to": "engage",
+          "reason": "target-confirmed"
+        }
+      },
+      {
+        "sequence": 4,
+        "tick": 55,
+        "atSeconds": 0.458333,
+        "kind": "aim",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": -0.0389,
+            "y": 1.45,
+            "z": 9.0126
+          },
+          "yawErrorRadians": 0.016203,
+          "pitchErrorRadians": 0.013653
+        }
+      },
+      {
+        "sequence": 5,
+        "tick": 55,
+        "atSeconds": 0.458333,
+        "kind": "burst",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": -0.0389,
+            "y": 1.45,
+            "z": 9.0126
+          },
+          "shotCount": 4,
+          "shotIntervalSeconds": 0.109633,
+          "firstShotAtSeconds": 0.508333,
+          "yawErrorRadians": 0.016203,
+          "pitchErrorRadians": 0.013653,
+          "burstId": 1,
+          "finalShotAtSeconds": 0.837232,
+          "cooldownSeconds": 0.547141,
+          "nextBurstNotBeforeSeconds": 1.384372
+        }
+      },
+      {
+        "sequence": 6,
+        "tick": 167,
+        "atSeconds": 1.391667,
+        "kind": "aim",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": 0.0558,
+            "y": 1.45,
+            "z": 9.0181
+          },
+          "yawErrorRadians": 0.017877,
+          "pitchErrorRadians": -0.003984
+        }
+      },
+      {
+        "sequence": 7,
+        "tick": 167,
+        "atSeconds": 1.391667,
+        "kind": "burst",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": 0.0558,
+            "y": 1.45,
+            "z": 9.0181
+          },
+          "shotCount": 4,
+          "shotIntervalSeconds": 0.10138,
+          "firstShotAtSeconds": 1.441667,
+          "yawErrorRadians": 0.017877,
+          "pitchErrorRadians": -0.003984,
+          "burstId": 2,
+          "finalShotAtSeconds": 1.745807,
+          "cooldownSeconds": 0.407723,
+          "nextBurstNotBeforeSeconds": 2.15353
+        }
+      },
+      {
+        "sequence": 8,
+        "tick": 193,
+        "atSeconds": 1.608333,
+        "kind": "transition",
+        "data": {
+          "agentId": "security-01",
+          "from": "engage",
+          "to": "suppress",
+          "reason": "tactical-cycle"
+        }
+      },
+      {
+        "sequence": 9,
+        "tick": 193,
+        "atSeconds": 1.608333,
+        "kind": "suppress",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": -0.0052,
+            "y": 1.45,
+            "z": 9.0315
+          },
+          "durationSeconds": 0.72
+        }
+      },
+      {
+        "sequence": 10,
+        "tick": 259,
+        "atSeconds": 2.158333,
+        "kind": "aim",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": -0.0426,
+            "y": 1.45,
+            "z": 8.9551
+          },
+          "yawErrorRadians": -0.023491,
+          "pitchErrorRadians": -0.009234
+        }
+      },
+      {
+        "sequence": 11,
+        "tick": 259,
+        "atSeconds": 2.158333,
+        "kind": "burst",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": -0.0426,
+            "y": 1.45,
+            "z": 8.9551
+          },
+          "shotCount": 3,
+          "shotIntervalSeconds": 0.117504,
+          "firstShotAtSeconds": 2.208333,
+          "yawErrorRadians": -0.023491,
+          "pitchErrorRadians": -0.009234,
+          "burstId": 3,
+          "finalShotAtSeconds": 2.443341,
+          "cooldownSeconds": 0.404849,
+          "nextBurstNotBeforeSeconds": 2.84819
+        }
+      },
+      {
+        "sequence": 12,
+        "tick": 280,
+        "atSeconds": 2.333333,
+        "kind": "transition",
+        "data": {
+          "agentId": "security-01",
+          "from": "suppress",
+          "to": "reposition",
+          "reason": "cover-selected"
+        }
+      },
+      {
+        "sequence": 13,
+        "tick": 280,
+        "atSeconds": 2.333333,
+        "kind": "reposition",
+        "data": {
+          "agentId": "security-01",
+          "coverId": "compressor-left",
+          "destination": {
+            "x": -3.8,
+            "y": 0,
+            "z": 4.6
+          },
+          "score": 0.7242
+        }
+      },
+      {
+        "sequence": 14,
+        "tick": 388,
+        "atSeconds": 3.233333,
+        "kind": "transition",
+        "data": {
+          "agentId": "security-01",
+          "from": "reposition",
+          "to": "engage",
+          "reason": "tactical-cycle"
+        }
+      },
+      {
+        "sequence": 15,
+        "tick": 388,
+        "atSeconds": 3.233333,
+        "kind": "aim",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": -0.0846,
+            "y": 1.45,
+            "z": 8.9366
+          },
+          "yawErrorRadians": -0.002994,
+          "pitchErrorRadians": 0.009857
+        }
+      },
+      {
+        "sequence": 16,
+        "tick": 388,
+        "atSeconds": 3.233333,
+        "kind": "burst",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": -0.0846,
+            "y": 1.45,
+            "z": 8.9366
+          },
+          "shotCount": 2,
+          "shotIntervalSeconds": 0.123084,
+          "firstShotAtSeconds": 3.283333,
+          "yawErrorRadians": -0.002994,
+          "pitchErrorRadians": 0.009857,
+          "burstId": 4,
+          "finalShotAtSeconds": 3.406417,
+          "cooldownSeconds": 0.440481,
+          "nextBurstNotBeforeSeconds": 3.846898
+        }
+      },
+      {
+        "sequence": 17,
+        "tick": 462,
+        "atSeconds": 3.85,
+        "kind": "aim",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": -0.0124,
+            "y": 1.45,
+            "z": 9.0028
+          },
+          "yawErrorRadians": 0.009582,
+          "pitchErrorRadians": 0.013113
+        }
+      },
+      {
+        "sequence": 18,
+        "tick": 462,
+        "atSeconds": 3.85,
+        "kind": "burst",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": -0.0124,
+            "y": 1.45,
+            "z": 9.0028
+          },
+          "shotCount": 2,
+          "shotIntervalSeconds": 0.088424,
+          "firstShotAtSeconds": 3.9,
+          "yawErrorRadians": 0.009582,
+          "pitchErrorRadians": 0.013113,
+          "burstId": 5,
+          "finalShotAtSeconds": 3.988424,
+          "cooldownSeconds": 0.43626,
+          "nextBurstNotBeforeSeconds": 4.424684
+        }
+      },
+      {
+        "sequence": 19,
+        "tick": 526,
+        "atSeconds": 4.383333,
+        "kind": "transition",
+        "data": {
+          "agentId": "security-01",
+          "from": "engage",
+          "to": "suppress",
+          "reason": "tactical-cycle"
+        }
+      },
+      {
+        "sequence": 20,
+        "tick": 526,
+        "atSeconds": 4.383333,
+        "kind": "suppress",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": 0.0043,
+            "y": 1.45,
+            "z": 8.983
+          },
+          "durationSeconds": 0.72
+        }
+      },
+      {
+        "sequence": 21,
+        "tick": 531,
+        "atSeconds": 4.425,
+        "kind": "aim",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": 0.0792,
+            "y": 1.45,
+            "z": 9.0004
+          },
+          "yawErrorRadians": 0.011998,
+          "pitchErrorRadians": -0.013828
+        }
+      },
+      {
+        "sequence": 22,
+        "tick": 531,
+        "atSeconds": 4.425,
+        "kind": "burst",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": 0.0792,
+            "y": 1.45,
+            "z": 9.0004
+          },
+          "shotCount": 4,
+          "shotIntervalSeconds": 0.09398,
+          "firstShotAtSeconds": 4.475,
+          "yawErrorRadians": 0.011998,
+          "pitchErrorRadians": -0.013828,
+          "burstId": 6,
+          "finalShotAtSeconds": 4.75694,
+          "cooldownSeconds": 0.350571,
+          "nextBurstNotBeforeSeconds": 5.107511
+        }
+      }
+    ],
+    "alternateTacticalChoices": [
+      {
+        "sequence": 5,
+        "tick": 55,
+        "atSeconds": 0.458333,
+        "kind": "burst",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": 0.0645,
+            "y": 1.45,
+            "z": 9.0243
+          },
+          "shotCount": 4,
+          "shotIntervalSeconds": 0.09877,
+          "firstShotAtSeconds": 0.508333,
+          "yawErrorRadians": -0.006237,
+          "pitchErrorRadians": 0.009914,
+          "burstId": 1,
+          "finalShotAtSeconds": 0.804643,
+          "cooldownSeconds": 0.480954,
+          "nextBurstNotBeforeSeconds": 1.285597
+        }
+      },
+      {
+        "sequence": 7,
+        "tick": 155,
+        "atSeconds": 1.291667,
+        "kind": "burst",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": -0.0217,
+            "y": 1.45,
+            "z": 9.0663
+          },
+          "shotCount": 3,
+          "shotIntervalSeconds": 0.122685,
+          "firstShotAtSeconds": 1.341667,
+          "yawErrorRadians": 0.013226,
+          "pitchErrorRadians": -0.000286,
+          "burstId": 2,
+          "finalShotAtSeconds": 1.587036,
+          "cooldownSeconds": 0.356785,
+          "nextBurstNotBeforeSeconds": 1.943821
+        }
+      },
+      {
+        "sequence": 11,
+        "tick": 234,
+        "atSeconds": 1.95,
+        "kind": "burst",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": 0.0367,
+            "y": 1.45,
+            "z": 9.0112
+          },
+          "shotCount": 4,
+          "shotIntervalSeconds": 0.116649,
+          "firstShotAtSeconds": 2,
+          "yawErrorRadians": -0.002041,
+          "pitchErrorRadians": -0.000717,
+          "burstId": 3,
+          "finalShotAtSeconds": 2.349946,
+          "cooldownSeconds": 0.549004,
+          "nextBurstNotBeforeSeconds": 2.89895
+        }
+      },
+      {
+        "sequence": 13,
+        "tick": 280,
+        "atSeconds": 2.333333,
+        "kind": "reposition",
+        "data": {
+          "agentId": "security-01",
+          "coverId": "compressor-left",
+          "destination": {
+            "x": -3.8,
+            "y": 0,
+            "z": 4.6
+          },
+          "score": 0.783306
+        }
+      },
+      {
+        "sequence": 16,
+        "tick": 388,
+        "atSeconds": 3.233333,
+        "kind": "burst",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": -0.0564,
+            "y": 1.45,
+            "z": 9.028
+          },
+          "shotCount": 4,
+          "shotIntervalSeconds": 0.088281,
+          "firstShotAtSeconds": 3.283333,
+          "yawErrorRadians": 0.023926,
+          "pitchErrorRadians": -0.015109,
+          "burstId": 4,
+          "finalShotAtSeconds": 3.548177,
+          "cooldownSeconds": 0.514205,
+          "nextBurstNotBeforeSeconds": 4.062382
+        }
+      },
+      {
+        "sequence": 18,
+        "tick": 488,
+        "atSeconds": 4.066667,
+        "kind": "burst",
+        "data": {
+          "agentId": "security-01",
+          "targetId": "target-player",
+          "aimPoint": {
+            "x": 0.003,
+            "y": 1.45,
+            "z": 9.0541
+          },
+          "shotCount": 3,
+          "shotIntervalSeconds": 0.096055,
+          "firstShotAtSeconds": 4.116667,
+          "yawErrorRadians": -0.010858,
+          "pitchErrorRadians": 0.001203,
+          "burstId": 5,
+          "finalShotAtSeconds": 4.308776,
+          "cooldownSeconds": 0.48987,
+          "nextBurstNotBeforeSeconds": 4.798646
+        }
+      }
+    ]
+  },
+  "renderBatching": {
+    "passed": true,
+    "assertions": [
+      {
+        "name": "fixed render-frame counts produce expected differing fixed-tick coverage",
+        "passed": true,
+        "expected": [
+          720,
+          360,
+          150
+        ],
+        "actual": [
+          720,
+          360,
+          150
+        ],
+        "summary": "PASS fixed render-frame counts produce expected differing fixed-tick coverage: expected [720,360,150]; actual [720,360,150]"
+      },
+      {
+        "name": "render-frame runs report their actual elapsed coverage",
+        "passed": true,
+        "expected": [
+          6,
+          3,
+          1.25
+        ],
+        "actual": [
+          6,
+          3,
+          1.25
+        ],
+        "summary": "PASS render-frame runs report their actual elapsed coverage: expected [6,3,1.25]; actual [6,3,1.25]"
+      },
+      {
+        "name": "60 Hz matches 30 Hz at the common 1.25 simulated seconds",
+        "passed": true,
+        "expected": {
+          "tick": 150,
+          "state": "engage",
+          "targetVisible": true,
+          "memoryConfidence": 1,
+          "pathCount": 3,
+          "timelineHash": "992bbe5d"
+        },
+        "actual": {
+          "tick": 150,
+          "state": "engage",
+          "targetVisible": true,
+          "memoryConfidence": 1,
+          "pathCount": 3,
+          "timelineHash": "992bbe5d"
+        },
+        "summary": "PASS 60 Hz matches 30 Hz at the common 1.25 simulated seconds: expected {\"tick\":150,\"state\":\"engage\",\"targetVisible\":true,\"memoryConfidence\":1,\"pathCount\":3,\"timelineHash\":\"992bbe5d\"}; actual {\"tick\":150,\"state\":\"engage\",\"targetVisible\":true,\"memoryConfidence\":1,\"pathCount\":3,\"timelineHash\":\"992bbe5d\"}"
+      },
+      {
+        "name": "144 Hz matches 30 Hz at the common 1.25 simulated seconds",
+        "passed": true,
+        "expected": {
+          "tick": 150,
+          "state": "engage",
+          "targetVisible": true,
+          "memoryConfidence": 1,
+          "pathCount": 3,
+          "timelineHash": "992bbe5d"
+        },
+        "actual": {
+          "tick": 150,
+          "state": "engage",
+          "targetVisible": true,
+          "memoryConfidence": 1,
+          "pathCount": 3,
+          "timelineHash": "992bbe5d"
+        },
+        "summary": "PASS 144 Hz matches 30 Hz at the common 1.25 simulated seconds: expected {\"tick\":150,\"state\":\"engage\",\"targetVisible\":true,\"memoryConfidence\":1,\"pathCount\":3,\"timelineHash\":\"992bbe5d\"}; actual {\"tick\":150,\"state\":\"engage\",\"targetVisible\":true,\"memoryConfidence\":1,\"pathCount\":3,\"timelineHash\":\"992bbe5d\"}"
+      }
+    ],
+    "runs": [
+      {
+        "renderHz": 30,
+        "renderFrames": 180,
+        "fixedTicks": 720,
+        "renderSeconds": 6,
+        "simulatedSeconds": 6,
+        "commonTimeSnapshot": {
+          "tick": 150,
+          "state": "engage",
+          "targetVisible": true,
+          "memoryConfidence": 1,
+          "pathCount": 3,
+          "timelineHash": "992bbe5d"
+        },
+        "commonTimelineHash": "992bbe5d",
+        "timeline": [
+          {
+            "sequence": 0,
+            "tick": 0,
+            "atSeconds": 0,
+            "kind": "stimulus",
+            "data": {
+              "label": "scenario-start",
+              "state": "patrol",
+              "seed": 1371568657
+            }
+          },
+          {
+            "sequence": 1,
+            "tick": 18,
+            "atSeconds": 0.15,
+            "kind": "stimulus",
+            "data": {
+              "label": "Footstep",
+              "atSeconds": 0.15,
+              "loud": 0.75
+            }
+          },
+          {
+            "sequence": 2,
+            "tick": 18,
+            "atSeconds": 0.15,
+            "kind": "transition",
+            "data": {
+              "agentId": "security-01",
+              "from": "patrol",
+              "to": "suspicious",
+              "reason": "footstep-heard"
+            }
+          },
+          {
+            "sequence": 3,
+            "tick": 48,
+            "atSeconds": 0.4,
+            "kind": "transition",
+            "data": {
+              "agentId": "security-01",
+              "from": "suspicious",
+              "to": "investigate",
+              "reason": "suspicion-confirmed"
+            }
+          },
+          {
+            "sequence": 4,
+            "tick": 66,
+            "atSeconds": 0.55,
+            "kind": "stimulus",
+            "data": {
+              "label": "LOS-on",
+              "atSeconds": 0.55
+            }
+          },
+          {
+            "sequence": 5,
+            "tick": 67,
+            "atSeconds": 0.558333,
+            "kind": "transition",
+            "data": {
+              "agentId": "security-01",
+              "from": "investigate",
+              "to": "suspicious",
+              "reason": "visual-cue"
+            }
+          },
+          {
+            "sequence": 6,
+            "tick": 121,
+            "atSeconds": 1.008333,
+            "kind": "transition",
+            "data": {
+              "agentId": "security-01",
+              "from": "suspicious",
+              "to": "engage",
+              "reason": "target-confirmed"
+            }
+          },
+          {
+            "sequence": 7,
+            "tick": 121,
+            "atSeconds": 1.008333,
+            "kind": "aim",
+            "data": {
+              "agentId": "security-01",
+              "targetId": "target-player",
+              "aimPoint": {
+                "x": -0.0389,
+                "y": 1.45,
+                "z": 9.0126
+              },
+              "yawErrorRadians": 0.016203,
+              "pitchErrorRadians": 0.013653
+            }
+          },
+          {
+            "sequence": 8,
+            "tick": 121,
+            "atSeconds": 1.008333,
+            "kind": "burst",
+            "data": {
+              "agentId": "security-01",
+              "targetId": "target-player",
+              "aimPoint": {
+                "x": -0.0389,
+                "y": 1.45,
+                "z": 9.0126
+              },
+              "shotCount": 4,
+              "shotIntervalSeconds": 0.109633,
+              "firstShotAtSeconds": 1.058333,
+              "yawErrorRadians": 0.016203,
+              "pitchErrorRadians": 0.013653,
+              "burstId": 1,
+              "finalShotAtSeconds": 1.387232,
+              "cooldownSeconds": 0.547141,
+              "nextBurstNotBeforeSeconds": 1.934372
+            }
+          },
+          {
+            "sequence": 9,
+            "tick": 192,
+            "atSeconds": 1.6,
+            "kind": "stimulus",
+            "data": {
+              "label": "occlusion-on",
+              "atSeconds": 1.6
+            }
+          },
+          {
+            "sequence": 10,
+            "tick": 234,
+            "atSeconds": 1.95,
+            "kind": "transition",
+            "data": {
+              "agentId": "security-01",
+              "from": "engage",
+              "to": "search",
+              "reason": "target-occluded"
+            }
+          },
+          {
+            "sequence": 11,
+            "tick": 234,
+            "atSeconds": 1.95,
+            "kind": "cease",
+            "data": {
+              "agentId": "security-01",
+              "reason": "lost-target"
+            }
+          },
+          {
+            "sequence": 12,
+            "tick": 606,
+            "atSeconds": 5.05,
+            "kind": "transition",
+            "data": {
+              "agentId": "security-01",
+              "from": "search",
+              "to": "return",
+              "reason": "search-expired"
+            }
+          },
+          {
+            "sequence": 13,
+            "tick": 714,
+            "atSeconds": 5.95,
+            "kind": "transition",
+            "data": {
+              "agentId": "security-01",
+              "from": "return",
+              "to": "idle",
+              "reason": "returned-home"
+            }
+          }
+        ],
+        "hash": "311be5bc"
+      },
+      {
+        "renderHz": 60,
+        "renderFrames": 180,
+        "fixedTicks": 360,
+        "renderSeconds": 3,
+        "simulatedSeconds": 3,
+        "commonTimeSnapshot": {
+          "tick": 150,
+          "state": "engage",
+          "targetVisible": true,
+          "memoryConfidence": 1,
+          "pathCount": 3,
+          "timelineHash": "992bbe5d"
+        },
+        "commonTimelineHash": "992bbe5d",
+        "timeline": [
+          {
+            "sequence": 0,
+            "tick": 0,
+            "atSeconds": 0,
+            "kind": "stimulus",
+            "data": {
+              "label": "scenario-start",
+              "state": "patrol",
+              "seed": 1371568657
+            }
+          },
+          {
+            "sequence": 1,
+            "tick": 18,
+            "atSeconds": 0.15,
+            "kind": "stimulus",
+            "data": {
+              "label": "Footstep",
+              "atSeconds": 0.15,
+              "loud": 0.75
+            }
+          },
+          {
+            "sequence": 2,
+            "tick": 18,
+            "atSeconds": 0.15,
+            "kind": "transition",
+            "data": {
+              "agentId": "security-01",
+              "from": "patrol",
+              "to": "suspicious",
+              "reason": "footstep-heard"
+            }
+          },
+          {
+            "sequence": 3,
+            "tick": 48,
+            "atSeconds": 0.4,
+            "kind": "transition",
+            "data": {
+              "agentId": "security-01",
+              "from": "suspicious",
+              "to": "investigate",
+              "reason": "suspicion-confirmed"
+            }
+          },
+          {
+            "sequence": 4,
+            "tick": 66,
+            "atSeconds": 0.55,
+            "kind": "stimulus",
+            "data": {
+              "label": "LOS-on",
+              "atSeconds": 0.55
+            }
+          },
+          {
+            "sequence": 5,
+            "tick": 67,
+            "atSeconds": 0.558333,
+            "kind": "transition",
+            "data": {
+              "agentId": "security-01",
+              "from": "investigate",
+              "to": "suspicious",
+              "reason": "visual-cue"
+            }
+          },
+          {
+            "sequence": 6,
+            "tick": 121,
+            "atSeconds": 1.008333,
+            "kind": "transition",
+            "data": {
+              "agentId": "security-01",
+              "from": "suspicious",
+              "to": "engage",
+              "reason": "target-confirmed"
+            }
+          },
+          {
+            "sequence": 7,
+            "tick": 121,
+            "atSeconds": 1.008333,
+            "kind": "aim",
+            "data": {
+              "agentId": "security-01",
+              "targetId": "target-player",
+              "aimPoint": {
+                "x": -0.0389,
+                "y": 1.45,
+                "z": 9.0126
+              },
+              "yawErrorRadians": 0.016203,
+              "pitchErrorRadians": 0.013653
+            }
+          },
+          {
+            "sequence": 8,
+            "tick": 121,
+            "atSeconds": 1.008333,
+            "kind": "burst",
+            "data": {
+              "agentId": "security-01",
+              "targetId": "target-player",
+              "aimPoint": {
+                "x": -0.0389,
+                "y": 1.45,
+                "z": 9.0126
+              },
+              "shotCount": 4,
+              "shotIntervalSeconds": 0.109633,
+              "firstShotAtSeconds": 1.058333,
+              "yawErrorRadians": 0.016203,
+              "pitchErrorRadians": 0.013653,
+              "burstId": 1,
+              "finalShotAtSeconds": 1.387232,
+              "cooldownSeconds": 0.547141,
+              "nextBurstNotBeforeSeconds": 1.934372
+            }
+          },
+          {
+            "sequence": 9,
+            "tick": 192,
+            "atSeconds": 1.6,
+            "kind": "stimulus",
+            "data": {
+              "label": "occlusion-on",
+              "atSeconds": 1.6
+            }
+          },
+          {
+            "sequence": 10,
+            "tick": 234,
+            "atSeconds": 1.95,
+            "kind": "transition",
+            "data": {
+              "agentId": "security-01",
+              "from": "engage",
+              "to": "search",
+              "reason": "target-occluded"
+            }
+          },
+          {
+            "sequence": 11,
+            "tick": 234,
+            "atSeconds": 1.95,
+            "kind": "cease",
+            "data": {
+              "agentId": "security-01",
+              "reason": "lost-target"
+            }
+          }
+        ],
+        "hash": "059a8e63"
+      },
+      {
+        "renderHz": 144,
+        "renderFrames": 180,
+        "fixedTicks": 150,
+        "renderSeconds": 1.25,
+        "simulatedSeconds": 1.25,
+        "commonTimeSnapshot": {
+          "tick": 150,
+          "state": "engage",
+          "targetVisible": true,
+          "memoryConfidence": 1,
+          "pathCount": 3,
+          "timelineHash": "992bbe5d"
+        },
+        "commonTimelineHash": "992bbe5d",
+        "timeline": [
+          {
+            "sequence": 0,
+            "tick": 0,
+            "atSeconds": 0,
+            "kind": "stimulus",
+            "data": {
+              "label": "scenario-start",
+              "state": "patrol",
+              "seed": 1371568657
+            }
+          },
+          {
+            "sequence": 1,
+            "tick": 18,
+            "atSeconds": 0.15,
+            "kind": "stimulus",
+            "data": {
+              "label": "Footstep",
+              "atSeconds": 0.15,
+              "loud": 0.75
+            }
+          },
+          {
+            "sequence": 2,
+            "tick": 18,
+            "atSeconds": 0.15,
+            "kind": "transition",
+            "data": {
+              "agentId": "security-01",
+              "from": "patrol",
+              "to": "suspicious",
+              "reason": "footstep-heard"
+            }
+          },
+          {
+            "sequence": 3,
+            "tick": 48,
+            "atSeconds": 0.4,
+            "kind": "transition",
+            "data": {
+              "agentId": "security-01",
+              "from": "suspicious",
+              "to": "investigate",
+              "reason": "suspicion-confirmed"
+            }
+          },
+          {
+            "sequence": 4,
+            "tick": 66,
+            "atSeconds": 0.55,
+            "kind": "stimulus",
+            "data": {
+              "label": "LOS-on",
+              "atSeconds": 0.55
+            }
+          },
+          {
+            "sequence": 5,
+            "tick": 67,
+            "atSeconds": 0.558333,
+            "kind": "transition",
+            "data": {
+              "agentId": "security-01",
+              "from": "investigate",
+              "to": "suspicious",
+              "reason": "visual-cue"
+            }
+          },
+          {
+            "sequence": 6,
+            "tick": 121,
+            "atSeconds": 1.008333,
+            "kind": "transition",
+            "data": {
+              "agentId": "security-01",
+              "from": "suspicious",
+              "to": "engage",
+              "reason": "target-confirmed"
+            }
+          },
+          {
+            "sequence": 7,
+            "tick": 121,
+            "atSeconds": 1.008333,
+            "kind": "aim",
+            "data": {
+              "agentId": "security-01",
+              "targetId": "target-player",
+              "aimPoint": {
+                "x": -0.0389,
+                "y": 1.45,
+                "z": 9.0126
+              },
+              "yawErrorRadians": 0.016203,
+              "pitchErrorRadians": 0.013653
+            }
+          },
+          {
+            "sequence": 8,
+            "tick": 121,
+            "atSeconds": 1.008333,
+            "kind": "burst",
+            "data": {
+              "agentId": "security-01",
+              "targetId": "target-player",
+              "aimPoint": {
+                "x": -0.0389,
+                "y": 1.45,
+                "z": 9.0126
+              },
+              "shotCount": 4,
+              "shotIntervalSeconds": 0.109633,
+              "firstShotAtSeconds": 1.058333,
+              "yawErrorRadians": 0.016203,
+              "pitchErrorRadians": 0.013653,
+              "burstId": 1,
+              "finalShotAtSeconds": 1.387232,
+              "cooldownSeconds": 0.547141,
+              "nextBurstNotBeforeSeconds": 1.934372
+            }
+          }
+        ],
+        "hash": "992bbe5d"
+      }
+    ],
+    "mutationControl": {
+      "name": "wrong accumulator rate",
+      "mutation": "render delta multiplied by 0.5",
+      "passed": false,
+      "expectedFailureObserved": true,
+      "relevantAssertion": "60 Hz accumulator advances at the render delta rate",
+      "failureSummary": "FAIL 60 Hz accumulator advances at the render delta rate: expected 360; actual 180",
+      "actual": {
+        "fixedTicks": 180,
+        "simulatedSeconds": 1.5
+      }
+    }
+  },
+  "benchmark": {
+    "passed": true,
+    "assertions": [
+      {
+        "name": "50 enemies for 60 simulated seconds stay within CPU budget",
+        "passed": true,
+        "expected": "<= 0.75 ms per 120 Hz fixed step",
+        "actual": "0.002583 ms",
+        "summary": "PASS 50 enemies for 60 simulated seconds stay within CPU budget: expected <= 0.75 ms per 120 Hz fixed step; actual 0.002583 ms"
+      },
+      {
+        "name": "benchmark executes every agent tick",
+        "passed": true,
+        "expected": 360000,
+        "actual": 360000,
+        "summary": "PASS benchmark executes every agent tick: expected 360000; actual 360000"
+      },
+      {
+        "name": "instrumented owned storage remains fixed-capacity with zero dynamic fixed-step allocations",
+        "passed": true,
+        "expected": {
+          "pathCapacity": 16,
+          "coverCapacity": 12,
+          "ownedSetupObjectAllocations": "> 0",
+          "dynamicTickObjectAllocations": 0
+        },
+        "actual": {
+          "agents": 50,
+          "totalTicks": 360000,
+          "pathCapacityPerAgent": 16,
+          "coverCapacityPerAgent": 12,
+          "maxPathPointsUsed": 3,
+          "maxCoverCandidatesUsed": 3,
+          "pathRequests": 1000,
+          "coverQueries": 400,
+          "ownedSetupObjectAllocationsPerAgent": 59,
+          "dynamicTickObjectAllocations": 0
+        },
+        "summary": "PASS instrumented owned storage remains fixed-capacity with zero dynamic fixed-step allocations: expected {\"pathCapacity\":16,\"coverCapacity\":12,\"ownedSetupObjectAllocations\":\"> 0\",\"dynamicTickObjectAllocations\":0}; actual {\"agents\":50,\"totalTicks\":360000,\"pathCapacityPerAgent\":16,\"coverCapacityPerAgent\":12,\"maxPathPointsUsed\":3,\"maxCoverCandidatesUsed\":3,\"pathRequests\":1000,\"coverQueries\":400,\"ownedSetupObjectAllocationsPerAgent\":59,\"dynamicTickObjectAllocations\":0}"
+      },
+      {
+        "name": "benchmark exercises navigation and cover seams",
+        "passed": true,
+        "expected": "pathRequests > 0 and coverQueries > 0",
+        "actual": {
+          "pathRequests": 1000,
+          "coverQueries": 400
+        },
+        "summary": "PASS benchmark exercises navigation and cover seams: expected pathRequests > 0 and coverQueries > 0; actual {\"pathRequests\":1000,\"coverQueries\":400}"
+      }
+    ],
+    "simulatedSeconds": 60,
+    "enemies": 50,
+    "elapsedCpuMs": 18.6,
+    "cpuMsPerFixedStep": 0.002583,
+    "budget": {
+      "cpuMsPerFixedStep": 0.75,
+      "shareOf120HzFrame": 0.09,
+      "verdict": "PASS"
+    },
+    "storage": {
+      "agents": 50,
+      "totalTicks": 360000,
+      "pathCapacityPerAgent": 16,
+      "coverCapacityPerAgent": 12,
+      "maxPathPointsUsed": 3,
+      "maxCoverCandidatesUsed": 3,
+      "pathRequests": 1000,
+      "coverQueries": 400,
+      "ownedSetupObjectAllocationsPerAgent": 59,
+      "dynamicTickObjectAllocations": 0
+    }
+  },
+  "negativeControls": [
+    {
+      "name": "reaction delay removal",
+      "mutation": "reactionDelaySeconds = 0",
+      "passed": false,
+      "expectedFailureObserved": true,
+      "relevantAssertion": "LOS reaction delay is preserved before engage",
+      "failureSummary": "FAIL LOS reaction delay is preserved before engage: expected >= 0.45s; actual 0s",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 24,
+          "atSeconds": 0.2,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-confirmable",
+            "position": {
+              "x": 0,
+              "y": 1.45,
+              "z": 9
+            }
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 25,
+          "atSeconds": 0.208333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "visual-cue"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 25,
+          "atSeconds": 0.208333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "engage",
+            "reason": "target-confirmed"
+          }
+        },
+        {
+          "sequence": 4,
+          "tick": 25,
+          "atSeconds": 0.208333,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0,
+              "y": 1.45,
+              "z": 9
+            },
+            "yawErrorRadians": 0.027062,
+            "pitchErrorRadians": 0.031018
+          }
+        },
+        {
+          "sequence": 5,
+          "tick": 25,
+          "atSeconds": 0.208333,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0,
+              "y": 1.45,
+              "z": 9
+            },
+            "shotCount": 3,
+            "shotIntervalSeconds": 0.11281,
+            "firstShotAtSeconds": 0.258333,
+            "yawErrorRadians": 0.027062,
+            "pitchErrorRadians": 0.031018,
+            "burstId": 1,
+            "finalShotAtSeconds": 0.483954,
+            "cooldownSeconds": 0.406709,
+            "nextBurstNotBeforeSeconds": 0.890663
+          }
+        },
+        {
+          "sequence": 6,
+          "tick": 107,
+          "atSeconds": 0.891667,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0528,
+              "y": 1.45,
+              "z": 8.9832
+            },
+            "yawErrorRadians": 0.005075,
+            "pitchErrorRadians": -0.012135
+          }
+        },
+        {
+          "sequence": 7,
+          "tick": 107,
+          "atSeconds": 0.891667,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": 0.0528,
+              "y": 1.45,
+              "z": 8.9832
+            },
+            "shotCount": 2,
+            "shotIntervalSeconds": 0.121022,
+            "firstShotAtSeconds": 0.941667,
+            "yawErrorRadians": 0.005075,
+            "pitchErrorRadians": -0.012135,
+            "burstId": 2,
+            "finalShotAtSeconds": 1.062689,
+            "cooldownSeconds": 0.5365,
+            "nextBurstNotBeforeSeconds": 1.599189
+          }
+        },
+        {
+          "sequence": 8,
+          "tick": 163,
+          "atSeconds": 1.358333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "engage",
+            "to": "suppress",
+            "reason": "tactical-cycle"
+          }
+        },
+        {
+          "sequence": 9,
+          "tick": 163,
+          "atSeconds": 1.358333,
+          "kind": "suppress",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0158,
+              "y": 1.45,
+              "z": 9.0602
+            },
+            "durationSeconds": 0.72
+          }
+        },
+        {
+          "sequence": 10,
+          "tick": 192,
+          "atSeconds": 1.6,
+          "kind": "aim",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0206,
+              "y": 1.45,
+              "z": 8.9619
+            },
+            "yawErrorRadians": -0.001546,
+            "pitchErrorRadians": 0.006083
+          }
+        },
+        {
+          "sequence": 11,
+          "tick": 192,
+          "atSeconds": 1.6,
+          "kind": "burst",
+          "data": {
+            "agentId": "security-01",
+            "targetId": "target-player",
+            "aimPoint": {
+              "x": -0.0206,
+              "y": 1.45,
+              "z": 8.9619
+            },
+            "shotCount": 4,
+            "shotIntervalSeconds": 0.118094,
+            "firstShotAtSeconds": 1.65,
+            "yawErrorRadians": -0.001546,
+            "pitchErrorRadians": 0.006083,
+            "burstId": 3,
+            "finalShotAtSeconds": 2.004281,
+            "cooldownSeconds": 0.372977,
+            "nextBurstNotBeforeSeconds": 2.377258
+          }
+        }
+      ]
+    },
+    {
+      "name": "hearing threshold removal",
+      "mutation": "hearingThreshold = 0",
+      "passed": false,
+      "expectedFailureObserved": true,
+      "relevantAssertion": "subthreshold Footstep leaves patrol unchanged",
+      "failureSummary": "FAIL subthreshold Footstep leaves patrol unchanged: expected []; actual [\"suspicious\",\"investigate\"]",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 6,
+          "atSeconds": 0.05,
+          "kind": "stimulus",
+          "data": {
+            "label": "quiet-Footstep",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 18
+            },
+            "loud": 0.08
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 6,
+          "atSeconds": 0.05,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "footstep-heard"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 36,
+          "atSeconds": 0.3,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "investigate",
+            "reason": "suspicion-confirmed"
+          }
+        }
+      ]
+    },
+    {
+      "name": "wrong accumulator rate",
+      "mutation": "render delta multiplied by 0.5",
+      "passed": false,
+      "expectedFailureObserved": true,
+      "relevantAssertion": "60 Hz accumulator advances at the render delta rate",
+      "failureSummary": "FAIL 60 Hz accumulator advances at the render delta rate: expected 360; actual 180",
+      "actual": {
+        "fixedTicks": 180,
+        "simulatedSeconds": 1.5
+      }
+    },
+    {
+      "name": "per-tick owned allocation",
+      "mutation": "subclass allocates and registers one object during every fixedUpdate",
+      "passed": false,
+      "expectedFailureObserved": true,
+      "relevantAssertion": "agent owns zero dynamic fixed-step allocations",
+      "failureSummary": "FAIL agent owns zero dynamic fixed-step allocations: expected 0; actual 120",
+      "setupAllocationsObserved": 59,
+      "dynamicTickObjectAllocations": 120
+    },
+    {
+      "name": "retained burst aim alias",
+      "mutation": "sink retains the reusable last-known-position reference",
+      "passed": false,
+      "expectedFailureObserved": true,
+      "relevantAssertion": "retained burst intent remains byte-identical through memory updates",
+      "failureSummary": "FAIL retained burst intent remains byte-identical through memory updates: expected e5aa5931; actual 61220625",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657,
+            "mutation": "aliased-aim-reference"
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-on",
+            "position": {
+              "x": 0,
+              "y": 1.45,
+              "z": 9
+            }
+          }
+        },
+        {
+          "sequence": 2,
+          "tick": 1,
+          "atSeconds": 0.008333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "patrol",
+            "to": "suspicious",
+            "reason": "visual-cue"
+          }
+        },
+        {
+          "sequence": 3,
+          "tick": 55,
+          "atSeconds": 0.458333,
+          "kind": "transition",
+          "data": {
+            "agentId": "security-01",
+            "from": "suspicious",
+            "to": "engage",
+            "reason": "target-confirmed"
+          }
+        }
+      ]
+    },
+    {
+      "name": "shallow nested stimulus copy",
+      "mutation": "trace recorder stores nested stimulus references without value snapshotting",
+      "passed": false,
+      "expectedFailureObserved": true,
+      "relevantAssertion": "nested stimulus history remains byte-identical after source mutation",
+      "failureSummary": "FAIL nested stimulus history remains byte-identical after source mutation: expected 49c42b4f; actual 7c54734b",
+      "timeline": [
+        {
+          "sequence": 0,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "scenario-start",
+            "state": "patrol",
+            "seed": 1371568657
+          }
+        },
+        {
+          "sequence": 1,
+          "tick": 0,
+          "atSeconds": 0,
+          "kind": "stimulus",
+          "data": {
+            "label": "LOS-on",
+            "position": {
+              "x": 12,
+              "y": 1.45,
+              "z": 20
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "allocationPolicy": {
+    "tickScratch": "preallocated vectors, target sample, path buffer, and cover buffer",
+    "instrumentation": "Every SecurityAgent-owned setup object is counted at its allocation site; future dynamic fixed-step objects must pass through ownDynamicTickObject.",
+    "tracePolicy": "evidence-only fixed 512-event cap; production observer is optional",
+    "verdict": "PASS"
+  },
+  "sharedContractRequests": {
+    "promote": [
+      {
+        "name": "FootstepPayload",
+        "shape": "{ position: Vector3Like, surface: SurfaceKind, loud: number }",
+        "evidence": "Core names player:footstep with this shape; audio and this AI harness now consume the same fields."
+      }
+    ],
+    "deferUntilIntegrationProvesShape": [
+      "PerceptionRaycastPort",
+      "NavigationPathPort",
+      "CombatIntentSink",
+      "ResolvedDamageInput"
+    ],
+    "coordinatorRequest": "Promote the proven canonical Footstep payload. Keep the other AI-local seams private until real collision, navigation, combat, and health adapters validate them."
+  },
+  "caveats": {
+    "integration": "No player, weapon, authored level, collision mesh, navigation mesh, or health authority is integrated.",
+    "visuals": "No character model or animation is provided; the visual harness uses an abstract debug proxy.",
+    "feel": "Subjective combat feel remains unverified until real player, weapon, movement, cover, and authored-space contracts land."
+  },
+  "debugProbe": {
+    "state": "patrol",
+    "tick": 0,
+    "memoryConfidence": 0,
+    "pathCount": 0,
+    "coverCount": 0,
+    "selectedCoverIndex": -1
+  },
+  "consoleErrors": []
+}
