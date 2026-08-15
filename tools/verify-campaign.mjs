@@ -51,6 +51,7 @@ const evidence = { target: TARGET, missions: [], progression: [] };
 function missionUrl(id, fixture = false) {
   const url = new URL(TARGET);
   url.searchParams.set('mission', id);
+  url.searchParams.set('play', '1');
   if (fixture) url.searchParams.set('campaignFixture', '1');
   return url.href;
 }
