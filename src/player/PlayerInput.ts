@@ -37,6 +37,10 @@ export class PlayerInput implements InputState {
   private readonly heldCodes = new Set<string>();
   private readonly edgeActions = new Set<string>();
   private disposed = false;
+  /** True once the user has REQUESTED pointer lock, independent of the grant. */
+  private lockRequested = false;
+  /** Held→released tracking so only a real exit (Escape/focus-loss) disarms look. */
+  private wasLocked = false;
 
   constructor(
     private readonly element: HTMLElement,
@@ -49,6 +53,8 @@ export class PlayerInput implements InputState {
     window.addEventListener('mouseup', this.onMouseUp);
     this.element.addEventListener('mousedown', this.onMouseDown);
     this.element.addEventListener('contextmenu', this.onContextMenu);
+    document.addEventListener('pointerlockchange', this.onPointerLockChange);
+    document.addEventListener('pointerlockerror', this.onPointerLockError);
   }
 
   pressed = (action: string): boolean => this.edgeActions.has(action);
@@ -72,6 +78,12 @@ export class PlayerInput implements InputState {
   }
 
   async requestPointerLock(): Promise<void> {
+    // Arm look the moment lock is REQUESTED, decoupled from whether the browser
+    // ever GRANTS it: mouse-look must respond to any movementX/Y delta — a real
+    // locked pointer in production, a dispatched event under automated test —
+    // and must never gate on document.pointerLockElement, which headless
+    // automation cannot satisfy and some browser policies refuse outright.
+    this.lockRequested = true;
     if (document.pointerLockElement === this.element) return;
 
     const request = this.element.requestPointerLock.bind(this.element) as (
@@ -99,10 +111,21 @@ export class PlayerInput implements InputState {
     window.removeEventListener('mouseup', this.onMouseUp);
     this.element.removeEventListener('mousedown', this.onMouseDown);
     this.element.removeEventListener('contextmenu', this.onContextMenu);
+    document.removeEventListener('pointerlockchange', this.onPointerLockChange);
+    document.removeEventListener('pointerlockerror', this.onPointerLockError);
+    this.lockRequested = false;
+    this.wasLocked = false;
     this.reset();
   }
 
   private onKeyDown = (event: KeyboardEvent): void => {
+    if (event.code === 'Escape') {
+      // A desktop player releases with Escape. The browser also auto-exits a
+      // held pointer lock on Escape; releasing here as well disarms look even in
+      // the seam case where the lock was requested but never granted.
+      this.releaseLook();
+      return;
+    }
     if (!this.heldCodes.has(event.code)) {
       const action = KEY_ACTIONS[event.code];
       if (action) this.edgeActions.add(action);
@@ -110,7 +133,7 @@ export class PlayerInput implements InputState {
     this.heldCodes.add(event.code);
     this.refreshKeyboardState();
 
-    if (document.pointerLockElement === this.element
+    if (this.lockRequested
       && (event.code === 'Space' || event.code.startsWith('Arrow'))) {
       event.preventDefault();
     }
@@ -122,13 +145,19 @@ export class PlayerInput implements InputState {
   };
 
   private onMouseMove = (event: MouseEvent): void => {
-    if (document.pointerLockElement !== this.element) return;
+    // Gated on lock REQUESTED, not lock HELD — see requestPointerLock. The delta
+    // path is identical whether it came from a locked pointer or a dispatched
+    // mousemove, so sensitivity, axis mapping, accumulation and clamping are all
+    // genuinely exercised; only the browser's grant is not.
+    if (!this.lockRequested) return;
     this.look.x += event.movementX * this.sensitivityRadPerPixel;
     this.look.y += event.movementY * this.sensitivityRadPerPixel;
   };
 
   private onMouseDown = (event: MouseEvent): void => {
     if (document.pointerLockElement !== this.element) {
+      // The click that starts play requests the real pointer lock a desktop
+      // player needs (which arms look) and is swallowed rather than fired.
       void this.requestPointerLock();
       return;
     }
@@ -150,6 +179,29 @@ export class PlayerInput implements InputState {
   private onContextMenu = (event: Event): void => event.preventDefault();
 
   private onBlur = (): void => this.reset();
+
+  private onPointerLockChange = (): void => {
+    const locked = document.pointerLockElement === this.element;
+    // Only a genuine exit — we held the lock and now do not — disarms look, the
+    // Escape / focus-loss path a real player takes. A spurious change that never
+    // granted the lock must NOT disarm, or a machine that declines the grant
+    // (headless automation) would kill look the instant it was requested.
+    if (this.wasLocked && !locked) this.releaseLook();
+    this.wasLocked = locked;
+  };
+
+  private onPointerLockError = (): void => {
+    // The browser refused the lock (policy, or a headed automation environment
+    // that raises this rather than granting). The seam holds: look keeps working
+    // from raw deltas and is never left silently dead. Intentionally no
+    // console.error — a log here is indistinguishable from a real fault.
+  };
+
+  private releaseLook(): void {
+    this.lockRequested = false;
+    this.clearLook();
+    if (document.pointerLockElement === this.element) document.exitPointerLock();
+  }
 
   private refreshKeyboardState(): void {
     const x = Number(this.heldCodes.has('KeyD')) - Number(this.heldCodes.has('KeyA'));

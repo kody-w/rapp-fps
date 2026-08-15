@@ -55,6 +55,12 @@ export class PlayerSystem implements System {
 
   private readonly renderPosition = new THREE.Vector3();
   private readonly cameraRight = new THREE.Vector3();
+  private camera: THREE.PerspectiveCamera | null = null;
+  private viewBobX = 0;
+  private viewOffsetY = 0;
+  private viewRoll = 0;
+  private viewApplied = false;
+  private readonly savedCameraPosition = new THREE.Vector3();
   private shotMode: ShotName | null = null;
   private shotOverlay: HTMLDivElement | null = null;
   private previousShotHook: ((name: string) => void) | undefined;
@@ -96,6 +102,7 @@ export class PlayerSystem implements System {
     );
     this.eyeHeight = this.tuning.standingEyeHeight;
     ctx.camera.rotation.order = 'YXZ';
+    this.camera = ctx.camera;
 
     this.installShotHook();
   }
@@ -185,17 +192,52 @@ export class PlayerSystem implements System {
       * gaitScale;
 
     this.cameraRight.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
-    ctx.camera.position
-      .copy(this.renderPosition)
-      .addScaledVector(this.cameraRight, bobX);
-    ctx.camera.position.y += this.eyeHeight
-      + bobY
-      + this.landingOffset
-      + this.stepCameraOffset;
-    ctx.camera.rotation.set(this.pitch, this.yaw, bobRoll, 'YXZ');
+
+    // Authoritative pose. The true eye position and look angles that every
+    // observer between frames — AI, networking, this project's verify-slice —
+    // reads off window.engine.camera. Cosmetic view effects (head-bob, landing
+    // dip, step glide, bob-roll) are recorded here but NOT baked in; they are
+    // applied only around the draw and restored, the same discipline
+    // RenderSystem uses for camera shake, so the shared camera is never left
+    // dressed with presentation-only motion between frames.
+    this.viewBobX = bobX;
+    this.viewOffsetY = bobY + this.landingOffset + this.stepCameraOffset;
+    this.viewRoll = bobRoll;
+
+    ctx.camera.position.copy(this.renderPosition);
+    ctx.camera.position.y += this.eyeHeight;
+    ctx.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
 
     this.publishState();
     this.updateShotOverlay();
+  }
+
+  /**
+   * Apply the transient first-person view effects — head-bob, landing dip, step
+   * glide and bob-roll — to the camera immediately before the frame is drawn.
+   * The presenter must pair this with restoreView() after the draw, exactly as
+   * it brackets RenderSystem's camera shake, so the effects reach the rendered
+   * image without ever polluting the pose that observers read between frames.
+   */
+  applyViewEffects(): void {
+    const camera = this.camera;
+    if (!camera || this.viewApplied) return;
+    this.savedCameraPosition.copy(camera.position);
+    camera.position.addScaledVector(this.cameraRight, this.viewBobX);
+    camera.position.y += this.viewOffsetY;
+    camera.rotation.z = this.viewRoll;
+    camera.updateMatrixWorld(true);
+    this.viewApplied = true;
+  }
+
+  /** Restore the authoritative pose after the draw. Safe to call unpaired. */
+  restoreView(): void {
+    const camera = this.camera;
+    if (!camera || !this.viewApplied) return;
+    camera.position.copy(this.savedCameraPosition);
+    camera.rotation.z = 0;
+    camera.updateMatrixWorld(true);
+    this.viewApplied = false;
   }
 
   getMotor(): PlayerMotor | null {
@@ -262,6 +304,8 @@ export class PlayerSystem implements System {
     if (this.input instanceof PlayerInput) this.input.dispose();
     this.world = null;
     this.motor = null;
+    this.camera = null;
+    this.viewApplied = false;
 
     this.shotOverlay?.remove();
     this.shotOverlay = null;
