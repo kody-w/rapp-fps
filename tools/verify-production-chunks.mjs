@@ -8,7 +8,8 @@ import {
 } from '../vite.config.mjs';
 
 const ASSETS = new URL('../dist/assets/', import.meta.url);
-const BASELINE_GZIP_BYTES = 391_330;
+// PR-parent monolith, recompressed with the same gzip level 9 used below.
+const BASELINE_GZIP_BYTES = 390_081;
 const MAX_GZIP_GROWTH = 1.05;
 
 const chunks = readdirSync(ASSETS)
