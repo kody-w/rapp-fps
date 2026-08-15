@@ -1,0 +1,98 @@
+{
+  "at": "2026-08-15T20:17:20.593Z",
+  "target": "http://127.0.0.1:5399/src/coop/render/harness/harness.html",
+  "meta": {
+    "threeRevision": "185",
+    "webgl2": true,
+    "unmaskedRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "timerExt": true,
+    "counterBits": 64,
+    "devicePixelRatio": 1
+  },
+  "sections": [
+    {
+      "name": "slotIsolation",
+      "pass": true,
+      "detail": {
+        "topPixel": [
+          255,
+          0,
+          0,
+          255
+        ],
+        "bottomPixel": [
+          0,
+          0,
+          255,
+          255
+        ],
+        "topChan": "r",
+        "bottomChan": "b",
+        "control": {
+          "top": "r",
+          "bottom": "r",
+          "sameCameraMatches": true
+        }
+      }
+    },
+    {
+      "name": "seamTiling",
+      "pass": true,
+      "detail": {
+        "splitY": 180,
+        "backingHeight": 361,
+        "correct": {
+          "greenRows": 0,
+          "firstRed": 180,
+          "lastBlue": 179,
+          "cleanTransition": true
+        },
+        "gapControl": {
+          "rowChecked": 179,
+          "value": "g",
+          "gapDetected": true
+        },
+        "overlapControl": {
+          "rowChecked": 180,
+          "value": "b",
+          "overlapDetected": true
+        }
+      }
+    }
+  ],
+  "gpu": {
+    "verdict": "MEASURED",
+    "budgetMs": 16.7,
+    "trials": [
+      {
+        "samples": 60,
+        "medianMs": 0.099,
+        "p95Ms": 0.738,
+        "disjoint": false,
+        "underBudget": true
+      },
+      {
+        "samples": 60,
+        "medianMs": 0.1,
+        "p95Ms": 0.291,
+        "disjoint": false,
+        "underBudget": true
+      },
+      {
+        "samples": 60,
+        "medianMs": 0.07,
+        "p95Ms": 0.298,
+        "disjoint": false,
+        "underBudget": true
+      }
+    ],
+    "allUnderBudget": true,
+    "halfResBacking": {
+      "width": 960,
+      "height": 540
+    }
+  },
+  "harnessErrors": [],
+  "consoleErrors": [],
+  "pageErrors": []
+}

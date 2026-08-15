@@ -1,0 +1,21 @@
+{
+  "//": "Emit-only config for the browser-free co-op render proof (mirrors src/ai/evidence and src/campaign/test). Node 20 cannot run the repo's .js-specifier-to-.ts imports directly, so we compile fixtures.ts + the library it imports to the gitignored dist/coop-render and run the emitted JS. rootDir is the library root because fixtures.ts imports ../index.ts.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "rootDir": "..",
+    "outDir": "../../../../dist/coop-render",
+    "types": []
+  },
+  "include": ["fixtures.ts"]
+}
