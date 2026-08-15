@@ -27,6 +27,11 @@ import {
   selectGroundContactSolids,
   type ContactShadowLayer,
 } from './contactShadows.js';
+import {
+  createContainerDressingLayer,
+  selectContainerSolids,
+  type ContainerDressingLayer,
+} from './containerDressing.js';
 
 export interface ArenaLevelOptions {
   /**
@@ -36,6 +41,15 @@ export interface ArenaLevelOptions {
    * "off" frame from the same build.
    */
   readonly contactShadows?: boolean;
+  /**
+   * Dress the cargo containers with procedural ironwork (corner castings, rails,
+   * inset end-doors, locking bars) AND drive their corrugation from the rib
+   * normal map. Defaults to the `dressing` URL flag (on unless `?dressing=0`), so
+   * production ships the finished containers while the evidence harness can
+   * capture a matched pre-#67 "off" frame (bare cuboids, albedo-only rib) from
+   * the same build. Gating both together keeps the on/off comparison honest.
+   */
+  readonly containerDressing?: boolean;
 }
 
 export class ArenaLevel implements System {
@@ -49,6 +63,8 @@ export class ArenaLevel implements System {
   private beaconMat?: THREE.MeshStandardMaterial;
   private contact?: ContactShadowLayer;
   private readonly contactShadowsOption?: boolean;
+  private dressing?: ContainerDressingLayer;
+  private readonly containerDressingOption?: boolean;
 
   private readonly world: StaticWorld;
   private report?: CorrespondenceReport;
@@ -62,6 +78,7 @@ export class ArenaLevel implements System {
     this.def = definition;
     this.world = world;
     this.contactShadowsOption = options.contactShadows;
+    this.containerDressingOption = options.containerDressing;
   }
 
   /** Available before init so every simulation receives this exact instance. */
@@ -82,6 +99,11 @@ export class ArenaLevel implements System {
     return this.contact;
   }
 
+  /** The container-dressing layer, once built by init. Exposed for the fixture. */
+  get containerDressing(): ContainerDressingLayer | undefined {
+    return this.dressing;
+  }
+
   init(ctx: EngineContext): void {
     const { scene } = ctx;
     this.root.name = 'arena';
@@ -89,7 +111,11 @@ export class ArenaLevel implements System {
 
     // ── Collision, derived from the same solids as the geometry ───────────
     // ── Geometry: merge by material, one mesh per group ───────────────────
-    this.materials = createArenaMaterials(ctx.renderer);
+    // The container rib normal map (the one new #67 texture) is generated only
+    // when the dressing is on, so `?dressing=0` reproduces the exact pre-#67
+    // container material (albedo-only rib + generic metal bump) for evidence.
+    const dressingOn = this.containerDressingEnabled();
+    this.materials = createArenaMaterials(ctx.renderer, { containerRibNormal: dressingOn });
     this.groups = mergeSolidsByMaterial(this.def.solids);
     for (const group of this.groups) {
       const material = this.materials.byKey[group.material];
@@ -138,6 +164,32 @@ export class ArenaLevel implements System {
           yOffset: this.contact.yOffset,
           peak: this.contact.peak,
           instances: this.contact.instances,
+        }
+        : { enabled: false };
+    }
+
+    // ── Container dressing: procedural ironwork on the cargo containers ─────
+    // Two extra merged meshes (structure + hardware) derived from the same
+    // container `Solid` bounds; render-only, NOT added to `this.groups`, so the
+    // 5/5 correspondence above is untouched and the collider stays the body box.
+    // Off with `?dressing=0` (paired with the plain material) for a matched
+    // pre-#67 evidence frame.
+    if (dressingOn) {
+      this.dressing = createContainerDressingLayer(selectContainerSolids(this.def));
+      for (const mesh of this.dressing.meshes) this.root.add(mesh);
+    }
+    if (typeof window !== 'undefined') {
+      (window as unknown as Record<string, unknown>).__CONTAINER_DRESSING__ = this.dressing
+        ? {
+          enabled: true,
+          triangleCount: this.dressing.triangleCount,
+          drawCalls: this.dressing.meshes.length,
+          assemblies: this.dressing.assemblies.map((a) => ({
+            id: a.id,
+            longAxis: a.longAxis,
+            doorEnd: a.doorEnd,
+            partCount: a.parts.length,
+          })),
         }
         : { enabled: false };
     }
@@ -217,6 +269,13 @@ export class ArenaLevel implements System {
     return new URLSearchParams(location.search).get('contact') !== '0';
   }
 
+  /** Constructor override wins; otherwise the `dressing` URL flag (default on). */
+  private containerDressingEnabled(): boolean {
+    if (this.containerDressingOption !== undefined) return this.containerDressingOption;
+    if (typeof location === 'undefined') return true;
+    return new URLSearchParams(location.search).get('dressing') !== '0';
+  }
+
   update(u: UpdateContext): void {
     // A slow, deterministic beacon pulse — a little life at the objective end
     // without perturbing frame timing. Everything else is static.
@@ -231,6 +290,8 @@ export class ArenaLevel implements System {
     this.groups = [];
     this.contact?.dispose();
     this.contact = undefined;
+    this.dressing?.dispose();
+    this.dressing = undefined;
     this.materials?.dispose();
     this.materials = undefined;
     for (const light of this.lights) light.parent?.remove(light);
@@ -243,6 +304,7 @@ export class ArenaLevel implements System {
       delete w.__LEVEL_STATIC_WORLD__;
       delete w.__ARENA_SPAWNS__;
       delete w.__CONTACT_SHADOWS__;
+      delete w.__CONTAINER_DRESSING__;
       this.installedShotHook = false;
     }
   }

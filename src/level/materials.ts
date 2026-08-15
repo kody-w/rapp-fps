@@ -135,6 +135,19 @@ const roughFromNoise = (seed: number, base: number, range: number): Generated =>
   ctx.putImageData(img, 0, 0);
 }, false);
 
+// ── Container corrugation profile ───────────────────────────────────────────
+// The single source of truth for the container rib. Both the albedo brightness
+// stripes AND the tangent-space normal map below are generated from THIS
+// function, so a rib's bright edge and its geometric slope coincide — the fix
+// for #67, where corrugation was albedo-only and the bump map was unrelated
+// generic metal noise, so ribs never self-shaded with light direction.
+export const CONTAINER_RIB_FREQUENCY = 0.20;
+
+/** Corrugation height in 0..1 at texel column `x`. Shared by albedo + normal. */
+export function containerRibHeight(x: number): number {
+  return Math.sin(x * CONTAINER_RIB_FREQUENCY) * 0.5 + 0.5;
+}
+
 // Painted-metal panel: light base so a vertex-colour tint reads through, with
 // corrugation rib shadows and vertical weathering streaks.
 const panelAlbedo = (): Generated => makeTexture(256, (ctx, s) => {
@@ -142,7 +155,7 @@ const panelAlbedo = (): Generated => makeTexture(256, (ctx, s) => {
   for (let y = 0; y < s; y++) {
     for (let x = 0; x < s; x++) {
       const i = (y * s + x) * 4;
-      const rib = (Math.sin(x * 0.20) * 0.5 + 0.5) * 34; // corrugation
+      const rib = containerRibHeight(x) * 34; // corrugation (shared profile)
       const grain = hash(x, y, 5501) * 10 - 5;
       const v = 196 + rib + grain;
       img.data[i] = v;
@@ -165,6 +178,40 @@ const panelAlbedo = (): Generated => makeTexture(256, (ctx, s) => {
     ctx.fillRect(x, rnd() * s * 0.5, w, s * 0.4 + rnd() * s * 0.6);
   }
 }, true);
+
+// Container corrugation NORMAL map (#67). A tangent-space normal derived from a
+// height field = the shared rib profile + deterministic weathering dents, so the
+// ribs actually catch and shed light as the sun direction changes rather than
+// being flat brightness stripes. Central differences on a wrapped height field
+// keep it seamless under RepeatWrapping; NoColorSpace (linear) because it is a
+// normal, not colour.
+const containerNormal = (): Generated => makeTexture(256, (ctx, s) => {
+  const img = ctx.createImageData(s, s);
+  const RIB_AMP = 30; //     rib height weight (drives the dominant X slope)
+  const WEATHER_AMP = 7; //  subtle dents/oil-canning so panels are not glassy
+  const STRENGTH = 0.06; //  height→slope gain, tuned with material.normalScale
+  const height = (x: number, y: number): number =>
+    containerRibHeight(((x % s) + s) % s) * RIB_AMP
+    + valueNoise(((x % s) + s) % s, ((y % s) + s) % s, 22, 6203) * WEATHER_AMP;
+  for (let y = 0; y < s; y++) {
+    for (let x = 0; x < s; x++) {
+      const i = (y * s + x) * 4;
+      const dhx = (height(x + 1, y) - height(x - 1, y)) * 0.5 * STRENGTH;
+      const dhy = (height(x, y + 1) - height(x, y - 1)) * 0.5 * STRENGTH;
+      let nx = -dhx;
+      let ny = -dhy;
+      const nz = 1;
+      const inv = 1 / Math.hypot(nx, ny, nz);
+      nx *= inv;
+      ny *= inv;
+      img.data[i] = Math.round((nx * 0.5 + 0.5) * 255);
+      img.data[i + 1] = Math.round((ny * 0.5 + 0.5) * 255);
+      img.data[i + 2] = Math.round((nz * inv * 0.5 + 0.5) * 255);
+      img.data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+}, false);
 
 const galvAlbedo = (): Generated => makeTexture(256, (ctx, s) => {
   const img = ctx.createImageData(s, s);
@@ -231,7 +278,21 @@ const woodAlbedo = (): Generated => makeTexture(256, (ctx, s) => {
   }
 }, true);
 
-export function createArenaMaterials(renderer: THREE.WebGLRenderer): ArenaMaterials {
+export interface ArenaMaterialsOptions {
+  /**
+   * Attach the rib-derived container normal map (#67) so corrugation responds to
+   * light direction. Default true (production). Set false to reproduce the exact
+   * pre-#67 container material (albedo-only rib + generic metal bump) for a
+   * matched "before" evidence frame — this generates one fewer texture.
+   */
+  readonly containerRibNormal?: boolean;
+}
+
+export function createArenaMaterials(
+  renderer: THREE.WebGLRenderer,
+  options: ArenaMaterialsOptions = {},
+): ArenaMaterials {
+  const ribNormalOn = options.containerRibNormal ?? true;
   const gen: Generated[] = [
     concreteAlbedo(),      // 0
     roughFromNoise(1207, 172, 46), // 1 concrete rough/bump
@@ -243,6 +304,9 @@ export function createArenaMaterials(renderer: THREE.WebGLRenderer): ArenaMateri
   ];
   const [concreteMap, concreteRough, panelMap, metalRough, galvMap, rustMap, woodMap] =
     gen.map((g) => g.texture);
+  // One additional generated texture, and only when the rib response is on.
+  const containerNormalGen = ribNormalOn ? containerNormal() : undefined;
+  if (containerNormalGen) gen.push(containerNormalGen);
 
   const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
   for (const g of gen) g.texture.anisotropy = aniso;
@@ -297,13 +361,21 @@ export function createArenaMaterials(renderer: THREE.WebGLRenderer): ArenaMateri
   const container = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     map: panelMap,
-    roughnessMap: metalRough,
-    bumpMap: metalRough,
-    bumpScale: 0.03,
+    roughnessMap: metalRough, // deterministic weathering (kept, per #67)
     roughness: 0.52,
     metalness: 0.34,
     vertexColors: true,
   });
+  if (containerNormalGen) {
+    // #67 fix: ribs are now a real normal profile from the same corrugation
+    // function as the albedo, so they self-shade with the sun direction.
+    container.normalMap = containerNormalGen.texture;
+    container.normalScale = new THREE.Vector2(0.9, 0.9);
+  } else {
+    // Pre-#67 baseline: generic metal-noise bump, unrelated to the rib.
+    container.bumpMap = metalRough;
+    container.bumpScale = 0.03;
+  }
   const safety = new THREE.MeshStandardMaterial({
     color: 0xe4a52c,
     roughness: 0.6,

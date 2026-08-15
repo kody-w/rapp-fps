@@ -19,7 +19,7 @@ export type {
 } from './arena.js';
 export { buildStaticWorld, collidableSolids } from './staticWorld.js';
 export { mergeSolidsByMaterial, type MergedGroup } from './geometry.js';
-export { createArenaMaterials, type ArenaMaterials } from './materials.js';
+export { createArenaMaterials, type ArenaMaterials, type ArenaMaterialsOptions, CONTAINER_RIB_FREQUENCY, containerRibHeight } from './materials.js';
 export {
   selectGroundContactSolids,
   describeGroundContact,
@@ -31,6 +31,20 @@ export {
   type ContactInstance,
   type ContactEligibility,
 } from './contactShadows.js';
+export {
+  selectContainerSolids,
+  describeContainerDressing,
+  classifyContainerDressing,
+  describeContainerAssembly,
+  describeContainerAssemblies,
+  createContainerDressingLayer,
+  MAX_DRESSING_TRIANGLES,
+  MAX_DRESSING_PROTRUSION,
+  type ContainerDressingLayer,
+  type ContainerAssembly,
+  type DressingPart,
+  type DressingEligibility,
+} from './containerDressing.js';
 export {
   checkCorrespondence,
   formatReport,

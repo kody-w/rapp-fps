@@ -1,0 +1,585 @@
+{
+  "url": "http://127.0.0.1:5287/src/level/fixtures/container-art.harness.html",
+  "consoleErrors": [],
+  "at": "2026-08-15T14:43:46.887Z",
+  "ok": true,
+  "source": "buildArena() → selectContainerSolids + describeContainerAssembly + createContainerDressingLayer (shipped src/level)",
+  "budget": {
+    "maxTriangles": 3000,
+    "maxProtrusion": 0.1,
+    "ribFrequency": 0.2
+  },
+  "selection": {
+    "count": 3,
+    "ids": [
+      "cont-a",
+      "cont-b",
+      "cont-c"
+    ],
+    "assemblies": [
+      {
+        "id": "cont-a",
+        "longAxis": "x",
+        "shortAxis": "z",
+        "doorEnd": 1.225,
+        "min": [
+          -4.825,
+          0,
+          -10.52
+        ],
+        "max": [
+          1.225,
+          2.6,
+          -8.08
+        ],
+        "partCount": 34,
+        "parts": {
+          "casting": 8,
+          "post": 4,
+          "side-rail": 4,
+          "end-rail": 4,
+          "door-leaf": 2,
+          "locking-bar": 4,
+          "handle": 4,
+          "hinge": 4
+        }
+      },
+      {
+        "id": "cont-b",
+        "longAxis": "x",
+        "shortAxis": "z",
+        "doorEnd": 1.625,
+        "min": [
+          -4.425,
+          2.6,
+          -10.52
+        ],
+        "max": [
+          1.625,
+          5.2,
+          -8.08
+        ],
+        "partCount": 34,
+        "parts": {
+          "casting": 8,
+          "post": 4,
+          "side-rail": 4,
+          "end-rail": 4,
+          "door-leaf": 2,
+          "locking-bar": 4,
+          "handle": 4,
+          "hinge": 4
+        }
+      },
+      {
+        "id": "cont-c",
+        "longAxis": "z",
+        "shortAxis": "x",
+        "doorEnd": -4.575,
+        "min": [
+          1.68,
+          0,
+          -10.625
+        ],
+        "max": [
+          4.12,
+          2.6,
+          -4.575
+        ],
+        "partCount": 34,
+        "parts": {
+          "casting": 8,
+          "post": 4,
+          "side-rail": 4,
+          "end-rail": 4,
+          "door-leaf": 2,
+          "locking-bar": 4,
+          "handle": 4,
+          "hinge": 4
+        }
+      }
+    ]
+  },
+  "eligibilityAudit": [
+    {
+      "id": "floor",
+      "eligible": false,
+      "reason": "not a container (material=concrete)"
+    },
+    {
+      "id": "wall-n-west",
+      "eligible": false,
+      "reason": "not a container (material=concrete)"
+    },
+    {
+      "id": "wall-n-east",
+      "eligible": false,
+      "reason": "not a container (material=concrete)"
+    },
+    {
+      "id": "wall-n-lintel",
+      "eligible": false,
+      "reason": "not a container (material=concreteDark)"
+    },
+    {
+      "id": "wall-s",
+      "eligible": false,
+      "reason": "not a container (material=concrete)"
+    },
+    {
+      "id": "wall-w",
+      "eligible": false,
+      "reason": "not a container (material=concrete)"
+    },
+    {
+      "id": "wall-e",
+      "eligible": false,
+      "reason": "not a container (material=concrete)"
+    },
+    {
+      "id": "cont-a",
+      "eligible": true,
+      "reason": "container"
+    },
+    {
+      "id": "cont-b",
+      "eligible": true,
+      "reason": "container"
+    },
+    {
+      "id": "cont-c",
+      "eligible": true,
+      "reason": "container"
+    },
+    {
+      "id": "jersey-w1",
+      "eligible": false,
+      "reason": "not a container (material=concrete)"
+    },
+    {
+      "id": "jersey-w2",
+      "eligible": false,
+      "reason": "not a container (material=concreteDark)"
+    },
+    {
+      "id": "crate-w1",
+      "eligible": false,
+      "reason": "not a container (material=wood)"
+    },
+    {
+      "id": "crate-w2",
+      "eligible": false,
+      "reason": "not a container (material=wood)"
+    },
+    {
+      "id": "crate-w3",
+      "eligible": false,
+      "reason": "not a container (material=wood)"
+    },
+    {
+      "id": "deck",
+      "eligible": false,
+      "reason": "not a container (material=galvanized)"
+    },
+    {
+      "id": "step-0",
+      "eligible": false,
+      "reason": "not a container (material=galvanized)"
+    },
+    {
+      "id": "step-1",
+      "eligible": false,
+      "reason": "not a container (material=galvanized)"
+    },
+    {
+      "id": "step-2",
+      "eligible": false,
+      "reason": "not a container (material=galvanized)"
+    },
+    {
+      "id": "step-3",
+      "eligible": false,
+      "reason": "not a container (material=galvanized)"
+    },
+    {
+      "id": "step-4",
+      "eligible": false,
+      "reason": "not a container (material=galvanized)"
+    },
+    {
+      "id": "step-5",
+      "eligible": false,
+      "reason": "not a container (material=galvanized)"
+    },
+    {
+      "id": "parapet-w",
+      "eligible": false,
+      "reason": "not a container (material=darkMetal)"
+    },
+    {
+      "id": "parapet-s-w",
+      "eligible": false,
+      "reason": "not a container (material=darkMetal)"
+    },
+    {
+      "id": "parapet-s-e",
+      "eligible": false,
+      "reason": "not a container (material=darkMetal)"
+    },
+    {
+      "id": "dock-obj",
+      "eligible": false,
+      "reason": "not a container (material=concrete)"
+    },
+    {
+      "id": "jersey-n1",
+      "eligible": false,
+      "reason": "not a container (material=concrete)"
+    },
+    {
+      "id": "pallet-n",
+      "eligible": false,
+      "reason": "not a container (material=wood)"
+    },
+    {
+      "id": "drum-n1",
+      "eligible": false,
+      "reason": "not a container (material=rust)"
+    },
+    {
+      "id": "lamp-w",
+      "eligible": false,
+      "reason": "not a container (material=lampWarm)"
+    },
+    {
+      "id": "lamp-e",
+      "eligible": false,
+      "reason": "not a container (material=lampWarm)"
+    },
+    {
+      "id": "lamp-hang",
+      "eligible": false,
+      "reason": "not a container (material=lampWarm)"
+    },
+    {
+      "id": "beacon",
+      "eligible": false,
+      "reason": "not a container (material=beacon)"
+    },
+    {
+      "id": "beacon-cap",
+      "eligible": false,
+      "reason": "not a container (material=darkMetal)"
+    },
+    {
+      "id": "paint-deck",
+      "eligible": false,
+      "reason": "not a container (material=safety)"
+    },
+    {
+      "id": "paint-obj",
+      "eligible": false,
+      "reason": "not a container (material=safety)"
+    }
+  ],
+  "geometry": {
+    "triangleCount": 1224,
+    "mesh": "arena:container-dressing",
+    "mergedMeshes": 1
+  },
+  "resource": {
+    "additionalDrawCalls": 1,
+    "additionalTextures": 1,
+    "drawCallsOff": 11,
+    "drawCallsOn": 12,
+    "texturesOff": 8,
+    "texturesOn": 9
+  },
+  "ribNormal": {
+    "scanlineSignChanges": 18,
+    "scanlineSwing": 63,
+    "expectedPeriods": 8.149
+  },
+  "correspondence": [
+    {
+      "name": "core-contract",
+      "ok": true
+    },
+    {
+      "name": "box-count",
+      "ok": true
+    },
+    {
+      "name": "bijection",
+      "ok": true
+    },
+    {
+      "name": "render-backing",
+      "ok": true
+    },
+    {
+      "name": "render-membership",
+      "ok": true
+    }
+  ],
+  "lifecycle": [
+    {
+      "pass": 0,
+      "removedFromParent": true,
+      "geometry": true,
+      "material": true
+    },
+    {
+      "pass": 1,
+      "removedFromParent": true,
+      "geometry": true,
+      "material": true
+    }
+  ],
+  "assertions": [
+    {
+      "name": "selection_matches_containers",
+      "passed": true,
+      "actual": {
+        "selected": [
+          "cont-a",
+          "cont-b",
+          "cont-c"
+        ]
+      },
+      "expected": {
+        "expected": [
+          "cont-a",
+          "cont-b",
+          "cont-c"
+        ]
+      }
+    },
+    {
+      "name": "selected_by_solid_material",
+      "passed": true,
+      "actual": {
+        "materials": [
+          {
+            "id": "cont-a",
+            "material": "container"
+          },
+          {
+            "id": "cont-b",
+            "material": "container"
+          },
+          {
+            "id": "cont-c",
+            "material": "container"
+          }
+        ]
+      },
+      "expected": "every selected solid carries material=\"container\" (a real Solid field)"
+    },
+    {
+      "name": "orientation_from_bounds",
+      "passed": true,
+      "actual": {
+        "errors": [],
+        "assemblies": [
+          {
+            "id": "cont-a",
+            "longAxis": "x",
+            "doorEnd": 1.225
+          },
+          {
+            "id": "cont-b",
+            "longAxis": "x",
+            "doorEnd": 1.625
+          },
+          {
+            "id": "cont-c",
+            "longAxis": "z",
+            "doorEnd": -4.575
+          }
+        ]
+      },
+      "expected": "each assembly long axis is the larger footprint span and the door faces the max end"
+    },
+    {
+      "name": "bounds_match_source_solid",
+      "passed": true,
+      "actual": {
+        "errors": []
+      },
+      "expected": "every assembly min/max is the source Solid min/max (footprint derived, not re-typed)"
+    },
+    {
+      "name": "fittings_centimetre_scale",
+      "passed": true,
+      "actual": {
+        "maxHorizontalProtrusion": 0.085,
+        "maxVerticalProtrusion": 0,
+        "ceiling": 0.1,
+        "degenerate": 0
+      },
+      "expected": "no fitting protrudes more than 0.1 m horizontally, none pokes above the top or below the base"
+    },
+    {
+      "name": "triangle_ceiling_respected",
+      "passed": true,
+      "actual": {
+        "triangleCount": 1224,
+        "ceiling": 3000
+      },
+      "expected": "merged dressing is within the 3000-triangle ceiling"
+    },
+    {
+      "name": "rib_normal_from_shared_function",
+      "passed": true,
+      "actual": {
+        "hasNormalMap": true,
+        "bumpMapCleared": true,
+        "normalScaleX": 0.9,
+        "ribFrequency": 0.2,
+        "expectedPeriods": 8.149,
+        "ribScanlineSignChanges": 18,
+        "ribScanlineSwing": 63,
+        "sharedHeightSample": 0.782321
+      },
+      "expected": "container normalMap encodes the rib profile (nx oscillates at the rib frequency); bumpMap cleared"
+    },
+    {
+      "name": "off_toggle_is_pre67_baseline",
+      "passed": true,
+      "actual": {
+        "offNormalMap": null,
+        "offBumpMap": "set",
+        "textureDelta": 1
+      },
+      "expected": "?dressing=0 restores the albedo-only rib + generic metal bump and one fewer texture"
+    },
+    {
+      "name": "adds_no_collider",
+      "passed": true,
+      "actual": {
+        "boxes": 29,
+        "collidable": 29
+      },
+      "expected": "the dressing contributes zero StaticBoxes — the collider stays the container body box"
+    },
+    {
+      "name": "dressing_not_mistaken_for_geometry",
+      "passed": true,
+      "actual": {
+        "sharedCornerKeys": 0
+      },
+      "expected": "no dressing vertex lands on a collider corner (render-backing cannot misclassify it)"
+    },
+    {
+      "name": "correspondence_still_5_of_5",
+      "passed": true,
+      "actual": {
+        "ok": true,
+        "checks": [
+          "core-contract:PASS",
+          "box-count:PASS",
+          "bijection:PASS",
+          "render-backing:PASS",
+          "render-membership:PASS"
+        ]
+      },
+      "expected": "all five correspondence checks pass with the dressing present"
+    },
+    {
+      "name": "negative_control_rejected",
+      "passed": true,
+      "actual": {
+        "negatives": [
+          {
+            "id": "floor",
+            "material": "concrete",
+            "eligible": false,
+            "reason": "not a container (material=concrete)",
+            "selected": false
+          },
+          {
+            "id": "wall-n-west",
+            "material": "concrete",
+            "eligible": false,
+            "reason": "not a container (material=concrete)",
+            "selected": false
+          },
+          {
+            "id": "step-0",
+            "material": "galvanized",
+            "eligible": false,
+            "reason": "not a container (material=galvanized)",
+            "selected": false
+          },
+          {
+            "id": "crate-w1",
+            "material": "wood",
+            "eligible": false,
+            "reason": "not a container (material=wood)",
+            "selected": false
+          },
+          {
+            "id": "drum-n1",
+            "material": "rust",
+            "eligible": false,
+            "reason": "not a container (material=rust)",
+            "selected": false
+          }
+        ]
+      },
+      "expected": "floor, a perimeter wall, a stair tread, a wood crate and a steel drum are all rejected"
+    },
+    {
+      "name": "merged_draw_within_budget",
+      "passed": true,
+      "actual": {
+        "drawsOff": 11,
+        "drawsOn": 12,
+        "delta": 1,
+        "dressingMeshes": 1,
+        "shippingPrepassNote": "this one opaque mesh renders as 2 GPU draws under the RenderSystem depth-prepass — within the ≤2 budget"
+      },
+      "expected": "the ironwork is ONE merged material mesh (≤2 GPU draws even with the opaque depth-prepass)"
+    },
+    {
+      "name": "one_additional_texture",
+      "passed": true,
+      "actual": {
+        "texturesOff": 8,
+        "texturesOn": 9,
+        "delta": 1
+      },
+      "expected": "exactly one extra generated texture (the rib normal map); dressing steel is mapless"
+    },
+    {
+      "name": "composed_level_correspondence_ok",
+      "passed": true,
+      "actual": {
+        "ok": true
+      },
+      "expected": "ArenaLevel.init runs the 5/5 proof green with the dressing built and added"
+    },
+    {
+      "name": "lifecycle_repeatable_clean",
+      "passed": true,
+      "actual": {
+        "lifecycle": [
+          {
+            "pass": 0,
+            "removedFromParent": true,
+            "geometry": true,
+            "material": true
+          },
+          {
+            "pass": 1,
+            "removedFromParent": true,
+            "geometry": true,
+            "material": true
+          }
+        ]
+      },
+      "expected": "build → dispose is repeatable; dispose removes the mesh and frees geometry + material"
+    }
+  ]
+}

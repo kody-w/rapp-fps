@@ -1,0 +1,51 @@
+{
+  "at": "2026-08-15T14:44:19.982Z",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "cpuThrottleRate": 1,
+  "rafDelayMs": 0,
+  "frameBudgetMs": 16.7,
+  "overBudget": false,
+  "performance": {
+    "gpuSupported": true,
+    "gpuCounterBits": 64,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 5.604,
+      "p95": 8.828,
+      "worst": 10.242
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 0.8,
+      "p95": 1.4,
+      "worst": 1.5
+    },
+    "rafIntervalMs": {
+      "samples": 122,
+      "median": 16.7,
+      "p95": 17.6,
+      "worst": 17.8
+    },
+    "budgetFrameMsMedian": 5.604,
+    "budgetFrameMsP95": 8.828,
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 5.604,
+      "p95": 8.828,
+      "worst": 10.242
+    },
+    "gpuDisjointCount": 0,
+    "note": "budget uses max(CPU, GPU); rAF interval is scheduler cadence only",
+    "drawCallsPerFrame": 27,
+    "trianglesPerFrame": 878,
+    "programs": 13,
+    "textures": 23,
+    "geometries": 14
+  },
+  "shots": [
+    "src/level/evidence/container-art-off/containers.png",
+    "src/level/evidence/container-art-off/materials.png"
+  ],
+  "consoleErrors": []
+}
