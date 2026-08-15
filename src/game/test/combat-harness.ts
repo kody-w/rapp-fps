@@ -6,6 +6,7 @@ import {
   ENEMY_TRACER_MAX_CSS_PIXELS,
   ENEMY_TRACER_MAX_LENGTH,
   ENEMY_TRACER_TARGET_CSS_PIXELS,
+  nearestTracerDepth,
   projectedTracerWidthCssPixels,
   tracerWorldRadiusForCssPixels,
 } from '../../ai/TracerPresentation.js';
@@ -318,15 +319,24 @@ function testTracerPresentationBounds(): Outcome {
   ) !== null) failures.push('NaN origin must be refused');
 
   const fov = THREE.MathUtils.degToRad(52);
+  const centerDepth = 3;
+  const nearDepth = nearestTracerDepth(centerDepth, 1, ENEMY_TRACER_MAX_LENGTH);
+  const oldCenterRadius = tracerWorldRadiusForCssPixels(fov, 1080, centerDepth);
+  const oldNearWidth = projectedTracerWidthCssPixels(
+    fov,
+    1080,
+    nearDepth,
+    oldCenterRadius,
+  );
   const radius = tracerWorldRadiusForCssPixels(
     fov,
     1080,
-    ENEMY_TRACER_CAMERA_CLEARANCE,
+    nearDepth,
   );
   const width = projectedTracerWidthCssPixels(
     fov,
     1080,
-    ENEMY_TRACER_CAMERA_CLEARANCE,
+    nearDepth,
     radius,
   );
   if (
@@ -334,6 +344,9 @@ function testTracerPresentationBounds(): Outcome {
     || width > ENEMY_TRACER_MAX_CSS_PIXELS
   ) {
     failures.push(`scaled width ${width}px is not target ${ENEMY_TRACER_TARGET_CSS_PIXELS}px`);
+  }
+  if (oldNearWidth <= ENEMY_TRACER_MAX_CSS_PIXELS) {
+    failures.push(`center-depth negative control did not exceed bound: ${oldNearWidth}px`);
   }
 
   return {
@@ -345,7 +358,9 @@ function testTracerPresentationBounds(): Outcome {
       nearLength: near?.length,
       tooCloseHidden: tooClose === null,
       projectedWidthAt52Fov: width,
-      worldRadiusAtClearance: radius,
+      worldRadiusAtNearestEnd: radius,
+      oldCenterSizedNearWidth: oldNearWidth,
+      nearestEndDepth: nearDepth,
       pixelBound: ENEMY_TRACER_MAX_CSS_PIXELS,
     },
   };

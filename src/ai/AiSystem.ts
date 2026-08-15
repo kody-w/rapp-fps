@@ -34,6 +34,7 @@ import {
   computeTracerSegment,
   ENEMY_TRACER_LIFETIME_SECONDS,
   ENEMY_TRACER_RADIUS,
+  nearestTracerDepth,
   tracerWorldRadiusForCssPixels,
 } from './TracerPresentation.js';
 
@@ -312,11 +313,15 @@ export class AiSystem implements System {
     this.updateDeath(a.state, a.deathSeconds);
     if (this.opts.renderGaze) this.updateGaze(a.state);
     this.updateTelegraph();
-    this.updateFiring(
-      u.dt,
-      ctx.camera,
-      ctx.renderer.domElement?.clientHeight || window.innerHeight,
-    );
+    if (a.state === 'dead') {
+      this.tracerRemaining = 0;
+    } else {
+      this.updateFiring(
+        u.dt,
+        ctx.camera,
+        ctx.renderer.domElement?.clientHeight || window.innerHeight,
+      );
+    }
     if (this.opts.renderMarkers) this.updateMarkers();
 
   }
@@ -626,7 +631,9 @@ export class AiSystem implements System {
     this.tracer.quaternion.setFromUnitVectors(this.upAxis, this.shotDir);
     camera.getWorldDirection(this.cameraForward);
     this.cameraToTracer.copy(this.tracer.position).sub(camera.position);
-    const depth = this.cameraToTracer.dot(this.cameraForward);
+    const centerDepth = this.cameraToTracer.dot(this.cameraForward);
+    const axialDot = this.shotDir.dot(this.cameraForward);
+    const depth = nearestTracerDepth(centerDepth, axialDot, segment.length);
     const worldRadius = tracerWorldRadiusForCssPixels(
       THREE.MathUtils.degToRad(camera.fov),
       viewportHeight,

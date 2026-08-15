@@ -28,6 +28,7 @@ export type { CoverCandidate, CoverQuery } from './cover.js';
 export { SeededRandom } from './random.js';
 export {
   computeTracerSegment,
+  nearestTracerDepth,
   projectedTracerWidthCssPixels,
   tracerWorldRadiusForCssPixels,
   ENEMY_TRACER_CAMERA_CLEARANCE,

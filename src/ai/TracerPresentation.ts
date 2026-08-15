@@ -93,6 +93,20 @@ export function tracerWorldRadiusForCssPixels(
     / (viewportHeightCssPixels * focalScale);
 }
 
+export function nearestTracerDepth(
+  centerDepth: number,
+  directionDotCameraForward: number,
+  length: number,
+): number {
+  if (
+    !Number.isFinite(centerDepth)
+    || !Number.isFinite(directionDotCameraForward)
+    || !Number.isFinite(length)
+    || length < 0
+  ) return -Infinity;
+  return centerDepth - Math.abs(directionDotCameraForward) * length * 0.5;
+}
+
 function finite(vector: Vec3): boolean {
   return Number.isFinite(vector.x)
     && Number.isFinite(vector.y)
