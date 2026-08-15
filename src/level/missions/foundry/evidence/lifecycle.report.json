@@ -1,0 +1,61 @@
+{
+  "url": "http://127.0.0.1:5295/src/level/missions/foundry/fixtures/lifecycle.html",
+  "consoleErrors": [],
+  "at": "2026-08-15T15:58:28.567Z",
+  "ok": true,
+  "baselineChildren": 0,
+  "cycles": [
+    {
+      "correspondenceOk": true,
+      "correspondenceBoxCount": 36,
+      "correspondenceCollidable": 36,
+      "hooksInstalled": true,
+      "hooksCleared": true,
+      "updateThrew": false,
+      "childrenBaseline": 0,
+      "childrenAfterInit": 8,
+      "childrenAfterDispose": 0,
+      "returnedToBaseline": true,
+      "addedChildren": 8
+    },
+    {
+      "correspondenceOk": true,
+      "correspondenceBoxCount": 36,
+      "correspondenceCollidable": 36,
+      "hooksInstalled": true,
+      "hooksCleared": true,
+      "updateThrew": false,
+      "childrenBaseline": 0,
+      "childrenAfterInit": 8,
+      "childrenAfterDispose": 0,
+      "returnedToBaseline": true,
+      "addedChildren": 8
+    }
+  ],
+  "assertions": [
+    {
+      "name": "cycle1_correspondence_ok",
+      "passed": true
+    },
+    {
+      "name": "cycle2_correspondence_ok",
+      "passed": true
+    },
+    {
+      "name": "both_installed_hooks",
+      "passed": true
+    },
+    {
+      "name": "both_cleared_hooks_on_dispose",
+      "passed": true
+    },
+    {
+      "name": "no_update_throw",
+      "passed": true
+    },
+    {
+      "name": "scene_returns_to_baseline",
+      "passed": true
+    }
+  ]
+}

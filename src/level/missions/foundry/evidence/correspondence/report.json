@@ -1,0 +1,39 @@
+{
+  "at": "2026-08-15T16:00:53.379Z",
+  "url": "http://127.0.0.1:5295/src/level/missions/foundry/harness.html",
+  "report": {
+    "ok": true,
+    "results": [
+      {
+        "name": "core-contract",
+        "ok": true,
+        "detail": "assertValidStaticWorld passed"
+      },
+      {
+        "name": "box-count",
+        "ok": true,
+        "detail": "36 boxes vs 36 collidable solids"
+      },
+      {
+        "name": "bijection",
+        "ok": true,
+        "detail": "36 solids each matched one box on bounds + surface"
+      },
+      {
+        "name": "render-backing",
+        "ok": true,
+        "detail": "all 36 colliders have rendered geometry at every corner"
+      },
+      {
+        "name": "render-membership",
+        "ok": true,
+        "detail": "every collidable solid is in a rendered group"
+      }
+    ],
+    "solidCount": 43,
+    "collidableCount": 36,
+    "boxCount": 36,
+    "renderVertexKeys": 320
+  },
+  "consoleErrors": []
+}

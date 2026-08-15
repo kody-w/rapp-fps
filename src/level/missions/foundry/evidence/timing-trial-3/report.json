@@ -1,0 +1,50 @@
+{
+  "at": "2026-08-15T16:00:07.555Z",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "cpuThrottleRate": 1,
+  "rafDelayMs": 0,
+  "frameBudgetMs": 16.7,
+  "overBudget": false,
+  "performance": {
+    "gpuSupported": true,
+    "gpuCounterBits": 64,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 4.599,
+      "p95": 6.711,
+      "worst": 7.48
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 0.3,
+      "p95": 1.3,
+      "worst": 1.4
+    },
+    "rafIntervalMs": {
+      "samples": 122,
+      "median": 16.7,
+      "p95": 17.4,
+      "worst": 17.6
+    },
+    "budgetFrameMsMedian": 4.599,
+    "budgetFrameMsP95": 6.711,
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 4.599,
+      "p95": 6.711,
+      "worst": 7.48
+    },
+    "gpuDisjointCount": 0,
+    "note": "budget uses max(CPU, GPU); rAF interval is scheduler cadence only",
+    "drawCallsPerFrame": 25,
+    "trianglesPerFrame": 1056,
+    "programs": 12,
+    "textures": 22,
+    "geometries": 13
+  },
+  "shots": [
+    "src/level/missions/foundry/evidence/timing-trial-3/silhouette.png"
+  ],
+  "consoleErrors": []
+}
