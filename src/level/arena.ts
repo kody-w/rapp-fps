@@ -351,7 +351,7 @@ export function buildArena(): ArenaDefinition {
     lights,
     shots,
     playerSpawn: [0, 0, -1.6],
-    enemySpawn: [1.6, 0, -15.6],
+    enemySpawn: [-9, 0, -13],
     enemyCoverIds: [
       'cont-a',
       'cont-c',

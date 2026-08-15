@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "at": "2026-08-15T02:28:58.834Z",
+  "at": "2026-08-15T07:08:17.197Z",
   "fixedStepHz": 120,
   "failures": [],
   "reachability": {
@@ -52,40 +52,40 @@
         "to": "engage",
         "reason": "in-position",
         "firedBy": "approach-dwell-reposition",
-        "tick": 909,
-        "time": 7.575
+        "tick": 800,
+        "time": 6.667
       },
       {
         "from": "engage",
         "to": "search",
         "reason": "lost-sight",
         "firedBy": "engage-lose-sight-abandon",
-        "tick": 824,
-        "time": 6.867
+        "tick": 595,
+        "time": 4.958
       },
       {
         "from": "reposition",
         "to": "search",
         "reason": "lost-sight",
-        "firedBy": "reposition-lose-sight",
-        "tick": 652,
-        "time": 5.433
+        "firedBy": "engage-lose-sight-reacquire",
+        "tick": 661,
+        "time": 5.508
       },
       {
         "from": "search",
         "to": "engage",
         "reason": "reacquired",
         "firedBy": "engage-lose-sight-reacquire",
-        "tick": 968,
-        "time": 8.067
+        "tick": 868,
+        "time": 7.233
       },
       {
         "from": "search",
         "to": "patrol",
         "reason": "abandoned",
         "firedBy": "engage-lose-sight-abandon",
-        "tick": 1544,
-        "time": 12.867
+        "tick": 1315,
+        "time": 10.958
       },
       {
         "from": "*",
@@ -124,22 +124,22 @@
             "from": "reposition",
             "to": "engage",
             "reason": "in-position",
-            "tick": 909,
-            "time": 7.575
+            "tick": 800,
+            "time": 6.667
           },
           {
             "from": "engage",
             "to": "reposition",
             "reason": "repositioning",
-            "tick": 1330,
-            "time": 11.083
+            "tick": 1221,
+            "time": 10.175
           },
           {
             "from": "reposition",
             "to": "engage",
             "reason": "in-position",
-            "tick": 1476,
-            "time": 12.3
+            "tick": 1438,
+            "time": 11.983
           }
         ]
       },
@@ -187,7 +187,7 @@
       },
       {
         "scenario": "engage-lose-sight-abandon",
-        "note": "Spotted, then the player ducks behind cover and stays hidden until the search times out.",
+        "note": "Spotted, then the player retreats beyond vision range until search times out.",
         "config": "default",
         "transitions": [
           {
@@ -199,31 +199,17 @@
           },
           {
             "from": "engage",
-            "to": "reposition",
-            "reason": "repositioning",
-            "tick": 653,
-            "time": 5.442
-          },
-          {
-            "from": "reposition",
-            "to": "engage",
-            "reason": "in-position",
-            "tick": 790,
-            "time": 6.583
-          },
-          {
-            "from": "engage",
             "to": "search",
             "reason": "lost-sight",
-            "tick": 824,
-            "time": 6.867
+            "tick": 595,
+            "time": 4.958
           },
           {
             "from": "search",
             "to": "patrol",
             "reason": "abandoned",
-            "tick": 1544,
-            "time": 12.867
+            "tick": 1315,
+            "time": 10.958
           }
         ]
       },
@@ -248,24 +234,24 @@
           },
           {
             "from": "reposition",
-            "to": "engage",
-            "reason": "in-position",
-            "tick": 790,
-            "time": 6.583
-          },
-          {
-            "from": "engage",
             "to": "search",
             "reason": "lost-sight",
-            "tick": 824,
-            "time": 6.867
+            "tick": 661,
+            "time": 5.508
           },
           {
             "from": "search",
             "to": "engage",
             "reason": "reacquired",
-            "tick": 968,
-            "time": 8.067
+            "tick": 868,
+            "time": 7.233
+          },
+          {
+            "from": "engage",
+            "to": "reposition",
+            "reason": "repositioning",
+            "tick": 1289,
+            "time": 10.742
           }
         ]
       },
@@ -290,17 +276,17 @@
           },
           {
             "from": "reposition",
-            "to": "search",
-            "reason": "lost-sight",
-            "tick": 652,
-            "time": 5.433
+            "to": "engage",
+            "reason": "in-position",
+            "tick": 589,
+            "time": 4.908
           },
           {
-            "from": "search",
-            "to": "engage",
-            "reason": "reacquired",
-            "tick": 688,
-            "time": 5.733
+            "from": "engage",
+            "to": "reposition",
+            "reason": "repositioning",
+            "tick": 1010,
+            "time": 8.417
           }
         ]
       },
@@ -421,8 +407,8 @@
     "ok": true,
     "failures": [],
     "runs": 2,
-    "shotsFired": 9,
-    "transitions": 8,
+    "shotsFired": 12,
+    "transitions": 7,
     "identical": true
   },
   "renderRate": {
@@ -436,7 +422,7 @@
       240
     ],
     "identical": true,
-    "transitions": 7
+    "transitions": 6
   },
   "cpu": {
     "ok": true,
@@ -444,8 +430,8 @@
     "enemies": 1,
     "stepsPerTrial": 5400,
     "trials": 3,
-    "perStepMicros": 0.4507,
-    "perFrame60Micros": 0.9014,
+    "perStepMicros": 1.0446,
+    "perFrame60Micros": 2.0892,
     "budgetMicros": 250
   }
 }

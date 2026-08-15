@@ -415,7 +415,13 @@ let playerMoved = false;
   record('frame_budget', p95 <= BUDGET_MS ? 'pass' : 'fail',
     `${p95.toFixed(3)} ms p95 against a ${BUDGET_MS} ms budget, measured while moving, `
       + `turning and firing (${t.budgetFrameMs.samples} paired samples).`,
-    { p95, median: t.budgetFrameMs.median, samples: t.budgetFrameMs.samples });
+    {
+      p95,
+      median: t.budgetFrameMs.median,
+      samples: t.budgetFrameMs.samples,
+      gpuP95: t.gpuFrameMs.p95,
+      cpuP95: t.cpuFrameMs.p95,
+    });
   var measuredP95 = p95;
 }
 

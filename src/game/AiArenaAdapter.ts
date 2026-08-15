@@ -31,7 +31,12 @@ export function createAiArenaBinding(
     );
   }
 
-  const aiBoxes = collidable.map((solid, index) => adaptBox(solid, world, index));
+  const allBoxes = collidable.map((solid, index) => adaptBox(solid, world, index));
+  // The AI core resolves movement in XZ and has no vertical capsule. A floor
+  // slab therefore looks like an arena-sized obstacle and ejects the agent
+  // outside the walls. Eye-level LOS cannot intersect a slab whose top is at
+  // y=0, so omit only those ground slabs after validating every core box.
+  const aiBoxes = allBoxes.filter((box) => box.max.y > 0.01);
   const byId = new Map(aiBoxes.map((box) => [box.id, box]));
   const cover: ArenaCover[] = definition.enemyCoverIds.map((id) => {
     const box = byId.get(id);

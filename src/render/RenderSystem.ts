@@ -17,12 +17,14 @@
  *     edges is the single loudest "this is a demo" signal.
  *  2. Ambient occlusion. Without contact darkening, everything looks like it
  *     is floating a millimetre above everything else.
- *  3. Bloom that only blooms genuinely bright things. HDR-thresholded, not a
- *     blur of the whole frame.
+ *  3. Selective glow that earns its frame cost. The fullscreen mip-bloom
+ *     implementation cost ~7ms while a blind critic found only the enemy visor
+ *     halo meaningful; production uses authored local glows and keeps the
+ *     fullscreen effect available only for controlled comparisons.
  *  4. Tone mapping and a colour grade. Untouched output is flat; shipped games
  *     always push contrast and a slight cool/warm split.
- *  5. Lens behaviour — subtle chromatic aberration at the edges, vignette,
- *     and grain. Real cameras do this and the eye reads its absence as CG.
+ *  5. Lens behaviour — useful for stills, but not when it breaks the measured
+ *     play budget. Full lens remains an explicit comparison mode.
  *
  * The exact tier of each effect is not a matter of taste here — it is measured.
  * Every knob below is reachable from the URL so `tools/shoot.mjs` can price each
@@ -53,6 +55,7 @@ import { generateSky, type SkyResult } from './ProceduralSky.js';
 type AoMode = 'full' | 'half' | 'off';
 type AaMode = 'ultra' | 'high' | 'medium' | 'low' | 'off';
 type BloomMode = 'large' | 'medium' | 'small' | 'off';
+type LensMode = 'full' | 'vignette' | 'off';
 
 interface RenderConfig {
   /** Image-based lighting from the procedural sky. */
@@ -63,8 +66,7 @@ interface RenderConfig {
   aoQuality: 'High' | 'Medium' | 'Low';
   aa: AaMode;
   bloom: BloomMode;
-  /** Chromatic aberration + vignette + grain, together — the lens character. */
-  lens: boolean;
+  lens: LensMode;
 }
 
 /**
@@ -103,9 +105,14 @@ function readConfig(): RenderConfig {
     // default. #1
     ao: pick('ao', 'off', ['full', 'half', 'off'] as const),
     aoQuality: pick('aoq', 'High', ['High', 'Medium', 'Low'] as const),
-    aa: pick('aa', 'ultra', ['ultra', 'high', 'medium', 'low', 'off'] as const),
-    bloom: pick('bloom', 'medium', ['large', 'medium', 'small', 'off'] as const),
-    lens: bool('lens', true),
+    aa: pick('aa', 'high', ['ultra', 'high', 'medium', 'low', 'off'] as const),
+    bloom: pick('bloom', 'off', ['large', 'medium', 'small', 'off'] as const),
+    lens: (() => {
+      const value = q.get('lens');
+      if (value === null || value === '0' || value === 'off' || value === 'false') return 'off';
+      if (value === 'vignette') return 'vignette';
+      return 'full';
+    })(),
   };
 }
 
@@ -237,18 +244,22 @@ export class RenderSystem implements System {
       effects.push(this.bloom);
     }
 
-    if (cfg.lens) {
+    if (cfg.lens !== 'off') {
       // Values deliberately near the threshold of perception. Anything you can
       // consciously see here is too much and reads as a filter.
-      this.ca = new ChromaticAberrationEffect({
-        offset: new THREE.Vector2(0.0006, 0.0006),
-        radialModulation: true,
-        modulationOffset: 0.4,
-      });
       const vignette = new VignetteEffect({ offset: 0.28, darkness: 0.55 });
-      const grain = new NoiseEffect({ blendFunction: BlendFunction.OVERLAY, premultiply: true });
-      grain.blendMode.opacity.value = 0.055;
-      effects.push(this.ca, vignette, grain);
+      if (cfg.lens === 'full') {
+        this.ca = new ChromaticAberrationEffect({
+          offset: new THREE.Vector2(0.0006, 0.0006),
+          radialModulation: true,
+          modulationOffset: 0.4,
+        });
+        const grain = new NoiseEffect({ blendFunction: BlendFunction.OVERLAY, premultiply: true });
+        grain.blendMode.opacity.value = 0.055;
+        effects.push(this.ca, vignette, grain);
+      } else {
+        effects.push(vignette);
+      }
     }
 
     // Tone mapping is not optional: it is what turns the linear HDR buffer into

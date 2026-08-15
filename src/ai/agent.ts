@@ -351,25 +351,13 @@ export class EnemyAgent {
       copy(this.coverGoal, this.repoGoal);
       this.hasCoverGoal = true;
     } else {
-      const cover = selectCover({
-        world: this.world,
-        cover: this.cover,
-        agent: this.position,
-        threat: this.lastKnown,
-        config: this.config,
-        rng: this.rng,
-        halfExtent: this.halfExtent,
-      });
-      if (cover) {
-        copy(this.coverGoal, cover.position);
-        this.selectedCoverId = cover.id;
-        this.selectedCoverBoxId = cover.boxId;
-        this.hasCoverGoal = true;
-      } else {
-        this.hasCoverGoal = false;
-        this.selectedCoverId = '';
-        this.selectedCoverBoxId = '';
-      }
+      // Initial contact must produce a readable fight before movement. Cover
+      // selection belongs to tryReposition() after the measured dwell/damage
+      // trigger; moving to zero-exposure cover here made the enemy lose sight
+      // before its first telegraph and fire no rounds.
+      this.hasCoverGoal = false;
+      this.selectedCoverId = '';
+      this.selectedCoverBoxId = '';
     }
     this.dwellSeconds = 0;
     this.wantsReposition = false;

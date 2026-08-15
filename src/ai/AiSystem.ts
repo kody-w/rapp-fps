@@ -23,7 +23,7 @@ import type {
 import { EnemyAgent } from './agent.js';
 import { DEFAULT_ENEMY_CONFIG } from './config.js';
 import {
-  ARENA_ENEMY_SPAWN, ARENA_ENEMY_YAW, buildArena,
+  ARENA_ENEMY_SPAWN, ARENA_ENEMY_YAW, buildArena, lineOfSightClear,
 } from './world.js';
 import type { Arena } from './world.js';
 import type {
@@ -118,6 +118,8 @@ export class AiSystem implements System {
   private enemyRoot!: THREE.Group; //  moved + oriented to the agent each frame
   private body!: THREE.Group; //       child of enemyRoot; topples on death
   private visor!: THREE.MeshStandardMaterial;
+  private visorGlow!: THREE.Sprite;
+  private visorGlowMat!: THREE.SpriteMaterial;
   private gaze!: THREE.Mesh;
   private gazeMat!: THREE.MeshBasicMaterial;
   private telegraph!: THREE.Mesh;
@@ -133,6 +135,8 @@ export class AiSystem implements System {
 
   private readonly scratch = new THREE.Vector3();
   private readonly upAxis = new THREE.Vector3(0, 1, 0);
+  private readonly glowFrom: Vec3 = { x: 0, y: 0, z: 0 };
+  private readonly glowTo: Vec3 = { x: 0, y: 0, z: 0 };
 
   constructor(options: AiSystemOptions = {}) {
     this.arena = options.arena ?? buildArena();
@@ -241,6 +245,7 @@ export class AiSystem implements System {
     // authoritative current pose; presentation interpolates it later.
     this.enemyRoot.position.copy(this.currPos);
     this.enemyRoot.rotation.set(0, -this.currYaw, 0);
+    this.enemyRoot.updateMatrixWorld(true);
 
     if (previousState !== 'dead' && this.agent.state === 'dead') {
       ctx.bus.emit(Events.Elimination, {
@@ -259,7 +264,7 @@ export class AiSystem implements System {
     }
   }
 
-  update(u: UpdateContext, _ctx: EngineContext): void {
+  update(u: UpdateContext, ctx: EngineContext): void {
     const a = this.agent;
     const alpha = a.state === 'dead' ? 1 : u.alpha;
 
@@ -274,6 +279,19 @@ export class AiSystem implements System {
     const color = STATE_COLOR[a.state];
     this.visor.emissive.setHex(color);
     this.visor.color.setHex(color);
+    this.visorGlowMat.color.setHex(color);
+    this.visorGlowMat.opacity = a.state === 'dead' ? 0.12 : 0.7;
+    this.glowFrom.x = a.position.x;
+    this.glowFrom.y = a.position.y + a.config.eyeHeight;
+    this.glowFrom.z = a.position.z;
+    this.glowTo.x = ctx.camera.position.x;
+    this.glowTo.y = ctx.camera.position.y;
+    this.glowTo.z = ctx.camera.position.z;
+    this.visorGlow.visible = lineOfSightClear(
+      this.arena.world,
+      this.glowFrom,
+      this.glowTo,
+    );
 
     this.updateDeath(a.state, a.deathSeconds);
     this.updateGaze(a.state);
@@ -406,6 +424,38 @@ export class AiSystem implements System {
     visor.position.set(0, bodyH + 0.14, -0.18);
     this.body.add(visor);
     this.disposables.push(visorGeo, this.visor);
+
+    // One local, depth-tested glow preserves the visor's combat saliency
+    // without paying for a fullscreen bloom pyramid. It is generated at boot,
+    // procedural, and occluded by cover like the visor it belongs to.
+    const glowCanvas = document.createElement('canvas');
+    glowCanvas.width = 64;
+    glowCanvas.height = 64;
+    const glowCtx = glowCanvas.getContext('2d');
+    if (!glowCtx) throw new Error('AiSystem: visor glow canvas unavailable');
+    const gradient = glowCtx.createRadialGradient(32, 32, 2, 32, 32, 32);
+    gradient.addColorStop(0, 'rgba(255,255,255,0.95)');
+    gradient.addColorStop(0.2, 'rgba(255,255,255,0.55)');
+    gradient.addColorStop(1, 'rgba(255,255,255,0)');
+    glowCtx.fillStyle = gradient;
+    glowCtx.fillRect(0, 0, 64, 64);
+    const glowTexture = new THREE.CanvasTexture(glowCanvas);
+    glowTexture.colorSpace = THREE.SRGBColorSpace;
+    this.visorGlowMat = new THREE.SpriteMaterial({
+      map: glowTexture,
+      color: 0x36d17a,
+      transparent: true,
+      opacity: 0.7,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: false,
+    });
+    this.visorGlow = new THREE.Sprite(this.visorGlowMat);
+    this.visorGlow.raycast = () => {};
+    this.visorGlow.position.set(0, bodyH + 0.14, -0.215);
+    this.visorGlow.scale.setScalar(0.9);
+    this.body.add(this.visorGlow);
+    this.disposables.push(glowTexture, this.visorGlowMat);
   }
 
   private buildEffects(): void {

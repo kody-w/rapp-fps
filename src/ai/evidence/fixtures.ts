@@ -171,13 +171,15 @@ function buildScenarios(): Scenario[] {
     { t: 20, x: 0, z: 1.0 },
   ];
 
-  // Same approach, then duck hard left behind hide-l to break sight.
+  // Same approach, then retreat beyond verified vision range and stay absent.
+  // This proves search abandonment under the default config without allowing
+  // search movement to discover a new angle around local cover.
   const approachHide: Key[] = [
     { t: 0, x: 0, z: 8.5 },
     { t: 2.5, x: 0, z: 1.0 },
     { t: 3.5, x: 0, z: 1.0 },
-    { t: 4.3, x: -2.6, z: 2.4 },
-    { t: 20, x: -2.6, z: 2.4 },
+    { t: 4.3, x: -2.6, z: 40 },
+    { t: 20, x: -2.6, z: 40 },
   ];
 
   // Approach, hide, then re-emerge into the lane.
@@ -226,7 +228,7 @@ function buildScenarios(): Scenario[] {
     },
     {
       name: 'engage-lose-sight-abandon',
-      note: 'Spotted, then the player ducks behind cover and stays hidden until the search times out.',
+      note: 'Spotted, then the player retreats beyond vision range until search times out.',
       seconds: 13,
       script: ({ time }) => ({ target: target(pathAt(approachHide, time)) }),
     },

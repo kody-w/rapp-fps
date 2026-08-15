@@ -177,8 +177,9 @@ function testCanonicalArenaBinding(): Outcome {
   const coreWorld = buildStaticWorld(definition);
   const binding = createAiArenaBinding(definition, coreWorld);
 
-  if (binding.arena.world.boxes.length !== coreWorld.boxes.length) {
-    failures.push('AI and core world box counts differ');
+  const expectedAiBoxes = coreWorld.boxes.filter((box) => box.max[1] > 0.01);
+  if (binding.arena.world.boxes.length !== expectedAiBoxes.length) {
+    failures.push('AI occluder count differs after removing ground slabs');
   }
   const expectedCover = definition.enemyCoverIds.join(',');
   const actualCover = binding.arena.cover.map((cover) => cover.id).join(',');
@@ -188,8 +189,8 @@ function testCanonicalArenaBinding(): Outcome {
   if (binding.spawn.y !== 0) {
     failures.push(`enemy spawn y ${binding.spawn.y} is not a ground/feet coordinate`);
   }
-  for (let i = 0; i < coreWorld.boxes.length; i++) {
-    const core = coreWorld.boxes[i];
+  for (let i = 0; i < expectedAiBoxes.length; i++) {
+    const core = expectedAiBoxes[i];
     const ai = binding.arena.world.boxes[i];
     const flat = [ai.min.x, ai.min.y, ai.min.z, ai.max.x, ai.max.y, ai.max.z];
     if (flat.join(',') !== [...core.min, ...core.max].join(',')) {
@@ -203,7 +204,8 @@ function testCanonicalArenaBinding(): Outcome {
     pass: failures.length === 0,
     failures,
     detail: {
-      boxes: coreWorld.boxes.length,
+      coreBoxes: coreWorld.boxes.length,
+      aiOccluders: binding.arena.world.boxes.length,
       cover: binding.arena.cover.map((item) => item.id),
       spawn: binding.spawn,
       yaw: binding.yaw,

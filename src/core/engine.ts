@@ -194,7 +194,12 @@ export class Engine {
   dispose(): void {
     this.stop();
     window.removeEventListener('resize', this.onResize);
-    for (const s of this.systems) s.dispose?.();
+    // Tear down dependants before providers (weapon/AI/player before level and
+    // render). Forward disposal can restore a hook after its owner removed it.
+    for (let i = this.systems.length - 1; i >= 0; i--) {
+      this.systems[i].dispose?.();
+    }
+    this.bus.clear();
     this.profiler.dispose();
     this.renderer.dispose();
   }
