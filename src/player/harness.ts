@@ -68,11 +68,16 @@ engine.present = () => {
   const info = engine.renderer.info;
   info.reset();
   // Apply the player's transient view effects for the draw only, then restore
-  // the authoritative pose — the same bracket RenderSystem uses for shake — so
-  // window.engine.camera reports the true eye pose between frames.
+  // the authoritative pose in a finally — the same exception-safe bracket
+  // RenderSystem uses for shake — so a throwing draw cannot leave the shared
+  // camera dressed with bob (which the next frame would then restore as stale
+  // state). window.engine.camera reports the true eye pose between frames.
   player.applyViewEffects();
-  render.render();
-  player.restoreView();
+  try {
+    render.render();
+  } finally {
+    player.restoreView();
+  }
   (window as unknown as Record<string, unknown>).__SCENE_STATS__ = {
     drawCallsPerFrame: info.render.calls,
     trianglesPerFrame: info.render.triangles,

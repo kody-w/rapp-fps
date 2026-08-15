@@ -1,0 +1,97 @@
+{
+  "eyeHeight": 1.66,
+  "frames": {
+    "N": {
+      "feet": [
+        0,
+        0,
+        6
+      ],
+      "offsets": {
+        "bobX": 0.02,
+        "bobY": 0.05,
+        "landing": -0.03,
+        "step": 0,
+        "roll": 0.03
+      },
+      "expectedTrue": [
+        0,
+        1.66,
+        6
+      ]
+    },
+    "Nplus1": {
+      "feet": [
+        0,
+        0,
+        5.5
+      ],
+      "offsets": {
+        "bobX": 0.018,
+        "bobY": 0.04,
+        "landing": 0,
+        "step": 0,
+        "roll": 0.028
+      },
+      "expectedTrue": [
+        0,
+        1.66,
+        5.5
+      ]
+    }
+  },
+  "safe": {
+    "afterThrow": {
+      "pos": [
+        0,
+        1.66,
+        6
+      ],
+      "rz": 0,
+      "viewApplied": false
+    },
+    "afterNext": {
+      "pos": [
+        0,
+        1.66,
+        5.5
+      ],
+      "rz": 0
+    }
+  },
+  "unsafe": {
+    "afterThrow": {
+      "pos": [
+        0.02,
+        1.68,
+        6
+      ],
+      "viewApplied": true
+    },
+    "afterNext": {
+      "pos": [
+        0,
+        1.66,
+        6
+      ]
+    }
+  },
+  "checks": [
+    {
+      "name": "safe: true pose N restored after the draw throws",
+      "pass": true,
+      "detail": "camera=(0.000, 1.660, 6.000) rz=0.0000 expected=(0.000, 1.660, 6.000)"
+    },
+    {
+      "name": "safe: next frame shows true pose N+1 (no stale restore)",
+      "pass": true,
+      "detail": "camera=(0.000, 1.660, 5.500) expected=(0.000, 1.660, 5.500)"
+    },
+    {
+      "name": "teeth: unsafe bracket corrupts frame N+1 with the stale pose",
+      "pass": true,
+      "detail": "camera=(0.000, 1.660, 6.000) stale=(0.000, 1.660, 6.000) true=(0.000, 1.660, 5.500) error=0.500 m"
+    }
+  ],
+  "verdict": "RESTORED (exception-safe)"
+}

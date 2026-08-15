@@ -7,9 +7,13 @@ make the unverified slope path *unreachable* rather than merely untested. That
 call is only honest if the defect it routes around is demonstrable. This is the
 demonstration.
 
-Nothing here is shipped. Nothing here is imported by `src/player/index.ts`. Both
-files are `.mjs` and run directly on Node with the repo's `three` /
+Nothing here is shipped. Nothing here is imported by `src/player/index.ts`. Every
+file here is `.mjs` and runs directly on Node with the repo's `three` /
 `three-mesh-bvh` already installed.
+
+The ramp files below are the slope blocker's witness. A third file,
+[`view-restore-on-throw.mjs`](#a-second-witness-the-present-bracket), guards a
+separate harness invariant and is documented at the end.
 
 | file | what it is |
 | --- | --- |
@@ -110,3 +114,52 @@ game, not merely unexercised by tests**.
 Slopes return later under their own issue. When they do, a slope solver must
 drive this fixture's pop to ~0 across the whole sweep **before** it ships. Until
 then, this is the witness that says why they are gone.
+
+## A second witness: the present bracket
+
+`view-restore-on-throw.mjs` is unrelated to slopes. It guards a harness
+invariant found in the cold review of PR #40.
+
+The harness presents each frame by dressing the shared camera with cosmetic view
+effects (head-bob, landing dip, step glide, bob-roll) for the draw only, then
+restoring the authoritative pose — the same discipline `RenderSystem` uses for
+camera shake:
+
+```js
+player.applyViewEffects();      // save true pose, add the cosmetic offsets
+try { render.render(); }        // draw the dressed frame
+finally { player.restoreView(); }   // put the true pose back — always
+```
+
+Without the `try/finally`, a throwing `render.render()` skips `restoreView()`.
+`viewApplied` stays true, so the *next* frame's `applyViewEffects()`
+early-returns and its `restoreView()` copies the previous frame's saved position
+over the current true pose. Every observer that reads `window.engine.camera`
+between frames — AI, networking, this project's own `verify-slice` — then sees a
+stale, corrupted position.
+
+The fixture ports `PlayerSystem.applyViewEffects` / `restoreView` verbatim and
+drives both the unsafe and the safe bracket over two frames — a throwing frame
+`N` and a clean frame `N+1` at a different true position — using real `three`
+cameras. It writes `view-restore-on-throw.report.json`.
+
+```sh
+node src/player/fixtures/view-restore-on-throw.mjs
+```
+
+```
+  result                                                          check
+  ok    safe: true pose N restored after the draw throws
+        camera=(0.000, 1.660, 6.000) rz=0.0000 expected=(0.000, 1.660, 6.000)
+  ok    safe: next frame shows true pose N+1 (no stale restore)
+        camera=(0.000, 1.660, 5.500) expected=(0.000, 1.660, 5.500)
+  ok    teeth: unsafe bracket corrupts frame N+1 with the stale pose
+        camera=(0.000, 1.660, 6.000) true=(0.000, 1.660, 5.500) error=0.500 m
+
+VERDICT: RESTORED (exception-safe)
+```
+
+The third check is the negative control: it proves the unsafe bracket really
+does carry a 0.5 m stale error into the next frame, so the two `safe` assertions
+are not passing vacuously. Exit is non-zero if the shipped bracket ever fails to
+restore the true pose.
