@@ -1,0 +1,50 @@
+{
+  "at": "2026-08-15T01:53:18.318Z",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "cpuThrottleRate": 1,
+  "rafDelayMs": 0,
+  "frameBudgetMs": 16.7,
+  "overBudget": false,
+  "performance": {
+    "gpuSupported": true,
+    "gpuCounterBits": 64,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 11.813,
+      "p95": 14.922,
+      "worst": 19.663
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 0.7,
+      "p95": 1.7,
+      "worst": 2
+    },
+    "rafIntervalMs": {
+      "samples": 122,
+      "median": 16.6,
+      "p95": 17.5,
+      "worst": 17.7
+    },
+    "budgetFrameMsMedian": 11.813,
+    "budgetFrameMsP95": 14.922,
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 11.813,
+      "p95": 14.922,
+      "worst": 19.663
+    },
+    "gpuDisjointCount": 0,
+    "note": "budget uses max(CPU, GPU); rAF interval is scheduler cadence only",
+    "drawCallsPerFrame": 38,
+    "trianglesPerFrame": 822,
+    "programs": 15,
+    "textures": 35,
+    "geometries": 13
+  },
+  "shots": [
+    "shots/arena-timing-3/spawn.png"
+  ],
+  "consoleErrors": []
+}

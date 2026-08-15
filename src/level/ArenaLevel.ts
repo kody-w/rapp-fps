@@ -1,0 +1,182 @@
+/**
+ * The arena as an engine `System`.
+ *
+ * Registration matches the merged subsystems (render/fx/audio/hud): a plain
+ * class with `name`, `init`, `update`, `dispose`, added to the engine by the
+ * boot path — it never self-registers. It runs after `RenderSystem` so the
+ * procedural-sky IBL (`scene.environment`) is already live when the materials
+ * are added.
+ *
+ * The one thing this system refuses to do is start with collision that does not
+ * match what it drew: `init` runs the correspondence proof against the real
+ * merged buffers and throws if it fails, exactly the loud-failure posture the
+ * rest of the project takes. A world that silently disagreed with its geometry
+ * is the #8 failure mode.
+ */
+
+import * as THREE from 'three';
+import type { EngineContext, System, UpdateContext } from '../core/contracts.js';
+import type { StaticWorld } from '../core/collision.js';
+import { buildArena, type ArenaDefinition, type LightSpec } from './arena.js';
+import { createArenaMaterials, type ArenaMaterials } from './materials.js';
+import { mergeSolidsByMaterial, type MergedGroup } from './geometry.js';
+import { buildStaticWorld } from './staticWorld.js';
+import { checkCorrespondence, formatReport, type CorrespondenceReport } from './correspondence.js';
+
+export class ArenaLevel implements System {
+  readonly name = 'level';
+
+  private readonly def: ArenaDefinition = buildArena();
+  private root = new THREE.Group();
+  private materials?: ArenaMaterials;
+  private groups: MergedGroup[] = [];
+  private lights: THREE.Object3D[] = [];
+  private beaconMat?: THREE.MeshStandardMaterial;
+
+  private world?: StaticWorld;
+  private report?: CorrespondenceReport;
+  private installedShotHook = false;
+
+  /** Exposed so a player/AI motor can collide against the built world. */
+  get staticWorld(): StaticWorld | undefined {
+    return this.world;
+  }
+
+  get correspondence(): CorrespondenceReport | undefined {
+    return this.report;
+  }
+
+  init(ctx: EngineContext): void {
+    const { scene } = ctx;
+    this.root.name = 'arena';
+    scene.add(this.root);
+
+    // ── Collision, derived from the same solids as the geometry ───────────
+    this.world = buildStaticWorld(this.def);
+
+    // ── Geometry: merge by material, one mesh per group ───────────────────
+    this.materials = createArenaMaterials(ctx.renderer);
+    this.groups = mergeSolidsByMaterial(this.def.solids);
+    for (const group of this.groups) {
+      const material = this.materials.byKey[group.material];
+      const mesh = new THREE.Mesh(group.geometry, material);
+      mesh.name = `arena:${group.material}`;
+      mesh.castShadow = group.castShadow;
+      mesh.receiveShadow = group.receiveShadow;
+      mesh.matrixAutoUpdate = false; // static
+      mesh.updateMatrix();
+      this.root.add(mesh);
+    }
+    this.beaconMat = this.materials.byKey.beacon as THREE.MeshStandardMaterial;
+
+    // ── Prove render ⇄ collision correspondence against the real buffers ──
+    this.report = checkCorrespondence(this.def, this.world, this.groups);
+    if (typeof window !== 'undefined') {
+      (window as unknown as Record<string, unknown>).__ARENA_CHECK__ = this.report;
+      (window as unknown as Record<string, unknown>).__LEVEL_STATIC_WORLD__ = this.world;
+      (window as unknown as Record<string, unknown>).__ARENA_SPAWNS__ = {
+        player: this.def.playerSpawn,
+        enemy: this.def.enemySpawn,
+      };
+    }
+    if (!this.report.ok) {
+      // Loud failure: the running game must not present cover the player cannot
+      // trust. This is the guard #8 lacked.
+      throw new Error(`arena render/collision correspondence FAILED\n${formatReport(this.report)}`);
+    }
+
+    // ── Lighting: blue-hour ambient, warm practicals ──────────────────────
+    for (const spec of this.def.lights) this.addLight(scene, spec);
+
+    // ── Atmosphere ────────────────────────────────────────────────────────
+    scene.fog = new THREE.FogExp2(this.def.fog.color, this.def.fog.density);
+
+    // ── Camera: default framing is the spawn read ─────────────────────────
+    this.applyShot(ctx.camera, 'spawn');
+    this.installShotHook(ctx.camera);
+  }
+
+  private addLight(scene: THREE.Scene, spec: LightSpec): void {
+    if (spec.kind === 'directional') {
+      const light = new THREE.DirectionalLight(spec.color, spec.intensity);
+      if (spec.position) light.position.set(...spec.position);
+      light.target.position.set(0, 0, -9);
+      if (spec.castShadow) {
+        light.castShadow = true;
+        light.shadow.mapSize.set(2048, 2048);
+        light.shadow.camera.near = 0.5;
+        light.shadow.camera.far = 60;
+        const d = 17;
+        light.shadow.camera.left = -d;
+        light.shadow.camera.right = d;
+        light.shadow.camera.top = d;
+        light.shadow.camera.bottom = -d;
+        light.shadow.bias = -0.0008;
+        light.shadow.normalBias = 0.02;
+        light.shadow.radius = 4;
+      }
+      scene.add(light);
+      scene.add(light.target);
+      this.lights.push(light, light.target);
+    } else if (spec.kind === 'hemisphere') {
+      const light = new THREE.HemisphereLight(spec.color, spec.groundColor ?? 0x000000, spec.intensity);
+      scene.add(light);
+      this.lights.push(light);
+    } else {
+      const light = new THREE.PointLight(spec.color, spec.intensity, spec.distance ?? 0, spec.decay ?? 2);
+      if (spec.position) light.position.set(...spec.position);
+      scene.add(light);
+      this.lights.push(light);
+    }
+  }
+
+  private applyShot(camera: THREE.PerspectiveCamera, name: string): void {
+    const shot = this.def.shots.find((s) => s.name === name);
+    if (!shot) return;
+    camera.position.set(...shot.position);
+    camera.lookAt(new THREE.Vector3(...shot.lookAt));
+    if (shot.fov && camera.fov !== shot.fov) {
+      camera.fov = shot.fov;
+      camera.updateProjectionMatrix();
+    }
+  }
+
+  private installShotHook(camera: THREE.PerspectiveCamera): void {
+    if (typeof window === 'undefined') return;
+    (window as unknown as Record<string, unknown>).__SHOT__ = (name: string) => {
+      this.applyShot(camera, name);
+    };
+    (window as unknown as Record<string, unknown>).__SHOT_LIST__ = this.def.shots.map((s) => ({
+      name: s.name,
+      caption: s.caption,
+    }));
+    this.installedShotHook = true;
+  }
+
+  update(u: UpdateContext): void {
+    // A slow, deterministic beacon pulse — a little life at the objective end
+    // without perturbing frame timing. Everything else is static.
+    if (this.beaconMat) {
+      this.beaconMat.emissiveIntensity = 6 + Math.sin(u.elapsed * 1.6) * 1.4;
+    }
+  }
+
+  dispose(): void {
+    this.root.parent?.remove(this.root);
+    for (const group of this.groups) group.geometry.dispose();
+    this.groups = [];
+    this.materials?.dispose();
+    this.materials = undefined;
+    for (const light of this.lights) light.parent?.remove(light);
+    this.lights = [];
+    if (this.installedShotHook && typeof window !== 'undefined') {
+      const w = window as unknown as Record<string, unknown>;
+      delete w.__SHOT__;
+      delete w.__SHOT_LIST__;
+      delete w.__ARENA_CHECK__;
+      delete w.__LEVEL_STATIC_WORLD__;
+      delete w.__ARENA_SPAWNS__;
+      this.installedShotHook = false;
+    }
+  }
+}
