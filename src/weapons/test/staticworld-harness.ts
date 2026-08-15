@@ -141,7 +141,11 @@ function testColliderNearestMissAndInvalid(): Outcome {
 // ── 2. weapon integration ─────────────────────────────────────────────────────
 // Fire one shot and return where it lands, with a cosmetic ballistic mesh placed
 // in FRONT of the arena box. `useArena` toggles the static-world routing.
-function fireOneShot(useArena: boolean): { z: number; normalZ: number; material: string } | null {
+function fireOneShot(
+  useArena: boolean,
+  dynamicZ?: number,
+  wallZ = -19,
+): { z: number; normalZ: number; material: string; targetId?: string | number } | null {
   const scene = new THREE.Scene();
   // Cosmetic wall at z ≈ −10 (nearer than the arena box at −19). In the scene
   // path this would stop the round; in arena mode it must be transparent.
@@ -151,6 +155,18 @@ function fireOneShot(useArena: boolean): { z: number; normalZ: number; material:
   cosmetic.userData.surface = 'concrete';
   cosmetic.updateMatrixWorld(true);
   scene.add(cosmetic);
+  if (dynamicZ !== undefined) {
+    const target = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 16, 12),
+      new THREE.MeshBasicMaterial(),
+    );
+    target.position.set(0, 0, dynamicZ);
+    target.userData.ballisticCollider = true;
+    target.userData.damageTargetId = 'enemy-test';
+    target.userData.surface = 'flesh';
+    target.updateMatrixWorld(true);
+    scene.add(target);
+  }
 
   const camera = makeCamera();
   const bus = new EventBusImpl();
@@ -158,7 +174,7 @@ function fireOneShot(useArena: boolean): { z: number; normalZ: number; material:
   const weapon = new WeaponSystem(DUSKLINE_A7);
   const ctx = makeContext(scene, camera, bus, input);
   weapon.init(ctx);
-  if (useArena) weapon.useStaticWorld(arena('metal', -19));
+  if (useArena) weapon.useStaticWorld(arena('metal', wallZ));
 
   let impact: BulletImpactPayload | null = null;
   const off = bus.on<BulletImpactPayload>(Events.BulletImpact, (p) => { if (!impact) impact = p; });
@@ -171,7 +187,37 @@ function fireOneShot(useArena: boolean): { z: number; normalZ: number; material:
 
   if (impact === null) return null;
   const hit = impact as BulletImpactPayload;
-  return { z: hit.point.z, normalZ: hit.normal.z, material: String(hit.material) };
+  return {
+    z: hit.point.z,
+    normalZ: hit.normal.z,
+    material: String(hit.material),
+    targetId: hit.targetId,
+  };
+}
+
+function testDynamicTargetAndWorldChooseNearest(): Outcome {
+  const failures: string[] = [];
+
+  const targetFirst = fireOneShot(true, -8, -19);
+  if (!targetFirst || targetFirst.targetId !== 'enemy-test') {
+    failures.push(`dynamic enemy before wall should win; got ${JSON.stringify(targetFirst)}`);
+  } else if (targetFirst.material !== 'flesh') {
+    failures.push(`dynamic target should report flesh; got ${targetFirst.material}`);
+  }
+
+  const wallFirst = fireOneShot(true, -20, -9);
+  if (!wallFirst || wallFirst.targetId !== undefined) {
+    failures.push(`wall before enemy should occlude target; got ${JSON.stringify(wallFirst)}`);
+  } else if (wallFirst.material !== 'metal') {
+    failures.push(`occluding wall should report metal; got ${wallFirst.material}`);
+  }
+
+  return {
+    name: 'dynamicTargetAndWorldChooseNearest',
+    pass: failures.length === 0,
+    failures,
+    detail: { targetFirst, wallFirst },
+  };
 }
 
 function testWeaponResolvesAgainstArena(): Outcome {
@@ -212,6 +258,7 @@ function run(): HarnessResult {
     result.tests.push(testColliderResolvesBox());
     result.tests.push(testColliderNearestMissAndInvalid());
     result.tests.push(testWeaponResolvesAgainstArena());
+    result.tests.push(testDynamicTargetAndWorldChooseNearest());
   } catch (error) {
     result.collectionErrors.push(error instanceof Error ? `${error.message}\n${error.stack}` : String(error));
   }

@@ -19,6 +19,7 @@ interface ResolvedHit {
   normal: THREE.Vector3;
   material: SurfaceKind;
   distance: number;
+  targetId?: string | number;
 }
 
 export interface BallisticShot {
@@ -134,6 +135,9 @@ export class HitscanBallistics {
       material: hit.material,
       distance: hit.distance,
       damage: this.damageAt(hit.distance),
+      targetId: hit.targetId,
+      source: shot.muzzleOrigin.clone(),
+      direction: this.muzzleDirection.clone(),
     };
     this.bus.emit(Events.BulletImpact, impact);
 
@@ -145,20 +149,20 @@ export class HitscanBallistics {
 
   /**
    * Resolve the nearest ballistic hit along a ray, normalised across both worlds.
-   * With a static world set, the arena's axis-aligned boxes answer analytically
-   * (world-space axis normal, box material). Otherwise the proven scene-mesh
-   * raycast answers, applying the per-instance transform to the geometry normal
-   * for InstancedMesh hits (defect #1) and falling back to the reversed ray
-   * direction when a hit carries no face.
+   * Static arena boxes answer analytically. Dynamic damage targets still answer
+   * through the scene graph; the closest positive hit wins, so a target cannot
+   * be shot through cover and a cosmetic level mesh cannot duplicate the
+   * canonical AABB world.
    */
   private resolveHit(
     origin: THREE.Vector3,
     direction: THREE.Vector3,
     far: number,
   ): ResolvedHit | null {
-    if (this.staticWorld) {
-      const worldHit = this.staticWorld.raycast(origin, direction, far);
-      if (!worldHit) return null;
+    const worldHit = this.staticWorld?.raycast(origin, direction, far) ?? null;
+    const sceneHit = this.resolveSceneHit(origin, direction, far, this.staticWorld !== null);
+
+    if (worldHit && (!sceneHit || worldHit.distance <= sceneHit.distance)) {
       return {
         point: worldHit.point,
         normal: worldHit.normal,
@@ -166,8 +170,16 @@ export class HitscanBallistics {
         distance: worldHit.distance,
       };
     }
+    return sceneHit;
+  }
 
-    const hit = this.firstHit(origin, direction, far);
+  private resolveSceneHit(
+    origin: THREE.Vector3,
+    direction: THREE.Vector3,
+    far: number,
+    dynamicOnly: boolean,
+  ): ResolvedHit | null {
+    const hit = this.firstHit(origin, direction, far, dynamicOnly);
     if (!hit) return null;
 
     const normal = new THREE.Vector3();
@@ -195,6 +207,7 @@ export class HitscanBallistics {
       normal,
       material: this.surfaceOf(hit.object),
       distance: hit.distance,
+      targetId: this.damageTargetOf(hit.object),
     };
   }
 
@@ -202,11 +215,15 @@ export class HitscanBallistics {
     origin: THREE.Vector3,
     direction: THREE.Vector3,
     far: number,
+    dynamicOnly = false,
   ): THREE.Intersection | null {
     this.raycaster.far = far;
     this.raycaster.set(origin, direction);
     return this.raycaster.intersectObjects(this.scene.children, true)
-      .find((candidate) => this.isBallisticCollider(candidate.object)) ?? null;
+      .find((candidate) => (
+        this.isBallisticCollider(candidate.object)
+        && (!dynamicOnly || this.damageTargetOf(candidate.object) !== undefined)
+      )) ?? null;
   }
 
   /**
@@ -247,5 +264,15 @@ export class HitscanBallistics {
       current = current.parent;
     }
     return 'concrete';
+  }
+
+  private damageTargetOf(object: THREE.Object3D): string | number | undefined {
+    let current: THREE.Object3D | null = object;
+    while (current) {
+      const target = current.userData.damageTargetId as string | number | undefined;
+      if (target !== undefined) return target;
+      current = current.parent;
+    }
+    return undefined;
   }
 }

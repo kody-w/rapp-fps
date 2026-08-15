@@ -18,6 +18,11 @@ export interface BulletImpactPayload {
   material: SurfaceKind;
   distance: number;
   damage: number;
+  /** Present only when the nearest collider is a dynamic damage target. */
+  targetId?: string | number;
+  /** Authoritative shot line, copied so a health authority can attribute damage. */
+  source?: THREE.Vector3;
+  direction?: THREE.Vector3;
 }
 
 /** Extra field is local until the coordinator decides whether to extend AimChanged. */

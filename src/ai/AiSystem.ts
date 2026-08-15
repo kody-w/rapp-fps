@@ -39,6 +39,12 @@ export interface PlayerSample {
 
 export interface AiSystemOptions {
   config?: EnemyConfig;
+  /** Canonical host arena. The private calibration arena remains the fallback. */
+  arena?: Arena;
+  spawn?: Vec3;
+  yaw?: number;
+  /** Host combat output; visual output is always preserved and forwarded. */
+  combatSink?: CombatSink;
   /** Supplies the player each fixed step. Defaults to the camera's ground point. */
   playerProvider?: (ctx: EngineContext) => PlayerSample | null;
   /** Draw the arena cover boxes. The level owns these in a full game. */
@@ -70,6 +76,8 @@ export class AiSystem implements System {
   frozen = false;
   private readonly config: EnemyConfig;
   private readonly sink: CombatSink;
+  private readonly spawn: Vec3;
+  private readonly spawnYaw: number;
 
   // ── Live CPU probe (secondary, in-browser cross-check) ──────────────────
   lastStepMs = 0;
@@ -78,8 +86,12 @@ export class AiSystem implements System {
   sampledSteps = 0;
   private stepMsTotal = 0;
 
-  private readonly opts: Required<Omit<AiSystemOptions, 'config' | 'playerProvider' | 'enemyId'>>
-    & Pick<AiSystemOptions, 'playerProvider' | 'enemyId'>;
+  private readonly opts: {
+    renderWorld: boolean;
+    targetId: string;
+    playerProvider?: (ctx: EngineContext) => PlayerSample | null;
+    enemyId: string | number;
+  };
 
   // Per-tick input buffers, filled by bus subscriptions, drained each step.
   private pendingFootsteps: FootstepStimulus[] = [];
@@ -123,7 +135,7 @@ export class AiSystem implements System {
   private readonly upAxis = new THREE.Vector3(0, 1, 0);
 
   constructor(options: AiSystemOptions = {}) {
-    this.arena = buildArena();
+    this.arena = options.arena ?? buildArena();
     this.opts = {
       renderWorld: options.renderWorld ?? true,
       targetId: options.targetId ?? 'player',
@@ -131,12 +143,20 @@ export class AiSystem implements System {
       enemyId: options.enemyId ?? 'enemy-01',
     };
 
+    this.spawn = options.spawn ?? ARENA_ENEMY_SPAWN;
+    this.spawnYaw = options.yaw ?? ARENA_ENEMY_YAW;
+
+    const hostSink = options.combatSink;
     const sink: CombatSink = {
+      onAim: (aim, time) => hostSink?.onAim?.(aim, time),
+      onTelegraph: (aim, windup, time) => hostSink?.onTelegraph?.(aim, windup, time),
       onFire: (shot: FireShot) => {
         this.shotOrigin.set(shot.origin.x, shot.origin.y, shot.origin.z);
         this.shotDir.set(shot.direction.x, shot.direction.y, shot.direction.z);
         this.firedThisFrame = true;
+        hostSink?.onFire?.(shot);
       },
+      onCease: (reason, time) => hostSink?.onCease?.(reason, time),
     };
     this.sink = sink;
     this.config = options.config ?? DEFAULT_ENEMY_CONFIG;
@@ -154,6 +174,9 @@ export class AiSystem implements System {
     scene.add(this.root);
     this.enemyRoot = new THREE.Group();
     this.enemyRoot.name = 'ai-enemy';
+    this.enemyRoot.userData.ballisticCollider = true;
+    this.enemyRoot.userData.damageTargetId = this.opts.enemyId;
+    this.enemyRoot.userData.surface = 'flesh';
     this.enemyRoot.position.set(
       this.agent.position.x, this.agent.position.y, this.agent.position.z,
     );
@@ -200,6 +223,7 @@ export class AiSystem implements System {
     };
 
     const t0 = performance.now();
+    const previousState = this.agent.state;
     this.agent.fixedStep(step, input);
     const dtMs = performance.now() - t0;
 
@@ -208,6 +232,17 @@ export class AiSystem implements System {
 
     this.currPos.set(this.agent.position.x, this.agent.position.y, this.agent.position.z);
     this.currYaw = this.agent.yaw;
+    // Ballistics runs on the fixed step. Keep its dynamic collider at the
+    // authoritative current pose; presentation interpolates it later.
+    this.enemyRoot.position.copy(this.currPos);
+    this.enemyRoot.rotation.set(0, -this.currYaw, 0);
+
+    if (previousState !== 'dead' && this.agent.state === 'dead') {
+      ctx.bus.emit(Events.Elimination, {
+        id: this.opts.enemyId,
+        label: 'HOSTILE DOWN',
+      });
+    }
 
     // Discard warm-up steps; the JIT is not representative of steady state.
     if (this.agent.tick > WARMUP_STEPS) {
@@ -257,7 +292,7 @@ export class AiSystem implements System {
   private buildAgent(): EnemyAgent {
     return new EnemyAgent(
       this.config, this.arena.world, this.arena.cover, this.arena.halfExtent,
-      { spawn: ARENA_ENEMY_SPAWN, yaw: ARENA_ENEMY_YAW, combat: this.sink },
+      { spawn: this.spawn, yaw: this.spawnYaw, combat: this.sink },
     );
   }
 
