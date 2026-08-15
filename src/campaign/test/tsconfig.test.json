@@ -1,0 +1,21 @@
+{
+  "//": "Emit-only config for the browser-free Node proof (mirrors src/ai/evidence). Node 20 cannot run the repo's .js-specifier-to-.ts imports directly, so we compile the campaign + its one level dependency to gitignored dist/campaign and run the emitted JS. rootDir is src because run.ts transitively imports ../../level/arena.ts, which lives outside src/campaign.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "rootDir": "../..",
+    "outDir": "../../../dist/campaign",
+    "types": []
+  },
+  "include": ["run.ts"]
+}
