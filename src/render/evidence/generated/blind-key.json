@@ -1,0 +1,13 @@
+{
+  "warning": "Keep this file from the blind critic until comparison is complete.",
+  "sets": {
+    "dpr-cap": {
+      "mode-a": "retina-auto/ultra",
+      "mode-b": "retina2/ultra"
+    },
+    "sample-fallback": {
+      "mode-a": "dpr1/msaa4 supported 4x",
+      "mode-b": "dpr1/msaa4 forced to 2x capability"
+    }
+  }
+}

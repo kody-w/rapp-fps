@@ -1,0 +1,2354 @@
+{
+  "schemaVersion": 2,
+  "capturedAt": "2026-08-08T07:21:31.268Z",
+  "issue": "kody-w/rapp-fps#29",
+  "baseCommit": "1c5acee3e9d8fd4d36739c979e78d968ebb4bb89",
+  "sourceCommit": "c0bcd5abf8b67578cebdec8968d1cb0f9bc0e49d",
+  "sourceIntegrity": {
+    "trackedTreeCleanAtStart": true,
+    "policy": "runner refuses staged or unstaged tracked changes before Vite starts"
+  },
+  "harnessUrl": "http://127.0.0.1:5361/src/render/temporal/harness.html",
+  "vitePort": 5361,
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "browser": {
+    "engine": "Playwright Chromium",
+    "version": "151.0.7922.34",
+    "playwrightVersion": "1.62.1",
+    "source": "playwright-bundled"
+  },
+  "frameBudgetMs": 16.7,
+  "gpuTrialsPerMode": 3,
+  "gpuSamplesPerTrial": 180,
+  "matrix": {
+    "dpr1": {
+      "definition": {
+        "label": "1920x1080 CSS / DPR 1",
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        },
+        "deviceScaleFactor": 1,
+        "dpr": "1"
+      },
+      "modes": {
+        "ultra": {
+          "diagnostics": {
+            "requestedAa": "ultra",
+            "effectiveAa": "ultra",
+            "requestedDpr": "1",
+            "deviceDpr": 1,
+            "effectiveDpr": 1,
+            "rgba16fSupportedSamples": [
+              4,
+              2
+            ],
+            "rgba16fEffectiveSamples": [
+              4,
+              2
+            ],
+            "forcedSampleCapability": false,
+            "aaFallbackReason": null,
+            "composerMultisampling": 0,
+            "frameBufferType": "RGBA16F",
+            "cssWidth": 1920,
+            "cssHeight": 1080,
+            "drawingBufferWidth": 1920,
+            "drawingBufferHeight": 1080,
+            "drawingBufferPixels": 2073600
+          },
+          "visual": {
+            "methodology": {
+              "frameCount": 120,
+              "viewport": "1920x1080",
+              "primaryMetric": "p95 absolute temporal second difference at edge pixels, scaled by 1000",
+              "motionCompensation": "world-anchored bar and specular ROIs are reprojected into canonical patches each frame",
+              "roiDescription": "nine thin metallic bars plus three smooth-metal sphere highlight/silhouette patches",
+              "ghostMetric": "changed-pixel residual against the settled final pose after hard stop/reveal",
+              "sharpnessMetric": "median canonical-patch spatial gradient magnitude, scaled by 1000"
+            },
+            "summary": {
+              "staticCoverageNoiseP95": 0.452191,
+              "staticEdgeEnergy": 16.70659,
+              "worstMotionCoverageNoiseP95": 14.212448,
+              "worstMotionSequence": "fast-yaw",
+              "hardStopGhostTrailP95": 0.406122,
+              "revealGhostTrailP95": 0.52147,
+              "motionNoiseToJitterRatio": 0.588577
+            },
+            "sequences": {
+              "static": {
+                "coverageNoiseP95": {
+                  "all": 0.452191,
+                  "bars": 0.270293,
+                  "specular": 0.610859
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 0.504524,
+                  "bars": 0.291478,
+                  "specular": 0.685173
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.70659,
+                  "bars": 6.408259,
+                  "specular": 54.549864
+                },
+                "ghostTrailP95": null
+              },
+              "slow-yaw": {
+                "coverageNoiseP95": {
+                  "all": 8.868117,
+                  "bars": 4.594591,
+                  "specular": 12.91277
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 15.384803,
+                  "bars": 6.896517,
+                  "specular": 23.236086
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.769326,
+                  "bars": 6.406234,
+                  "specular": 54.825112
+                },
+                "ghostTrailP95": null
+              },
+              "fast-yaw": {
+                "coverageNoiseP95": {
+                  "all": 14.212448,
+                  "bars": 9.533849,
+                  "specular": 20.232737
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 20.920849,
+                  "bars": 10.818733,
+                  "specular": 30.656469
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.753783,
+                  "bars": 6.404942,
+                  "specular": 54.783563
+                },
+                "ghostTrailP95": null
+              },
+              "lateral": {
+                "coverageNoiseP95": {
+                  "all": 10.376855,
+                  "bars": 12.323289,
+                  "specular": 9.362488
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 16.55541,
+                  "bars": 13.072018,
+                  "specular": 20.655398
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.54024,
+                  "bars": 6.236863,
+                  "specular": 54.511329
+                },
+                "ghostTrailP95": null
+              },
+              "hard-stop": {
+                "coverageNoiseP95": {
+                  "all": 14.700877,
+                  "bars": 12.284246,
+                  "specular": 17.939552
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 20.068091,
+                  "bars": 12.719652,
+                  "specular": 27.03419
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.742526,
+                  "bars": 6.38988,
+                  "specular": 54.784971
+                },
+                "ghostTrailP95": 0.406122
+              },
+              "reveal": {
+                "coverageNoiseP95": {
+                  "all": 19.246808,
+                  "bars": 10.695337,
+                  "specular": 26.809168
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 24.639884,
+                  "bars": 12.784774,
+                  "specular": 37.77752
+                },
+                "edgeEnergyMedian": {
+                  "all": 15.829553,
+                  "bars": 6.493892,
+                  "specular": 47.62813
+                },
+                "ghostTrailP95": 0.52147
+              }
+            },
+            "controls": {
+              "staticFalsePositive": {
+                "threshold": 0.5,
+                "actual": 0.452191,
+                "passes": true
+              },
+              "subpixelJitter": {
+                "requiredRatio": 4,
+                "actualRatio": 53.400344,
+                "staticP95": 0.452191,
+                "jitterP95": 24.147155,
+                "passes": true
+              },
+              "deliberateBlur": {
+                "requiredFlickerReduction": 0.08,
+                "requiredSharpnessLoss": 0.08,
+                "flickerReduction": 0.118232,
+                "sharpnessLoss": 0.15345,
+                "unblurredFlickerP95": 8.868117,
+                "blurredFlickerP95": 7.819622,
+                "unblurredEdgeEnergy": 16.70659,
+                "blurredEdgeEnergy": 14.142968,
+                "passes": true
+              },
+              "historyWithoutRejection": {
+                "requiredMinimumTrail": 0.5,
+                "rawHardStopTrailP95": 0.406122,
+                "historyHardStopTrailP95": 3.30288,
+                "rawRevealTrailP95": 0.52147,
+                "historyRevealTrailP95": 26.822684,
+                "passes": true
+              },
+              "wrongMotionCompensation": {
+                "requiredRatio": 1.2,
+                "correctP95": 14.212448,
+                "wrongP95": 18.874428,
+                "actualRatio": 1.328021,
+                "passes": true
+              },
+              "allPass": true
+            }
+          },
+          "performance": {
+            "trials": [
+              {
+                "trial": 1,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 8.24,
+                  "p95": 10.789,
+                  "worst": 13.552
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.2,
+                  "p95": 1.9,
+                  "worst": 2.1
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 8.24,
+                  "p95": 10.789,
+                  "worst": 13.552
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 2,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 8.026,
+                  "p95": 10.5,
+                  "worst": 13.445
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.1,
+                  "p95": 1.8,
+                  "worst": 2.1
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 8.026,
+                  "p95": 10.5,
+                  "worst": 13.445
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 3,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 7.876,
+                  "p95": 10.571,
+                  "worst": 13.472
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.3,
+                  "p95": 1.9,
+                  "worst": 2.4
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 7.876,
+                  "p95": 10.571,
+                  "worst": 13.472
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              }
+            ],
+            "summary": {
+              "gpuMedianOfMediansMs": 8.026,
+              "gpuWorstP95Ms": 10.789,
+              "pairedMedianP95Ms": 10.571,
+              "pairedWorstP95Ms": 10.789,
+              "p95HeadroomMs": 5.911,
+              "budgetVerdict": "PASS",
+              "requirement": "3 hardware GPU trials; worst paired p95 <= 16.7ms"
+            }
+          }
+        },
+        "msaa2": {
+          "diagnostics": {
+            "requestedAa": "msaa2",
+            "effectiveAa": "msaa2",
+            "requestedDpr": "1",
+            "deviceDpr": 1,
+            "effectiveDpr": 1,
+            "rgba16fSupportedSamples": [
+              4,
+              2
+            ],
+            "rgba16fEffectiveSamples": [
+              4,
+              2
+            ],
+            "forcedSampleCapability": false,
+            "aaFallbackReason": null,
+            "composerMultisampling": 2,
+            "frameBufferType": "RGBA16F",
+            "cssWidth": 1920,
+            "cssHeight": 1080,
+            "drawingBufferWidth": 1920,
+            "drawingBufferHeight": 1080,
+            "drawingBufferPixels": 2073600
+          },
+          "visual": {
+            "methodology": {
+              "frameCount": 120,
+              "viewport": "1920x1080",
+              "primaryMetric": "p95 absolute temporal second difference at edge pixels, scaled by 1000",
+              "motionCompensation": "world-anchored bar and specular ROIs are reprojected into canonical patches each frame",
+              "roiDescription": "nine thin metallic bars plus three smooth-metal sphere highlight/silhouette patches",
+              "ghostMetric": "changed-pixel residual against the settled final pose after hard stop/reveal",
+              "sharpnessMetric": "median canonical-patch spatial gradient magnitude, scaled by 1000"
+            },
+            "summary": {
+              "staticCoverageNoiseP95": 0.432239,
+              "staticEdgeEnergy": 16.710434,
+              "worstMotionCoverageNoiseP95": 14.207107,
+              "worstMotionSequence": "fast-yaw",
+              "hardStopGhostTrailP95": 0.3861,
+              "revealGhostTrailP95": 0.510707,
+              "motionNoiseToJitterRatio": null
+            },
+            "sequences": {
+              "static": {
+                "coverageNoiseP95": {
+                  "all": 0.432239,
+                  "bars": 0.269079,
+                  "specular": 0.570289
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 0.47786,
+                  "bars": 0.289628,
+                  "specular": 0.640619
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.710434,
+                  "bars": 6.335441,
+                  "specular": 54.832489
+                },
+                "ghostTrailP95": null
+              },
+              "slow-yaw": {
+                "coverageNoiseP95": {
+                  "all": 8.999716,
+                  "bars": 4.5277,
+                  "specular": 12.927771
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 15.294532,
+                  "bars": 6.054851,
+                  "specular": 23.298035
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.734441,
+                  "bars": 6.332788,
+                  "specular": 54.992664
+                },
+                "ghostTrailP95": null
+              },
+              "fast-yaw": {
+                "coverageNoiseP95": {
+                  "all": 14.207107,
+                  "bars": 7.151229,
+                  "specular": 20.481543
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 20.310888,
+                  "bars": 8.232402,
+                  "specular": 30.413482
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.724446,
+                  "bars": 6.33169,
+                  "specular": 54.940685
+                },
+                "ghostTrailP95": null
+              },
+              "lateral": {
+                "coverageNoiseP95": {
+                  "all": 8.459003,
+                  "bars": 8.120876,
+                  "specular": 9.22106
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 15.176551,
+                  "bars": 9.035593,
+                  "specular": 20.65067
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.547686,
+                  "bars": 6.175182,
+                  "specular": 54.748424
+                },
+                "ghostTrailP95": null
+              },
+              "hard-stop": {
+                "coverageNoiseP95": {
+                  "all": 13.409751,
+                  "bars": 8.031664,
+                  "specular": 17.930107
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 18.736749,
+                  "bars": 8.571701,
+                  "specular": 27.500111
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.695527,
+                  "bars": 6.30127,
+                  "specular": 54.90415
+                },
+                "ghostTrailP95": 0.3861
+              },
+              "reveal": {
+                "coverageNoiseP95": {
+                  "all": 18.28478,
+                  "bars": 8.011339,
+                  "specular": 27.584037
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 25.223779,
+                  "bars": 9.704919,
+                  "specular": 38.36957
+                },
+                "edgeEnergyMedian": {
+                  "all": 15.834739,
+                  "bars": 6.414086,
+                  "specular": 47.930407
+                },
+                "ghostTrailP95": 0.510707
+              }
+            }
+          },
+          "performance": {
+            "trials": [
+              {
+                "trial": 1,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 8.517,
+                  "p95": 11.117,
+                  "worst": 14.338
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.3,
+                  "p95": 1.8,
+                  "worst": 2.1
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 8.517,
+                  "p95": 11.117,
+                  "worst": 14.338
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 2,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 8.895,
+                  "p95": 10.502,
+                  "worst": 13.84
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.1,
+                  "p95": 1.6,
+                  "worst": 1.9
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 8.895,
+                  "p95": 10.502,
+                  "worst": 13.84
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 3,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 9.847,
+                  "p95": 10.538,
+                  "worst": 14.237
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.2,
+                  "p95": 1.7,
+                  "worst": 2.1
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 9.847,
+                  "p95": 10.538,
+                  "worst": 14.237
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              }
+            ],
+            "summary": {
+              "gpuMedianOfMediansMs": 8.895,
+              "gpuWorstP95Ms": 11.117,
+              "pairedMedianP95Ms": 10.538,
+              "pairedWorstP95Ms": 11.117,
+              "p95HeadroomMs": 5.583,
+              "budgetVerdict": "PASS",
+              "requirement": "3 hardware GPU trials; worst paired p95 <= 16.7ms"
+            }
+          }
+        },
+        "msaa4": {
+          "diagnostics": {
+            "requestedAa": "msaa4",
+            "effectiveAa": "msaa4",
+            "requestedDpr": "1",
+            "deviceDpr": 1,
+            "effectiveDpr": 1,
+            "rgba16fSupportedSamples": [
+              4,
+              2
+            ],
+            "rgba16fEffectiveSamples": [
+              4,
+              2
+            ],
+            "forcedSampleCapability": false,
+            "aaFallbackReason": null,
+            "composerMultisampling": 4,
+            "frameBufferType": "RGBA16F",
+            "cssWidth": 1920,
+            "cssHeight": 1080,
+            "drawingBufferWidth": 1920,
+            "drawingBufferHeight": 1080,
+            "drawingBufferPixels": 2073600
+          },
+          "visual": {
+            "methodology": {
+              "frameCount": 120,
+              "viewport": "1920x1080",
+              "primaryMetric": "p95 absolute temporal second difference at edge pixels, scaled by 1000",
+              "motionCompensation": "world-anchored bar and specular ROIs are reprojected into canonical patches each frame",
+              "roiDescription": "nine thin metallic bars plus three smooth-metal sphere highlight/silhouette patches",
+              "ghostMetric": "changed-pixel residual against the settled final pose after hard stop/reveal",
+              "sharpnessMetric": "median canonical-patch spatial gradient magnitude, scaled by 1000"
+            },
+            "summary": {
+              "staticCoverageNoiseP95": 0.43577,
+              "staticEdgeEnergy": 16.634641,
+              "worstMotionCoverageNoiseP95": 12.032969,
+              "worstMotionSequence": "fast-yaw",
+              "hardStopGhostTrailP95": 0.386672,
+              "revealGhostTrailP95": 0.514455,
+              "motionNoiseToJitterRatio": null
+            },
+            "sequences": {
+              "static": {
+                "coverageNoiseP95": {
+                  "all": 0.43577,
+                  "bars": 0.265448,
+                  "specular": 0.581307
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 0.484406,
+                  "bars": 0.286756,
+                  "specular": 0.654359
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.634641,
+                  "bars": 6.262379,
+                  "specular": 54.746302
+                },
+                "ghostTrailP95": null
+              },
+              "slow-yaw": {
+                "coverageNoiseP95": {
+                  "all": 8.484889,
+                  "bars": 3.533412,
+                  "specular": 12.607499
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 14.964205,
+                  "bars": 4.602982,
+                  "specular": 23.21665
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.697171,
+                  "bars": 6.28961,
+                  "specular": 54.940439
+                },
+                "ghostTrailP95": null
+              },
+              "fast-yaw": {
+                "coverageNoiseP95": {
+                  "all": 12.032969,
+                  "bars": 5.177286,
+                  "specular": 18.498362
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 19.087634,
+                  "bars": 5.947809,
+                  "specular": 30.012843
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.681848,
+                  "bars": 6.290193,
+                  "specular": 54.898395
+                },
+                "ghostTrailP95": null
+              },
+              "lateral": {
+                "coverageNoiseP95": {
+                  "all": 7.769315,
+                  "bars": 6.302483,
+                  "specular": 9.159442
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 14.535348,
+                  "bars": 6.76014,
+                  "specular": 20.976428
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.495851,
+                  "bars": 6.108634,
+                  "specular": 54.664584
+                },
+                "ghostTrailP95": null
+              },
+              "hard-stop": {
+                "coverageNoiseP95": {
+                  "all": 12.509062,
+                  "bars": 6.374843,
+                  "specular": 17.700661
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 17.668777,
+                  "bars": 6.602192,
+                  "specular": 26.922862
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.643199,
+                  "bars": 6.25461,
+                  "specular": 54.82312
+                },
+                "ghostTrailP95": 0.386672
+              },
+              "reveal": {
+                "coverageNoiseP95": {
+                  "all": 17.492764,
+                  "bars": 6.2861,
+                  "specular": 27.238173
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 24.351215,
+                  "bars": 7.599349,
+                  "specular": 37.854569
+                },
+                "edgeEnergyMedian": {
+                  "all": 15.796304,
+                  "bars": 6.367922,
+                  "specular": 47.841839
+                },
+                "ghostTrailP95": 0.514455
+              }
+            }
+          },
+          "performance": {
+            "trials": [
+              {
+                "trial": 1,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 12.015,
+                  "p95": 15.641,
+                  "worst": 17.66
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.2,
+                  "p95": 1.7,
+                  "worst": 2.1
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 12.015,
+                  "p95": 15.641,
+                  "worst": 17.66
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 2,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 10.309,
+                  "p95": 12.74,
+                  "worst": 16.062
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.3,
+                  "p95": 1.8,
+                  "worst": 2.1
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 10.309,
+                  "p95": 12.74,
+                  "worst": 16.062
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 3,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 10.845,
+                  "p95": 12.802,
+                  "worst": 15.789
+                },
+                "cpuFrameMs": {
+                  "samples": 181,
+                  "median": 1.2,
+                  "p95": 1.8,
+                  "worst": 2
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 10.845,
+                  "p95": 12.802,
+                  "worst": 15.789
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              }
+            ],
+            "summary": {
+              "gpuMedianOfMediansMs": 10.845,
+              "gpuWorstP95Ms": 15.641,
+              "pairedMedianP95Ms": 12.802,
+              "pairedWorstP95Ms": 15.641,
+              "p95HeadroomMs": 1.059,
+              "budgetVerdict": "PASS",
+              "requirement": "3 hardware GPU trials; worst paired p95 <= 16.7ms"
+            }
+          }
+        }
+      }
+    },
+    "retina2": {
+      "definition": {
+        "label": "1512x982 CSS / DPR 2 uncapped",
+        "viewport": {
+          "width": 1512,
+          "height": 982
+        },
+        "deviceScaleFactor": 2,
+        "dpr": "2"
+      },
+      "modes": {
+        "ultra": {
+          "diagnostics": {
+            "requestedAa": "ultra",
+            "effectiveAa": "ultra",
+            "requestedDpr": "2",
+            "deviceDpr": 2,
+            "effectiveDpr": 2,
+            "rgba16fSupportedSamples": [
+              4,
+              2
+            ],
+            "rgba16fEffectiveSamples": [
+              4,
+              2
+            ],
+            "forcedSampleCapability": false,
+            "aaFallbackReason": null,
+            "composerMultisampling": 0,
+            "frameBufferType": "RGBA16F",
+            "cssWidth": 1512,
+            "cssHeight": 982,
+            "drawingBufferWidth": 3024,
+            "drawingBufferHeight": 1964,
+            "drawingBufferPixels": 5939136
+          },
+          "visual": {
+            "methodology": {
+              "frameCount": 120,
+              "viewport": "3024x1964",
+              "primaryMetric": "p95 absolute temporal second difference at edge pixels, scaled by 1000",
+              "motionCompensation": "world-anchored bar and specular ROIs are reprojected into canonical patches each frame",
+              "roiDescription": "nine thin metallic bars plus three smooth-metal sphere highlight/silhouette patches",
+              "ghostMetric": "changed-pixel residual against the settled final pose after hard stop/reveal",
+              "sharpnessMetric": "median canonical-patch spatial gradient magnitude, scaled by 1000"
+            },
+            "summary": {
+              "staticCoverageNoiseP95": 0.454155,
+              "staticEdgeEnergy": 16.910017,
+              "worstMotionCoverageNoiseP95": 13.025601,
+              "worstMotionSequence": "lateral",
+              "hardStopGhostTrailP95": 0.392102,
+              "revealGhostTrailP95": 0.476258,
+              "motionNoiseToJitterRatio": null
+            },
+            "sequences": {
+              "static": {
+                "coverageNoiseP95": {
+                  "all": 0.454155,
+                  "bars": 0.26436,
+                  "specular": 0.62541
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 0.504392,
+                  "bars": 0.287837,
+                  "specular": 0.696368
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.910017,
+                  "bars": 6.549593,
+                  "specular": 54.98151
+                },
+                "ghostTrailP95": null
+              },
+              "slow-yaw": {
+                "coverageNoiseP95": {
+                  "all": 12.623553,
+                  "bars": 4.169744,
+                  "specular": 20.508395
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 13.463601,
+                  "bars": 5.295847,
+                  "specular": 20.987777
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.879083,
+                  "bars": 6.530467,
+                  "specular": 54.912143
+                },
+                "ghostTrailP95": null
+              },
+              "fast-yaw": {
+                "coverageNoiseP95": {
+                  "all": 10.658191,
+                  "bars": 5.118381,
+                  "specular": 15.846991
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 13.739094,
+                  "bars": 5.990737,
+                  "specular": 21.150139
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.873889,
+                  "bars": 6.524625,
+                  "specular": 54.916121
+                },
+                "ghostTrailP95": null
+              },
+              "lateral": {
+                "coverageNoiseP95": {
+                  "all": 13.025601,
+                  "bars": 3.926835,
+                  "specular": 21.496632
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 14.378961,
+                  "bars": 5.258024,
+                  "specular": 22.90866
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.728078,
+                  "bars": 6.376989,
+                  "specular": 54.844859
+                },
+                "ghostTrailP95": null
+              },
+              "hard-stop": {
+                "coverageNoiseP95": {
+                  "all": 8.32971,
+                  "bars": 4.806675,
+                  "specular": 12.215251
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 11.948291,
+                  "bars": 5.636815,
+                  "specular": 17.954399
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.875459,
+                  "bars": 6.519858,
+                  "specular": 54.928093
+                },
+                "ghostTrailP95": 0.392102
+              },
+              "reveal": {
+                "coverageNoiseP95": {
+                  "all": 17.736664,
+                  "bars": 6.085926,
+                  "specular": 28.452927
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 20.855681,
+                  "bars": 7.609863,
+                  "specular": 32.617035
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.401079,
+                  "bars": 6.772572,
+                  "specular": 48.473151
+                },
+                "ghostTrailP95": 0.476258
+              }
+            }
+          },
+          "performance": {
+            "trials": [
+              {
+                "trial": 1,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 17.743,
+                  "p95": 25.906,
+                  "worst": 29.415
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.3,
+                  "p95": 1.8,
+                  "worst": 2.3
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 17.743,
+                  "p95": 25.906,
+                  "worst": 29.415
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 2,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 17.655,
+                  "p95": 23.312,
+                  "worst": 27.47
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.3,
+                  "p95": 2,
+                  "worst": 2.2
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 17.655,
+                  "p95": 23.312,
+                  "worst": 27.47
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 3,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 14.628,
+                  "p95": 18.702,
+                  "worst": 23.862
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.2,
+                  "p95": 1.7,
+                  "worst": 2.2
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 14.628,
+                  "p95": 18.702,
+                  "worst": 23.862
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              }
+            ],
+            "summary": {
+              "gpuMedianOfMediansMs": 17.655,
+              "gpuWorstP95Ms": 25.906,
+              "pairedMedianP95Ms": 23.312,
+              "pairedWorstP95Ms": 25.906,
+              "p95HeadroomMs": -9.206,
+              "budgetVerdict": "FAIL",
+              "requirement": "3 hardware GPU trials; worst paired p95 <= 16.7ms"
+            }
+          }
+        },
+        "msaa2": {
+          "diagnostics": {
+            "requestedAa": "msaa2",
+            "effectiveAa": "msaa2",
+            "requestedDpr": "2",
+            "deviceDpr": 2,
+            "effectiveDpr": 2,
+            "rgba16fSupportedSamples": [
+              4,
+              2
+            ],
+            "rgba16fEffectiveSamples": [
+              4,
+              2
+            ],
+            "forcedSampleCapability": false,
+            "aaFallbackReason": null,
+            "composerMultisampling": 2,
+            "frameBufferType": "RGBA16F",
+            "cssWidth": 1512,
+            "cssHeight": 982,
+            "drawingBufferWidth": 3024,
+            "drawingBufferHeight": 1964,
+            "drawingBufferPixels": 5939136
+          },
+          "visual": {
+            "methodology": {
+              "frameCount": 120,
+              "viewport": "3024x1964",
+              "primaryMetric": "p95 absolute temporal second difference at edge pixels, scaled by 1000",
+              "motionCompensation": "world-anchored bar and specular ROIs are reprojected into canonical patches each frame",
+              "roiDescription": "nine thin metallic bars plus three smooth-metal sphere highlight/silhouette patches",
+              "ghostMetric": "changed-pixel residual against the settled final pose after hard stop/reveal",
+              "sharpnessMetric": "median canonical-patch spatial gradient magnitude, scaled by 1000"
+            },
+            "summary": {
+              "staticCoverageNoiseP95": 0.42537,
+              "staticEdgeEnergy": 16.86467,
+              "worstMotionCoverageNoiseP95": 13.1236,
+              "worstMotionSequence": "lateral",
+              "hardStopGhostTrailP95": 0.387959,
+              "revealGhostTrailP95": 0.445508,
+              "motionNoiseToJitterRatio": null
+            },
+            "sequences": {
+              "static": {
+                "coverageNoiseP95": {
+                  "all": 0.42537,
+                  "bars": 0.265453,
+                  "specular": 0.574299
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 0.469318,
+                  "bars": 0.287443,
+                  "specular": 0.637313
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.86467,
+                  "bars": 6.479171,
+                  "specular": 55.026933
+                },
+                "ghostTrailP95": null
+              },
+              "slow-yaw": {
+                "coverageNoiseP95": {
+                  "all": 13.031995,
+                  "bars": 4.113876,
+                  "specular": 20.645929
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 13.604746,
+                  "bars": 4.575898,
+                  "specular": 21.374283
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.840067,
+                  "bars": 6.46777,
+                  "specular": 54.952613
+                },
+                "ghostTrailP95": null
+              },
+              "fast-yaw": {
+                "coverageNoiseP95": {
+                  "all": 10.406442,
+                  "bars": 4.529982,
+                  "specular": 15.799008
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 13.464666,
+                  "bars": 5.034123,
+                  "specular": 21.053598
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.838012,
+                  "bars": 6.464475,
+                  "specular": 54.961434
+                },
+                "ghostTrailP95": null
+              },
+              "lateral": {
+                "coverageNoiseP95": {
+                  "all": 13.1236,
+                  "bars": 3.190642,
+                  "specular": 21.342529
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 13.99843,
+                  "bars": 3.960981,
+                  "specular": 22.455656
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.688373,
+                  "bars": 6.301625,
+                  "specular": 54.918544
+                },
+                "ghostTrailP95": null
+              },
+              "hard-stop": {
+                "coverageNoiseP95": {
+                  "all": 7.851533,
+                  "bars": 3.681195,
+                  "specular": 12.093788
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 11.756189,
+                  "bars": 4.330717,
+                  "specular": 18.067462
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.847311,
+                  "bars": 6.46105,
+                  "specular": 55.01647
+                },
+                "ghostTrailP95": 0.387959
+              },
+              "reveal": {
+                "coverageNoiseP95": {
+                  "all": 17.967584,
+                  "bars": 4.88282,
+                  "specular": 28.695901
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 20.328534,
+                  "bars": 6.138661,
+                  "specular": 33.124535
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.408956,
+                  "bars": 6.663138,
+                  "specular": 48.51453
+                },
+                "ghostTrailP95": 0.445508
+              }
+            }
+          },
+          "performance": {
+            "trials": [
+              {
+                "trial": 1,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 16.398,
+                  "p95": 19.852,
+                  "worst": 24.059
+                },
+                "cpuFrameMs": {
+                  "samples": 181,
+                  "median": 1,
+                  "p95": 1.6,
+                  "worst": 1.9
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 16.398,
+                  "p95": 19.852,
+                  "worst": 24.059
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 2,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 17.266,
+                  "p95": 20.678,
+                  "worst": 27.047
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.2,
+                  "p95": 1.7,
+                  "worst": 1.9
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 17.266,
+                  "p95": 20.678,
+                  "worst": 27.047
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 3,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 16.379,
+                  "p95": 23.363,
+                  "worst": 25.578
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1,
+                  "p95": 1.6,
+                  "worst": 1.7
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 16.379,
+                  "p95": 23.363,
+                  "worst": 25.578
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              }
+            ],
+            "summary": {
+              "gpuMedianOfMediansMs": 16.398,
+              "gpuWorstP95Ms": 23.363,
+              "pairedMedianP95Ms": 20.678,
+              "pairedWorstP95Ms": 23.363,
+              "p95HeadroomMs": -6.663,
+              "budgetVerdict": "FAIL",
+              "requirement": "3 hardware GPU trials; worst paired p95 <= 16.7ms"
+            }
+          }
+        },
+        "msaa4": {
+          "diagnostics": {
+            "requestedAa": "msaa4",
+            "effectiveAa": "msaa4",
+            "requestedDpr": "2",
+            "deviceDpr": 2,
+            "effectiveDpr": 2,
+            "rgba16fSupportedSamples": [
+              4,
+              2
+            ],
+            "rgba16fEffectiveSamples": [
+              4,
+              2
+            ],
+            "forcedSampleCapability": false,
+            "aaFallbackReason": null,
+            "composerMultisampling": 4,
+            "frameBufferType": "RGBA16F",
+            "cssWidth": 1512,
+            "cssHeight": 982,
+            "drawingBufferWidth": 3024,
+            "drawingBufferHeight": 1964,
+            "drawingBufferPixels": 5939136
+          },
+          "visual": {
+            "methodology": {
+              "frameCount": 120,
+              "viewport": "3024x1964",
+              "primaryMetric": "p95 absolute temporal second difference at edge pixels, scaled by 1000",
+              "motionCompensation": "world-anchored bar and specular ROIs are reprojected into canonical patches each frame",
+              "roiDescription": "nine thin metallic bars plus three smooth-metal sphere highlight/silhouette patches",
+              "ghostMetric": "changed-pixel residual against the settled final pose after hard stop/reveal",
+              "sharpnessMetric": "median canonical-patch spatial gradient magnitude, scaled by 1000"
+            },
+            "summary": {
+              "staticCoverageNoiseP95": 0.429616,
+              "staticEdgeEnergy": 16.821909,
+              "worstMotionCoverageNoiseP95": 12.620052,
+              "worstMotionSequence": "lateral",
+              "hardStopGhostTrailP95": 0.385329,
+              "revealGhostTrailP95": 0.455332,
+              "motionNoiseToJitterRatio": null
+            },
+            "sequences": {
+              "static": {
+                "coverageNoiseP95": {
+                  "all": 0.429616,
+                  "bars": 0.264359,
+                  "specular": 0.578366
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 0.475995,
+                  "bars": 0.287663,
+                  "specular": 0.647253
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.821909,
+                  "bars": 6.435853,
+                  "specular": 54.985332
+                },
+                "ghostTrailP95": null
+              },
+              "slow-yaw": {
+                "coverageNoiseP95": {
+                  "all": 12.226898,
+                  "bars": 2.380174,
+                  "specular": 20.45399
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 12.853386,
+                  "bars": 2.953389,
+                  "specular": 21.098294
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.811304,
+                  "bars": 6.43871,
+                  "specular": 54.9428
+                },
+                "ghostTrailP95": null
+              },
+              "fast-yaw": {
+                "coverageNoiseP95": {
+                  "all": 9.971158,
+                  "bars": 3.279872,
+                  "specular": 15.596376
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 13.013015,
+                  "bars": 3.56754,
+                  "specular": 20.908155
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.809422,
+                  "bars": 6.434177,
+                  "specular": 54.941171
+                },
+                "ghostTrailP95": null
+              },
+              "lateral": {
+                "coverageNoiseP95": {
+                  "all": 12.620052,
+                  "bars": 2.184835,
+                  "specular": 21.211816
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 13.688441,
+                  "bars": 2.931458,
+                  "specular": 22.513962
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.657483,
+                  "bars": 6.25732,
+                  "specular": 54.875899
+                },
+                "ghostTrailP95": null
+              },
+              "hard-stop": {
+                "coverageNoiseP95": {
+                  "all": 7.454025,
+                  "bars": 2.847134,
+                  "specular": 12.088459
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 11.23225,
+                  "bars": 3.255642,
+                  "specular": 17.937518
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.816645,
+                  "bars": 6.433522,
+                  "specular": 54.970055
+                },
+                "ghostTrailP95": 0.385329
+              },
+              "reveal": {
+                "coverageNoiseP95": {
+                  "all": 17.342658,
+                  "bars": 3.754567,
+                  "specular": 28.571246
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 19.867973,
+                  "bars": 5.021354,
+                  "specular": 32.271426
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.387275,
+                  "bars": 6.638128,
+                  "specular": 48.476898
+                },
+                "ghostTrailP95": 0.455332
+              }
+            }
+          },
+          "performance": {
+            "trials": [
+              {
+                "trial": 1,
+                "gpuFrameMs": {
+                  "samples": 181,
+                  "median": 21.9,
+                  "p95": 30.472,
+                  "worst": 33.15
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.1,
+                  "p95": 1.7,
+                  "worst": 2.1
+                },
+                "pairedFrameMs": {
+                  "samples": 181,
+                  "median": 21.9,
+                  "p95": 30.472,
+                  "worst": 33.15
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 2,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 21.975,
+                  "p95": 30.468,
+                  "worst": 35.543
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.1,
+                  "p95": 1.6,
+                  "worst": 1.9
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 21.975,
+                  "p95": 30.468,
+                  "worst": 35.543
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 3,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 22.458,
+                  "p95": 29.671,
+                  "worst": 32.851
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.2,
+                  "p95": 1.7,
+                  "worst": 2.1
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 22.458,
+                  "p95": 29.671,
+                  "worst": 32.851
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              }
+            ],
+            "summary": {
+              "gpuMedianOfMediansMs": 21.975,
+              "gpuWorstP95Ms": 30.472,
+              "pairedMedianP95Ms": 30.468,
+              "pairedWorstP95Ms": 30.472,
+              "p95HeadroomMs": -13.772,
+              "budgetVerdict": "FAIL",
+              "requirement": "3 hardware GPU trials; worst paired p95 <= 16.7ms"
+            }
+          }
+        }
+      }
+    },
+    "retina-auto": {
+      "definition": {
+        "label": "1512x982 CSS / production auto DPR",
+        "viewport": {
+          "width": 1512,
+          "height": 982
+        },
+        "deviceScaleFactor": 2,
+        "dpr": "auto"
+      },
+      "modes": {
+        "ultra": {
+          "diagnostics": {
+            "requestedAa": "ultra",
+            "effectiveAa": "ultra",
+            "requestedDpr": "auto",
+            "deviceDpr": 2,
+            "effectiveDpr": 1.5,
+            "rgba16fSupportedSamples": [
+              4,
+              2
+            ],
+            "rgba16fEffectiveSamples": [
+              4,
+              2
+            ],
+            "forcedSampleCapability": false,
+            "aaFallbackReason": null,
+            "composerMultisampling": 0,
+            "frameBufferType": "RGBA16F",
+            "cssWidth": 1512,
+            "cssHeight": 982,
+            "drawingBufferWidth": 2268,
+            "drawingBufferHeight": 1473,
+            "drawingBufferPixels": 3340764
+          },
+          "visual": {
+            "methodology": {
+              "frameCount": 120,
+              "viewport": "2268x1473",
+              "primaryMetric": "p95 absolute temporal second difference at edge pixels, scaled by 1000",
+              "motionCompensation": "world-anchored bar and specular ROIs are reprojected into canonical patches each frame",
+              "roiDescription": "nine thin metallic bars plus three smooth-metal sphere highlight/silhouette patches",
+              "ghostMetric": "changed-pixel residual against the settled final pose after hard stop/reveal",
+              "sharpnessMetric": "median canonical-patch spatial gradient magnitude, scaled by 1000"
+            },
+            "summary": {
+              "staticCoverageNoiseP95": 0.487069,
+              "staticEdgeEnergy": 16.811297,
+              "worstMotionCoverageNoiseP95": 13.662158,
+              "worstMotionSequence": "fast-yaw",
+              "hardStopGhostTrailP95": 0.421603,
+              "revealGhostTrailP95": 0.468754,
+              "motionNoiseToJitterRatio": null
+            },
+            "sequences": {
+              "static": {
+                "coverageNoiseP95": {
+                  "all": 0.487069,
+                  "bars": 0.309153,
+                  "specular": 0.670327
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 0.54567,
+                  "bars": 0.33348,
+                  "specular": 0.745193
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.811297,
+                  "bars": 6.452125,
+                  "specular": 54.877303
+                },
+                "ghostTrailP95": null
+              },
+              "slow-yaw": {
+                "coverageNoiseP95": {
+                  "all": 11.916872,
+                  "bars": 4.634844,
+                  "specular": 18.614394
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 15.593524,
+                  "bars": 6.12748,
+                  "specular": 24.617549
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.802401,
+                  "bars": 6.454331,
+                  "specular": 54.836217
+                },
+                "ghostTrailP95": null
+              },
+              "fast-yaw": {
+                "coverageNoiseP95": {
+                  "all": 13.662158,
+                  "bars": 6.165133,
+                  "specular": 21.429638
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 18.765619,
+                  "bars": 7.317576,
+                  "specular": 29.290608
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.793828,
+                  "bars": 6.449654,
+                  "specular": 54.810918
+                },
+                "ghostTrailP95": null
+              },
+              "lateral": {
+                "coverageNoiseP95": {
+                  "all": 8.080308,
+                  "bars": 8.085951,
+                  "specular": 8.186726
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 12.626121,
+                  "bars": 8.938719,
+                  "specular": 16.389544
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.625141,
+                  "bars": 6.296874,
+                  "specular": 54.69773
+                },
+                "ghostTrailP95": null
+              },
+              "hard-stop": {
+                "coverageNoiseP95": {
+                  "all": 7.57878,
+                  "bars": 2.113247,
+                  "specular": 12.203591
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 11.333256,
+                  "bars": 3.051102,
+                  "specular": 18.855162
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.783522,
+                  "bars": 6.43719,
+                  "specular": 54.802715
+                },
+                "ghostTrailP95": 0.421603
+              },
+              "reveal": {
+                "coverageNoiseP95": {
+                  "all": 22.400046,
+                  "bars": 7.579089,
+                  "specular": 36.320592
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 28.816507,
+                  "bars": 9.551166,
+                  "specular": 46.43029
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.127585,
+                  "bars": 6.557846,
+                  "specular": 47.958204
+                },
+                "ghostTrailP95": 0.468754
+              }
+            }
+          },
+          "performance": {
+            "trials": [
+              {
+                "trial": 1,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 10.816,
+                  "p95": 14.273,
+                  "worst": 17.294
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.3,
+                  "p95": 1.9,
+                  "worst": 2.1
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 10.816,
+                  "p95": 14.273,
+                  "worst": 17.294
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 2,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 11.059,
+                  "p95": 15.793,
+                  "worst": 19.302
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.3,
+                  "p95": 1.9,
+                  "worst": 2.2
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 11.059,
+                  "p95": 15.793,
+                  "worst": 19.302
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 3,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 11.169,
+                  "p95": 14.818,
+                  "worst": 18.411
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.2,
+                  "p95": 1.8,
+                  "worst": 2.1
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 11.169,
+                  "p95": 14.818,
+                  "worst": 18.411
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              }
+            ],
+            "summary": {
+              "gpuMedianOfMediansMs": 11.059,
+              "gpuWorstP95Ms": 15.793,
+              "pairedMedianP95Ms": 14.818,
+              "pairedWorstP95Ms": 15.793,
+              "p95HeadroomMs": 0.907,
+              "budgetVerdict": "PASS",
+              "requirement": "3 hardware GPU trials; worst paired p95 <= 16.7ms"
+            }
+          }
+        },
+        "msaa2": {
+          "diagnostics": {
+            "requestedAa": "msaa2",
+            "effectiveAa": "msaa2",
+            "requestedDpr": "auto",
+            "deviceDpr": 2,
+            "effectiveDpr": 1.5,
+            "rgba16fSupportedSamples": [
+              4,
+              2
+            ],
+            "rgba16fEffectiveSamples": [
+              4,
+              2
+            ],
+            "forcedSampleCapability": false,
+            "aaFallbackReason": null,
+            "composerMultisampling": 2,
+            "frameBufferType": "RGBA16F",
+            "cssWidth": 1512,
+            "cssHeight": 982,
+            "drawingBufferWidth": 2268,
+            "drawingBufferHeight": 1473,
+            "drawingBufferPixels": 3340764
+          },
+          "visual": {
+            "methodology": {
+              "frameCount": 120,
+              "viewport": "2268x1473",
+              "primaryMetric": "p95 absolute temporal second difference at edge pixels, scaled by 1000",
+              "motionCompensation": "world-anchored bar and specular ROIs are reprojected into canonical patches each frame",
+              "roiDescription": "nine thin metallic bars plus three smooth-metal sphere highlight/silhouette patches",
+              "ghostMetric": "changed-pixel residual against the settled final pose after hard stop/reveal",
+              "sharpnessMetric": "median canonical-patch spatial gradient magnitude, scaled by 1000"
+            },
+            "summary": {
+              "staticCoverageNoiseP95": 0.438472,
+              "staticEdgeEnergy": 16.769358,
+              "worstMotionCoverageNoiseP95": 13.81413,
+              "worstMotionSequence": "fast-yaw",
+              "hardStopGhostTrailP95": 0.379773,
+              "revealGhostTrailP95": 0.45349,
+              "motionNoiseToJitterRatio": null
+            },
+            "sequences": {
+              "static": {
+                "coverageNoiseP95": {
+                  "all": 0.438472,
+                  "bars": 0.245249,
+                  "specular": 0.610398
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 0.480292,
+                  "bars": 0.267861,
+                  "specular": 0.675585
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.769358,
+                  "bars": 6.374316,
+                  "specular": 54.966944
+                },
+                "ghostTrailP95": null
+              },
+              "slow-yaw": {
+                "coverageNoiseP95": {
+                  "all": 12.280528,
+                  "bars": 4.513778,
+                  "specular": 18.963746
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 15.766416,
+                  "bars": 5.536129,
+                  "specular": 24.50688
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.762065,
+                  "bars": 6.382853,
+                  "specular": 54.89449
+                },
+                "ghostTrailP95": null
+              },
+              "fast-yaw": {
+                "coverageNoiseP95": {
+                  "all": 13.81413,
+                  "bars": 5.685557,
+                  "specular": 21.419802
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 18.617599,
+                  "bars": 6.560816,
+                  "specular": 29.238622
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.763312,
+                  "bars": 6.386077,
+                  "specular": 54.886891
+                },
+                "ghostTrailP95": null
+              },
+              "lateral": {
+                "coverageNoiseP95": {
+                  "all": 7.515512,
+                  "bars": 6.899447,
+                  "specular": 8.189408
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 12.033051,
+                  "bars": 7.577495,
+                  "specular": 16.159246
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.593145,
+                  "bars": 6.214774,
+                  "specular": 54.815766
+                },
+                "ghostTrailP95": null
+              },
+              "hard-stop": {
+                "coverageNoiseP95": {
+                  "all": 7.720458,
+                  "bars": 2.128912,
+                  "specular": 12.269757
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 11.521434,
+                  "bars": 2.886642,
+                  "specular": 19.13469
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.74459,
+                  "bars": 6.36497,
+                  "specular": 54.891737
+                },
+                "ghostTrailP95": 0.379773
+              },
+              "reveal": {
+                "coverageNoiseP95": {
+                  "all": 22.355557,
+                  "bars": 5.839841,
+                  "specular": 36.490469
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 28.597423,
+                  "bars": 7.730979,
+                  "specular": 46.275537
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.181696,
+                  "bars": 6.471093,
+                  "specular": 48.06968
+                },
+                "ghostTrailP95": 0.45349
+              }
+            }
+          },
+          "performance": {
+            "trials": [
+              {
+                "trial": 1,
+                "gpuFrameMs": {
+                  "samples": 181,
+                  "median": 12.088,
+                  "p95": 14.724,
+                  "worst": 18.555
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.2,
+                  "p95": 1.7,
+                  "worst": 2
+                },
+                "pairedFrameMs": {
+                  "samples": 181,
+                  "median": 12.088,
+                  "p95": 14.724,
+                  "worst": 18.555
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 2,
+                "gpuFrameMs": {
+                  "samples": 181,
+                  "median": 11.925,
+                  "p95": 14.845,
+                  "worst": 20.367
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.2,
+                  "p95": 1.7,
+                  "worst": 2
+                },
+                "pairedFrameMs": {
+                  "samples": 181,
+                  "median": 11.925,
+                  "p95": 14.845,
+                  "worst": 20.367
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 3,
+                "gpuFrameMs": {
+                  "samples": 181,
+                  "median": 12.158,
+                  "p95": 14.828,
+                  "worst": 19.962
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.2,
+                  "p95": 1.6,
+                  "worst": 1.7
+                },
+                "pairedFrameMs": {
+                  "samples": 181,
+                  "median": 12.158,
+                  "p95": 14.828,
+                  "worst": 19.962
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              }
+            ],
+            "summary": {
+              "gpuMedianOfMediansMs": 12.088,
+              "gpuWorstP95Ms": 14.845,
+              "pairedMedianP95Ms": 14.828,
+              "pairedWorstP95Ms": 14.845,
+              "p95HeadroomMs": 1.855,
+              "budgetVerdict": "PASS",
+              "requirement": "3 hardware GPU trials; worst paired p95 <= 16.7ms"
+            }
+          }
+        },
+        "msaa4": {
+          "diagnostics": {
+            "requestedAa": "msaa4",
+            "effectiveAa": "msaa4",
+            "requestedDpr": "auto",
+            "deviceDpr": 2,
+            "effectiveDpr": 1.5,
+            "rgba16fSupportedSamples": [
+              4,
+              2
+            ],
+            "rgba16fEffectiveSamples": [
+              4,
+              2
+            ],
+            "forcedSampleCapability": false,
+            "aaFallbackReason": null,
+            "composerMultisampling": 4,
+            "frameBufferType": "RGBA16F",
+            "cssWidth": 1512,
+            "cssHeight": 982,
+            "drawingBufferWidth": 2268,
+            "drawingBufferHeight": 1473,
+            "drawingBufferPixels": 3340764
+          },
+          "visual": {
+            "methodology": {
+              "frameCount": 120,
+              "viewport": "2268x1473",
+              "primaryMetric": "p95 absolute temporal second difference at edge pixels, scaled by 1000",
+              "motionCompensation": "world-anchored bar and specular ROIs are reprojected into canonical patches each frame",
+              "roiDescription": "nine thin metallic bars plus three smooth-metal sphere highlight/silhouette patches",
+              "ghostMetric": "changed-pixel residual against the settled final pose after hard stop/reveal",
+              "sharpnessMetric": "median canonical-patch spatial gradient magnitude, scaled by 1000"
+            },
+            "summary": {
+              "staticCoverageNoiseP95": 0.433504,
+              "staticEdgeEnergy": 16.744194,
+              "worstMotionCoverageNoiseP95": 12.956121,
+              "worstMotionSequence": "fast-yaw",
+              "hardStopGhostTrailP95": 0.380545,
+              "revealGhostTrailP95": 0.461295,
+              "motionNoiseToJitterRatio": null
+            },
+            "sequences": {
+              "static": {
+                "coverageNoiseP95": {
+                  "all": 0.433504,
+                  "bars": 0.246777,
+                  "specular": 0.599683
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 0.477355,
+                  "bars": 0.270143,
+                  "specular": 0.665978
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.744194,
+                  "bars": 6.348083,
+                  "specular": 54.944284
+                },
+                "ghostTrailP95": null
+              },
+              "slow-yaw": {
+                "coverageNoiseP95": {
+                  "all": 11.683512,
+                  "bars": 2.841487,
+                  "specular": 19.063343
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 15.216862,
+                  "bars": 3.912352,
+                  "specular": 24.614935
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.729322,
+                  "bars": 6.347986,
+                  "specular": 54.869371
+                },
+                "ghostTrailP95": null
+              },
+              "fast-yaw": {
+                "coverageNoiseP95": {
+                  "all": 12.956121,
+                  "bars": 3.742731,
+                  "specular": 20.766537
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 17.844132,
+                  "bars": 4.55998,
+                  "specular": 29.171095
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.72791,
+                  "bars": 6.351086,
+                  "specular": 54.869653
+                },
+                "ghostTrailP95": null
+              },
+              "lateral": {
+                "coverageNoiseP95": {
+                  "all": 6.445487,
+                  "bars": 5.18951,
+                  "specular": 7.775492
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 11.165593,
+                  "bars": 5.648414,
+                  "specular": 15.949944
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.562189,
+                  "bars": 6.175309,
+                  "specular": 54.763289
+                },
+                "ghostTrailP95": null
+              },
+              "hard-stop": {
+                "coverageNoiseP95": {
+                  "all": 7.354482,
+                  "bars": 1.622496,
+                  "specular": 12.023515
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 11.232928,
+                  "bars": 2.214868,
+                  "specular": 18.946791
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.714808,
+                  "bars": 6.334359,
+                  "specular": 54.862177
+                },
+                "ghostTrailP95": 0.380545
+              },
+              "reveal": {
+                "coverageNoiseP95": {
+                  "all": 22.239781,
+                  "bars": 4.700034,
+                  "specular": 36.171873
+                },
+                "compensatedFrameDifferenceP95": {
+                  "all": 27.975533,
+                  "bars": 6.58476,
+                  "specular": 46.117863
+                },
+                "edgeEnergyMedian": {
+                  "all": 16.160748,
+                  "bars": 6.475841,
+                  "specular": 48.060482
+                },
+                "ghostTrailP95": 0.461295
+              }
+            }
+          },
+          "performance": {
+            "trials": [
+              {
+                "trial": 1,
+                "gpuFrameMs": {
+                  "samples": 181,
+                  "median": 14.909,
+                  "p95": 18.571,
+                  "worst": 23.026
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.1,
+                  "p95": 1.6,
+                  "worst": 2
+                },
+                "pairedFrameMs": {
+                  "samples": 181,
+                  "median": 14.909,
+                  "p95": 18.571,
+                  "worst": 23.026
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 2,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 14.877,
+                  "p95": 18.58,
+                  "worst": 23.183
+                },
+                "cpuFrameMs": {
+                  "samples": 181,
+                  "median": 1.1,
+                  "p95": 1.6,
+                  "worst": 1.8
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 14.877,
+                  "p95": 18.58,
+                  "worst": 23.183
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              },
+              {
+                "trial": 3,
+                "gpuFrameMs": {
+                  "samples": 180,
+                  "median": 15.167,
+                  "p95": 17.961,
+                  "worst": 21.915
+                },
+                "cpuFrameMs": {
+                  "samples": 182,
+                  "median": 1.1,
+                  "p95": 1.6,
+                  "worst": 1.9
+                },
+                "pairedFrameMs": {
+                  "samples": 180,
+                  "median": 15.167,
+                  "p95": 17.961,
+                  "worst": 21.915
+                },
+                "gpuDisjointCount": 0,
+                "consoleErrors": []
+              }
+            ],
+            "summary": {
+              "gpuMedianOfMediansMs": 14.909,
+              "gpuWorstP95Ms": 18.58,
+              "pairedMedianP95Ms": 18.571,
+              "pairedWorstP95Ms": 18.58,
+              "p95HeadroomMs": -1.88,
+              "budgetVerdict": "FAIL",
+              "requirement": "3 hardware GPU trials; worst paired p95 <= 16.7ms"
+            }
+          }
+        }
+      }
+    }
+  },
+  "retinaComparisons": [
+    {
+      "baseline": "ultra",
+      "candidate": "msaa2",
+      "temporalFlickerImprovement": -0.011124,
+      "staticSharpnessLoss": 0.002495,
+      "maximumGhostTrailP95": 0.45349,
+      "pairedMedianP95DeltaMs": 0.01,
+      "evidenceGate": {
+        "flickerImprovementAtLeast10Percent": false,
+        "sharpnessLossAtMost8Percent": true,
+        "ghostTrailBelowOne": true,
+        "pairedP95WithinBudget": true
+      },
+      "allGatesPass": false
+    },
+    {
+      "baseline": "ultra",
+      "candidate": "msaa4",
+      "temporalFlickerImprovement": 0.051678,
+      "staticSharpnessLoss": 0.003992,
+      "maximumGhostTrailP95": 0.461295,
+      "pairedMedianP95DeltaMs": 3.753,
+      "evidenceGate": {
+        "flickerImprovementAtLeast10Percent": false,
+        "sharpnessLossAtMost8Percent": true,
+        "ghostTrailBelowOne": true,
+        "pairedP95WithinBudget": false
+      },
+      "allGatesPass": false
+    }
+  ],
+  "dprCapTradeoff": {
+    "comparison": "retina2/ultra versus retina-auto/ultra",
+    "drawingBufferPixels": {
+      "uncapped": 5939136,
+      "capped": 3340764,
+      "reduction": 0.4375
+    },
+    "staticSharpness": {
+      "uncapped": 16.910017,
+      "capped": 16.811297,
+      "loss": 0.005838
+    },
+    "temporalNoise": {
+      "uncapped": 13.025601,
+      "capped": 13.662158,
+      "change": 0.04887
+    },
+    "pairedP95Ms": {
+      "uncapped": 25.906,
+      "capped": 15.793
+    }
+  },
+  "capabilityControls": {
+    "actual": [
+      4,
+      2
+    ],
+    "forcedTwoSampleCeiling": {
+      "requestedAa": "msaa4",
+      "effectiveAa": "msaa2",
+      "composerMultisampling": 2,
+      "capability": [
+        2
+      ],
+      "fallbackReason": "RGBA16F does not support 4x MSAA; using 2x.",
+      "passes": true
+    },
+    "forcedNoSamples": {
+      "requestedAa": "msaa4",
+      "effectiveAa": "ultra",
+      "composerMultisampling": 0,
+      "capability": [],
+      "fallbackReason": "RGBA16F does not support multisampling; using SMAA Ultra.",
+      "passes": true
+    }
+  },
+  "invalidAaControl": {
+    "requested": "not-a-mode",
+    "refused": true,
+    "exitSemantics": "runner allowlist rejects before capture; URL startup throws",
+    "expectedErrors": [
+      "Error: Unsupported aa mode \"not-a-mode\". Expected one of: ultra, high, medium, low, fxaa, msaa2, msaa4, msaa2-smaa, off."
+    ],
+    "passes": true
+  },
+  "decision": {
+    "verdict": "BLOCKED",
+    "selectedMode": "ultra",
+    "selectedDprMode": "auto",
+    "shippingPolicy": "SMAA Ultra with auto DPR capped at 1.5 and about 3.34M drawing-buffer pixels",
+    "issueClosingCriterionMet": false,
+    "msaa4AtRetina": "BLOCKED",
+    "reason": "No tested MSAA mode improves Retina temporal stability by 10% while also passing the 16.7ms worst-p95 gate.",
+    "taaStatus": "BLOCKED",
+    "taaReason": "No motion-vector buffer or object-motion/disocclusion history-rejection contract exists.",
+    "naiveHistoryStatus": "NEGATIVE_CONTROL_ONLY"
+  },
+  "committedEvidence": {
+    "rawPerFrameData": "omitted; committed metrics contain distributions and summaries only",
+    "blindSets": [
+      "dpr-cap",
+      "sample-fallback"
+    ],
+    "representativeFramesPerSequence": 4
+  }
+}

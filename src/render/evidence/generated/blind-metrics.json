@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 2,
+  "capturedAt": "2026-08-08T07:21:31.268Z",
+  "issue": "kody-w/rapp-fps#29",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "frameBudgetMs": 16.7,
+  "sets": {
+    "dpr-cap": {
+      "question": "Compare uncapped Retina DPR2 against the production DPR cap for sharpness and stability.",
+      "modes": {
+        "mode-a": {
+          "contactSheet": "blind/dpr-cap-mode-a-contact.png",
+          "roiSheet": "blind/dpr-cap-mode-a-rois.png",
+          "summary": {
+            "diagnostics": {
+              "effectiveAa": "ultra",
+              "effectiveDpr": 1.5,
+              "drawingBuffer": [
+                2268,
+                1473
+              ],
+              "visual": {
+                "staticCoverageNoiseP95": 0.487069,
+                "staticEdgeEnergy": 16.811297,
+                "worstMotionCoverageNoiseP95": 13.662158,
+                "worstMotionSequence": "fast-yaw",
+                "hardStopGhostTrailP95": 0.421603,
+                "revealGhostTrailP95": 0.468754,
+                "motionNoiseToJitterRatio": null
+              },
+              "performance": {
+                "gpuMedianOfMediansMs": 11.059,
+                "gpuWorstP95Ms": 15.793,
+                "pairedMedianP95Ms": 14.818,
+                "pairedWorstP95Ms": 15.793,
+                "p95HeadroomMs": 0.907,
+                "budgetVerdict": "PASS",
+                "requirement": "3 hardware GPU trials; worst paired p95 <= 16.7ms"
+              }
+            }
+          }
+        },
+        "mode-b": {
+          "contactSheet": "blind/dpr-cap-mode-b-contact.png",
+          "roiSheet": "blind/dpr-cap-mode-b-rois.png",
+          "summary": {
+            "diagnostics": {
+              "effectiveAa": "ultra",
+              "effectiveDpr": 2,
+              "drawingBuffer": [
+                3024,
+                1964
+              ],
+              "visual": {
+                "staticCoverageNoiseP95": 0.454155,
+                "staticEdgeEnergy": 16.910017,
+                "worstMotionCoverageNoiseP95": 13.025601,
+                "worstMotionSequence": "lateral",
+                "hardStopGhostTrailP95": 0.392102,
+                "revealGhostTrailP95": 0.476258,
+                "motionNoiseToJitterRatio": null
+              },
+              "performance": {
+                "gpuMedianOfMediansMs": 17.655,
+                "gpuWorstP95Ms": 25.906,
+                "pairedMedianP95Ms": 23.312,
+                "pairedWorstP95Ms": 25.906,
+                "p95HeadroomMs": -9.206,
+                "budgetVerdict": "FAIL",
+                "requirement": "3 hardware GPU trials; worst paired p95 <= 16.7ms"
+              }
+            }
+          }
+        }
+      }
+    },
+    "sample-fallback": {
+      "question": "Compare supported 4x RGBA16F MSAA against deterministic forced 2x fallback.",
+      "modes": {
+        "mode-a": {
+          "contactSheet": "blind/sample-fallback-mode-a-contact.png",
+          "roiSheet": "blind/sample-fallback-mode-a-rois.png",
+          "summary": {
+            "diagnostics": {
+              "effectiveAa": "msaa4",
+              "effectiveDpr": 1,
+              "drawingBuffer": [
+                1920,
+                1080
+              ],
+              "visual": {
+                "staticCoverageNoiseP95": 0.43577,
+                "staticEdgeEnergy": 16.634641,
+                "worstMotionCoverageNoiseP95": 12.032969,
+                "worstMotionSequence": "fast-yaw",
+                "hardStopGhostTrailP95": 0.386672,
+                "revealGhostTrailP95": 0.514455,
+                "motionNoiseToJitterRatio": null
+              },
+              "performance": {
+                "gpuMedianOfMediansMs": 10.845,
+                "gpuWorstP95Ms": 15.641,
+                "pairedMedianP95Ms": 12.802,
+                "pairedWorstP95Ms": 15.641,
+                "p95HeadroomMs": 1.059,
+                "budgetVerdict": "PASS",
+                "requirement": "3 hardware GPU trials; worst paired p95 <= 16.7ms"
+              }
+            }
+          }
+        },
+        "mode-b": {
+          "contactSheet": "blind/sample-fallback-mode-b-contact.png",
+          "roiSheet": "blind/sample-fallback-mode-b-rois.png",
+          "summary": {
+            "diagnostics": {
+              "effectiveAa": "msaa2",
+              "composerMultisampling": 2
+            }
+          }
+        }
+      }
+    }
+  }
+}
