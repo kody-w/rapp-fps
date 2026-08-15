@@ -1,0 +1,135 @@
+{
+  "verdict": "SLICE VERIFIED",
+  "at": "2026-08-15T14:05:07.151Z",
+  "url": "http://127.0.0.1:5285/",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "budgetMs": 16.7,
+  "frameMsP95": 7.579,
+  "pointerLocked": false,
+  "lookInputPath": "synthetic-movement-delta (pointer lock unavailable under automation)",
+  "coverageGaps": [
+    "Pointer lock is never granted under Playwright (verified: headless declines silently, headed raises pointerlockerror). Look is exercised by dispatching the mouse deltas a locked pointer would produce, so the lock grant itself is UNVERIFIED by this instrument."
+  ],
+  "passed": 11,
+  "failed": 0,
+  "unobserved": 0,
+  "checks": [
+    {
+      "name": "look",
+      "status": "pass",
+      "detail": "yaw changed by 1.2960 rad under 30 mouse-delta events.",
+      "evidence": {
+        "beforeYaw": 0.06933313368820858,
+        "afterYaw": -1.2266668663117912,
+        "pointerLocked": false,
+        "inputPath": "synthetic-movement-delta (pointer lock unavailable under automation)"
+      }
+    },
+    {
+      "name": "look_pitch_clamped",
+      "status": "pass",
+      "detail": "pitch held within ±1.5718 rad when driven hard past vertical (up 1.5608, down -1.5608)."
+    },
+    {
+      "name": "move",
+      "status": "pass",
+      "detail": "travelled 7.649 m in 1.5 s of forward input.",
+      "evidence": {
+        "from": {
+          "x": 0,
+          "y": 1.66,
+          "z": -1.6
+        },
+        "to": {
+          "x": 7.200338735943766,
+          "y": 1.66,
+          "z": -4.1805285375915435
+        }
+      }
+    },
+    {
+      "name": "move_stops",
+      "status": "pass",
+      "detail": "coasted 0.543 m after release (expected under 1.0 m; more than that is ice)."
+    },
+    {
+      "name": "footsteps",
+      "status": "pass",
+      "detail": "4 footstep events during movement."
+    },
+    {
+      "name": "containment",
+      "status": "pass",
+      "detail": "player remained in the world (y=1.66, 6.6 m from start) after 6 s of continuous forward input.",
+      "evidence": {
+        "pos": {
+          "x": 11.66,
+          "y": 1.6600000000000001,
+          "z": -9.66
+        }
+      }
+    },
+    {
+      "name": "weapon_fires",
+      "status": "pass",
+      "detail": "18 weapon:fired events in 1.2 s of held fire."
+    },
+    {
+      "name": "bullet_resolves",
+      "status": "pass",
+      "detail": "15 impacts, every normal unit-length.",
+      "evidence": {
+        "sample": {
+          "point": {
+            "x": 11.686658771996978,
+            "y": 5.551115123125783e-17,
+            "z": -9.684488737086735
+          },
+          "normal": {
+            "x": 0,
+            "y": 1,
+            "z": 0
+          },
+          "material": "concrete",
+          "distance": 0.44209804783671725,
+          "damage": 28,
+          "source": {
+            "x": 11.600987052771332,
+            "y": 0.27056601317363416,
+            "z": -9.345512229137757
+          },
+          "direction": {
+            "x": 0.19378443231056158,
+            "y": -0.6120045417471826,
+            "z": -0.7667450910667082
+          }
+        }
+      }
+    },
+    {
+      "name": "enemy_damageable",
+      "status": "pass",
+      "detail": "1 damage/hit-confirm events observed."
+    },
+    {
+      "name": "frame_budget",
+      "status": "pass",
+      "detail": "7.579 ms p95 against a 16.7 ms budget, measured while moving, turning and firing (181 paired samples).",
+      "evidence": {
+        "p95": 7.579,
+        "median": 6.445,
+        "samples": 181,
+        "gpuP95": 7.498,
+        "cpuP95": 2.2
+      }
+    },
+    {
+      "name": "no_console_errors",
+      "status": "pass",
+      "detail": "no console errors across the whole play sequence.",
+      "evidence": []
+    }
+  ],
+  "consoleErrors": []
+}

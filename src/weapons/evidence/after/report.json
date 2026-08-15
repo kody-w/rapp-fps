@@ -1,0 +1,55 @@
+{
+  "at": "2026-08-15T14:07:00.490Z",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "cpuThrottleRate": 1,
+  "rafDelayMs": 0,
+  "frameBudgetMs": 16.7,
+  "overBudget": false,
+  "performance": {
+    "gpuSupported": true,
+    "gpuCounterBits": 64,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 5.621,
+      "p95": 9.32,
+      "worst": 10.535
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 1.3,
+      "p95": 1.8,
+      "worst": 2.2
+    },
+    "rafIntervalMs": {
+      "samples": 122,
+      "median": 16.7,
+      "p95": 17.5,
+      "worst": 17.8
+    },
+    "budgetFrameMsMedian": 5.621,
+    "budgetFrameMsP95": 9.32,
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 5.621,
+      "p95": 9.32,
+      "worst": 10.535
+    },
+    "gpuDisjointCount": 0,
+    "note": "budget uses max(CPU, GPU); rAF interval is scheduler cadence only",
+    "drawCallsPerFrame": 72,
+    "trianglesPerFrame": 92702,
+    "programs": 11,
+    "textures": 16,
+    "geometries": 12
+  },
+  "shots": [
+    "src/weapons/evidence/after/default.png",
+    "src/weapons/evidence/after/ads.png",
+    "src/weapons/evidence/after/sway.png",
+    "src/weapons/evidence/after/shot-5.png",
+    "src/weapons/evidence/after/shot-15.png",
+    "src/weapons/evidence/after/flash.png"
+  ],
+  "consoleErrors": []
+}

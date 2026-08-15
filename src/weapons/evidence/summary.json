@@ -1,0 +1,153 @@
+{
+  "issue": "#59",
+  "title": "DUSKLINE A7 first-person viewmodel: blockout -> finished procedural art",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "capturedPoses": [
+    "default",
+    "ads",
+    "sway",
+    "shot-5",
+    "shot-15",
+    "flash"
+  ],
+  "blindComparisonPoses": [
+    "default",
+    "ads",
+    "sway",
+    "shot-5"
+  ],
+  "viewmodel": {
+    "drawCallsRifle": 3,
+    "triangles": 7312,
+    "trianglesByGroup": {
+      "metalTris": 3276,
+      "polymerTris": 3348,
+      "accentTris": 688
+    },
+    "triangleCeiling": 8000,
+    "materialGroups": [
+      "metal",
+      "polymer",
+      "accent"
+    ]
+  },
+  "authoredEnvelope": {
+    "unionMin": [
+      -0.072,
+      -0.23,
+      -0.912
+    ],
+    "unionMax": [
+      0.075,
+      0.127,
+      0.21
+    ],
+    "gateMin": [
+      -0.09,
+      -0.24,
+      -0.92
+    ],
+    "gateMax": [
+      0.1,
+      0.16,
+      0.22
+    ],
+    "withinGate": true,
+    "note": "local-space union of the three merged groups; kept within the blockout screen footprint"
+  },
+  "perfBefore": {
+    "drawCalls": 72,
+    "sceneTriangles": 85970,
+    "programs": 10,
+    "textures": 16,
+    "geometries": 12,
+    "gpuBudgetP95Ms": 7.205,
+    "gpuBudgetWorstMs": 9.046,
+    "overBudget": false,
+    "source": "user-authored blockout baseline metrics.json + prior blockout capture"
+  },
+  "perfAfter": {
+    "drawCalls": 72,
+    "sceneTriangles": 92702,
+    "programs": 11,
+    "textures": 16,
+    "geometries": 12,
+    "gpuBudgetP95Ms": 9.32,
+    "gpuBudgetWorstMs": 10.535,
+    "overBudget": false
+  },
+  "anchorProof": {
+    "status": "passed",
+    "muzzle": {
+      "anchor": [
+        0,
+        0.018,
+        -0.91
+      ],
+      "insideVotes": "6/6",
+      "axisCrossings": [
+        1,
+        1,
+        1,
+        1,
+        9,
+        1
+      ],
+      "nearestSurfaceMm": 2,
+      "toleranceMm": 3
+    },
+    "ejection": {
+      "anchor": [
+        0.073,
+        0.025,
+        -0.13
+      ],
+      "nearestSurfaceMm": 1,
+      "toleranceMm": 3,
+      "insidePortFootprint": true,
+      "clusterBox": {
+        "min": [
+          0.03999999910593033,
+          0.004999999422580004,
+          -0.1899999976158142
+        ],
+        "max": [
+          0.07500000298023224,
+          0.054999999701976776,
+          -0.07000000029802322
+        ]
+      }
+    }
+  },
+  "verifySliceTrials": [
+    {
+      "trial": 1,
+      "verdict": "SLICE VERIFIED",
+      "passed": 11,
+      "failed": 0,
+      "unobserved": 0,
+      "frameMsP95": 8.203,
+      "consoleErrors": 0
+    },
+    {
+      "trial": 2,
+      "verdict": "SLICE VERIFIED",
+      "passed": 11,
+      "failed": 0,
+      "unobserved": 0,
+      "frameMsP95": 7.579,
+      "consoleErrors": 0
+    },
+    {
+      "trial": 3,
+      "verdict": "SLICE VERIFIED",
+      "passed": 11,
+      "failed": 0,
+      "unobserved": 0,
+      "frameMsP95": 8.832,
+      "consoleErrors": 0
+    }
+  ],
+  "note": "Rifle stays 3 draws (72 scene-wide). Viewmodel 7312 tris < 8000 ceiling. Local envelope within x[-0.09,0.10] y[-0.24,0.16] z[-0.92,0.22]. Textures unchanged at 16 (zero image textures); programs 10->11 is the vertex-colour shader variant. muzzle/ejection LOCAL anchors are byte-identical to the blockout so authoritative-ray and split-RNG tests are unaffected."
+}
