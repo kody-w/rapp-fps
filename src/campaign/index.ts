@@ -8,15 +8,17 @@
  * `ArenaDefinition` type (re-exported below), which every mission's `createArena`
  * returns — the same type the shipping level already produces.
  *
- * Typical wiring, once the parent branches land:
+ * Typical wiring, once the sibling Relay/Foundry branches land, integration
+ * composes the reviewed mission list (Cargo Breach ships here; the others arrive
+ * from those branches):
  *
  * ```ts
  * import {
- *   createCampaignCatalog, defaultCampaignMissions, CampaignRuntime,
+ *   createCampaignCatalog, cargoBreach, CampaignRuntime,
  *   createLocalStoragePersistence, createQueryNavigation,
  * } from './campaign/index.js';
  *
- * const catalog = createCampaignCatalog(defaultCampaignMissions());
+ * const catalog = createCampaignCatalog([cargoBreach, relayBlackout, foundryLastLight]);
  * const runtime = CampaignRuntime.create({
  *   catalog,
  *   persistence: createLocalStoragePersistence(window.localStorage),
@@ -58,20 +60,10 @@ export {
 } from './spawns.js';
 export type { ClearanceResult, ClearanceOptions, DerivedSpawn, DeriveSpawnOptions } from './spawns.js';
 
-// ── Arena authoring (missions 2/3) ──────────────────────────────────────────
-export { box, onFloor, roomShell, assembleArena } from './authoring.js';
-export type { RoomShellOptions, ArenaBuildInput } from './authoring.js';
-
-// ── Missions & catalog ──────────────────────────────────────────────────────
-export {
-  defaultCampaignMissions,
-  cargoBreach,
-  cargoBreachDerivedSpawn,
-  blackfrostVault,
-  buildBlackfrostVault,
-  tidewallHold,
-  buildTidewallHold,
-} from './missions/index.js';
+// ── Reviewed missions & catalog ─────────────────────────────────────────────
+// Cargo Breach is the only reviewed mission that ships here; integration adds
+// the sibling Relay/Foundry definitions to the catalog once their PRs merge.
+export { cargoBreach, cargoBreachDerivedSpawn } from './missions/index.js';
 export { createCampaignCatalog, CampaignValidationError } from './catalog.js';
 export type { CampaignCatalog, CampaignValidationCode } from './catalog.js';
 
@@ -94,7 +86,7 @@ export type {
 } from './progress.js';
 
 // ── Deep links ──────────────────────────────────────────────────────────────
-export { resolveDeepLink, isDeployable } from './deepLink.js';
+export { resolveDeepLink, isDeployable, defaultMissionId } from './deepLink.js';
 export type { DeepLinkResolution } from './deepLink.js';
 
 // ── Events & snapshots (HUD-facing) ─────────────────────────────────────────

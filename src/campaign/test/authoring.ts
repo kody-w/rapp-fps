@@ -1,13 +1,14 @@
 /**
- * Campaign-owned arena authoring helpers.
+ * Test-only arena authoring helpers.
  *
- * Missions 2 and 3 need their own `ArenaDefinition`s, but the shipping level's
- * `box`/`onFloor` helpers in `arena.ts` are private and — per this work's
- * boundary — must not be touched. So the campaign authors arenas with its own
- * small, equivalent helpers here. They emit the *same* `Solid`/`ArenaDefinition`
- * shape the level already exports, so a campaign arena is indistinguishable from
- * `buildArena()`'s output to every downstream consumer (correspondence proof,
- * static world, AI binding). Pure data, no `three`, no DOM.
+ * The shipping campaign surface is deliberately generic: it ships the reviewed
+ * Cargo Breach adapter (which reuses the level's `buildArena()`) plus the
+ * catalog/progress/persistence machinery, and integration supplies the reviewed
+ * Relay/Foundry mission definitions after their PRs merge. These helpers exist
+ * only so the deterministic test suite can synthesise *fixture* arenas for the
+ * multi-mission scenarios (progression, finale, persistence) without shipping a
+ * fake campaign. They emit the exact `Solid`/`ArenaDefinition` shape the level
+ * already exports. Pure data, no `three`, no DOM.
  *
  * The one honesty rule inherited from `arena.ts` holds here too: anything that
  * reads as body-height cover collides; render-only dressing sets `collide:false`
@@ -22,7 +23,7 @@ import type {
   Solid,
   SurfaceMaterial,
   Vec3,
-} from '../level/arena.js';
+} from '../../level/arena.js';
 
 type SolidOpts = Partial<Pick<Solid, 'collide' | 'castShadow' | 'receiveShadow' | 'tint'>>;
 

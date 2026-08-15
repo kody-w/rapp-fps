@@ -1,19 +1,19 @@
 {
   "ok": true,
-  "total": 15,
-  "passed": 15,
+  "total": 19,
+  "passed": 19,
   "failed": 0,
   "failures": [],
   "tests": [
     {
-      "name": "catalogAcceptsDefaultCampaign",
+      "name": "catalogAcceptsComposedCampaign",
       "pass": true,
       "failures": [],
       "detail": {
         "ids": [
           "cargo-breach",
-          "blackfrost-vault",
-          "tidewall-hold"
+          "fixture-bravo",
+          "fixture-charlie"
         ]
       }
     },
@@ -23,31 +23,35 @@
       "failures": [],
       "detail": {
         "snapshot": {
-          "snapshotVersion": 1,
+          "snapshotVersion": 2,
           "currentMissionId": "cargo-breach",
           "currentTitle": "Cargo Breach",
           "currentObjective": "Eliminate the defender holding the beacon terminal.",
+          "currentObjectiveTitle": "SECURE THE CARGO BAY",
           "missions": [
             {
               "id": "cargo-breach",
               "order": 1,
               "title": "Cargo Breach",
               "status": "current",
-              "objective": "Eliminate the defender holding the beacon terminal."
+              "objective": "Eliminate the defender holding the beacon terminal.",
+              "objectiveTitle": "SECURE THE CARGO BAY"
             },
             {
-              "id": "blackfrost-vault",
+              "id": "fixture-bravo",
               "order": 2,
-              "title": "Blackfrost Vault",
+              "title": "Fixture Bravo",
               "status": "locked",
-              "objective": "Clear both defenders and secure the vault core."
+              "objective": "Clear the 2 defender(s) in the Fixture Bravo fixture.",
+              "objectiveTitle": "HOLD THE RELAY"
             },
             {
-              "id": "tidewall-hold",
+              "id": "fixture-charlie",
               "order": 3,
-              "title": "Tidewall Hold",
+              "title": "Fixture Charlie",
               "status": "locked",
-              "objective": "Break the seawall hold and reach the tide beacon."
+              "objective": "Clear the 2 defender(s) in the Fixture Charlie fixture.",
+              "objectiveTitle": "BREACH THE CORE"
             }
           ],
           "eliminations": {
@@ -57,7 +61,10 @@
           },
           "campaignComplete": false,
           "completedCount": 0,
-          "totalCount": 3
+          "totalCount": 3,
+          "missionCount": 3,
+          "furthestUnlockedIndex": 0,
+          "finaleMissionId": "fixture-charlie"
         }
       }
     },
@@ -68,15 +75,17 @@
       "detail": {
         "lockedFinal": {
           "outcome": "locked",
-          "missionId": "tidewall-hold",
+          "missionId": "fixture-charlie",
           "order": 3,
-          "blockedBy": "blackfrost-vault"
+          "blockedBy": "fixture-bravo",
+          "fallbackMissionId": "cargo-breach"
         },
         "unlocked": {
           "outcome": "resolved",
-          "missionId": "blackfrost-vault",
+          "missionId": "fixture-bravo",
           "order": 2,
-          "status": "unlocked"
+          "status": "unlocked",
+          "fallbackMissionId": "cargo-breach"
         }
       }
     },
@@ -87,13 +96,15 @@
       "detail": {
         "locked": {
           "outcome": "locked",
-          "missionId": "tidewall-hold",
+          "missionId": "fixture-charlie",
           "order": 3,
-          "blockedBy": "blackfrost-vault"
+          "blockedBy": "fixture-bravo",
+          "fallbackMissionId": "cargo-breach"
         },
         "unknown": {
           "outcome": "unknown",
-          "requested": "ghost-mission"
+          "requested": "ghost-mission",
+          "fallbackMissionId": "cargo-breach"
         }
       }
     },
@@ -104,11 +115,12 @@
       "detail": {
         "deepLink": {
           "outcome": "resolved",
-          "missionId": "blackfrost-vault",
+          "missionId": "fixture-bravo",
           "order": 2,
-          "status": "current"
+          "status": "current",
+          "fallbackMissionId": "fixture-bravo"
         },
-        "current": "blackfrost-vault"
+        "current": "fixture-bravo"
       }
     },
     {
@@ -159,8 +171,8 @@
       "detail": {
         "completedOrder": [
           "cargo-breach",
-          "blackfrost-vault",
-          "tidewall-hold"
+          "fixture-bravo",
+          "fixture-charlie"
         ]
       }
     },
@@ -193,31 +205,35 @@
       "failures": [],
       "detail": {
         "restored": {
-          "snapshotVersion": 1,
-          "currentMissionId": "blackfrost-vault",
-          "currentTitle": "Blackfrost Vault",
-          "currentObjective": "Clear both defenders and secure the vault core.",
+          "snapshotVersion": 2,
+          "currentMissionId": "fixture-bravo",
+          "currentTitle": "Fixture Bravo",
+          "currentObjective": "Clear the 2 defender(s) in the Fixture Bravo fixture.",
+          "currentObjectiveTitle": "HOLD THE RELAY",
           "missions": [
             {
               "id": "cargo-breach",
               "order": 1,
               "title": "Cargo Breach",
               "status": "completed",
-              "objective": "Eliminate the defender holding the beacon terminal."
+              "objective": "Eliminate the defender holding the beacon terminal.",
+              "objectiveTitle": "SECURE THE CARGO BAY"
             },
             {
-              "id": "blackfrost-vault",
+              "id": "fixture-bravo",
               "order": 2,
-              "title": "Blackfrost Vault",
+              "title": "Fixture Bravo",
               "status": "current",
-              "objective": "Clear both defenders and secure the vault core."
+              "objective": "Clear the 2 defender(s) in the Fixture Bravo fixture.",
+              "objectiveTitle": "HOLD THE RELAY"
             },
             {
-              "id": "tidewall-hold",
+              "id": "fixture-charlie",
               "order": 3,
-              "title": "Tidewall Hold",
+              "title": "Fixture Charlie",
               "status": "locked",
-              "objective": "Break the seawall hold and reach the tide beacon."
+              "objective": "Clear the 2 defender(s) in the Fixture Charlie fixture.",
+              "objectiveTitle": "BREACH THE CORE"
             }
           ],
           "eliminations": {
@@ -227,7 +243,10 @@
           },
           "campaignComplete": false,
           "completedCount": 1,
-          "totalCount": 3
+          "totalCount": 3,
+          "missionCount": 3,
+          "furthestUnlockedIndex": 1,
+          "finaleMissionId": "fixture-charlie"
         }
       }
     },
@@ -272,7 +291,7 @@
       "pass": true,
       "failures": [],
       "detail": {
-        "controls": 17
+        "controls": 18
       }
     },
     {
@@ -280,6 +299,87 @@
       "pass": true,
       "failures": [],
       "detail": {}
+    },
+    {
+      "name": "objectiveTitleAndHudSnapshotFields",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "snapshot": {
+          "snapshotVersion": 2,
+          "currentMissionId": null,
+          "currentTitle": null,
+          "currentObjective": null,
+          "currentObjectiveTitle": null,
+          "missions": [
+            {
+              "id": "cargo-breach",
+              "order": 1,
+              "title": "Cargo Breach",
+              "status": "completed",
+              "objective": "Eliminate the defender holding the beacon terminal.",
+              "objectiveTitle": "SECURE THE CARGO BAY"
+            },
+            {
+              "id": "fixture-bravo",
+              "order": 2,
+              "title": "Fixture Bravo",
+              "status": "completed",
+              "objective": "Clear the 2 defender(s) in the Fixture Bravo fixture.",
+              "objectiveTitle": "HOLD THE RELAY"
+            },
+            {
+              "id": "fixture-charlie",
+              "order": 3,
+              "title": "Fixture Charlie",
+              "status": "completed",
+              "objective": "Clear the 2 defender(s) in the Fixture Charlie fixture.",
+              "objectiveTitle": "BREACH THE CORE"
+            }
+          ],
+          "eliminations": null,
+          "campaignComplete": true,
+          "completedCount": 3,
+          "totalCount": 3,
+          "missionCount": 3,
+          "furthestUnlockedIndex": 2,
+          "finaleMissionId": "fixture-charlie"
+        }
+      }
+    },
+    {
+      "name": "postFinaleReplayDeployNeverCoexists",
+      "pass": true,
+      "failures": [],
+      "detail": {}
+    },
+    {
+      "name": "lockedAndUnknownDeepLinkNormalizeUrl",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "locked": {
+          "outcome": "locked",
+          "missionId": "fixture-charlie",
+          "order": 3,
+          "blockedBy": "fixture-bravo",
+          "fallbackMissionId": "cargo-breach"
+        },
+        "unknown": {
+          "outcome": "unknown",
+          "requested": "ghost-mission",
+          "fallbackMissionId": "cargo-breach"
+        }
+      }
+    },
+    {
+      "name": "finalReloadPreservesCompletion",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "hydration": "restored",
+        "complete": true
+      }
     }
   ]
 }

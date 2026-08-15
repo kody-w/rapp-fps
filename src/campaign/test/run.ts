@@ -9,10 +9,17 @@
  *   node src/campaign/test/run-campaign.mjs
  *
  * Coverage (one section per contract promise):
- *   default state · deep link locked/unlocked/unknown · elimination progression ·
- *   death → checkpoint retry · final completion · persistence
+ *   default state · deep link locked/unlocked/unknown + URL normalization ·
+ *   elimination progression · death → checkpoint retry · final completion +
+ *   post-finale replay/deploy invariant + final reload identity · persistence
  *   hydration/malformed/version-mismatch/migration · two spawn slots (mission 1
- *   derived + validated) · and negative controls for every catalog rejection.
+ *   derived + validated) · objective title + HUD snapshot fields · and negative
+ *   controls for every catalog rejection.
+ *
+ * The shipping surface is generic: only the reviewed **Cargo Breach** adapter is
+ * exported. To exercise multi-mission logic today the suite composes a catalog
+ * from `cargoBreach` plus two obviously-synthetic `fixture-*` missions
+ * (`./fixtures.js`); integration wires the real Relay/Foundry missions later.
  */
 
 import {
@@ -21,13 +28,13 @@ import {
   CampaignRuntime,
   CampaignValidationError,
   CAMPAIGN_SCHEMA_VERSION,
+  CAMPAIGN_SNAPSHOT_VERSION,
   cargoBreach,
   cargoBreachDerivedSpawn,
-  blackfrostVault,
   createCampaignCatalog,
   createInMemoryPersistence,
   DEFAULT_PERSISTENCE_KEY,
-  defaultCampaignMissions,
+  defaultMissionId,
   eliminateEnemy,
   evaluateClearance,
   initialProgressState,
@@ -39,7 +46,6 @@ import {
   standsOnFloor,
   startMission,
   asMissionId,
-  tidewallHold,
 } from '../index.js';
 import type {
   CampaignCatalog,
@@ -47,6 +53,7 @@ import type {
   CampaignValidationCode,
   MissionDefinition,
 } from '../index.js';
+import { fixtureBravo, fixtureCharlie } from './fixtures.js';
 
 // ── Tiny assertion harness ──────────────────────────────────────────────────
 
@@ -109,10 +116,10 @@ function testCase(name: string, body: Body): Outcome {
 
 // ── Shared fixtures ──────────────────────────────────────────────────────────
 
-const CATALOG: CampaignCatalog = createCampaignCatalog(defaultCampaignMissions());
+const CATALOG: CampaignCatalog = createCampaignCatalog([cargoBreach, fixtureBravo, fixtureCharlie]);
 const M1 = cargoBreach.id;
-const M2 = blackfrostVault.id;
-const M3 = tidewallHold.id;
+const M2 = fixtureBravo.id;
+const M3 = fixtureCharlie.id;
 
 function mutate(base: MissionDefinition, patch: Record<string, unknown>): MissionDefinition {
   return { ...base, ...patch } as unknown as MissionDefinition;
@@ -142,13 +149,17 @@ function eventTypes(events: readonly CampaignEvent[]): string[] {
 // ── Cases ────────────────────────────────────────────────────────────────────
 
 function testCatalogAcceptsDefault(): Outcome {
-  return testCase('catalogAcceptsDefaultCampaign', (c) => {
-    c.eq(CATALOG.count, 3, 'default campaign has three missions');
+  return testCase('catalogAcceptsComposedCampaign', (c) => {
+    c.eq(CATALOG.count, 3, 'composed campaign has three missions');
     c.deep(CATALOG.ids, [M1, M2, M3], 'ids are ordered 1..3');
     c.eq(CATALOG.firstMissionId, M1, 'first mission is cargo-breach');
     c.eq(CATALOG.nextMissionId(M1), M2, 'next after m1 is m2');
     c.eq(CATALOG.nextMissionId(M3), null, 'no mission after the finale');
     c.eq(CATALOG.previousMissionId(M1), null, 'no mission before m1');
+    // The single reviewed mission is a valid one-mission catalog on its own.
+    const solo = createCampaignCatalog([cargoBreach]);
+    c.eq(solo.count, 1, 'cargo-breach alone is a valid catalog');
+    c.eq(solo.firstMissionId, M1, 'solo catalog first mission is cargo-breach');
     return { ids: CATALOG.ids };
   });
 }
@@ -503,7 +514,7 @@ function testTwoSpawnSlots(): Outcome {
 
 function testCatalogNegativeControls(): Outcome {
   return testCase('catalogRejectsEveryFault', (c) => {
-    const [d1, d2] = [cargoBreach, blackfrostVault];
+    const [d1, d2] = [cargoBreach, fixtureBravo];
 
     c.throwsCode(() => createCampaignCatalog([]), 'empty-catalog', 'empty catalog');
     c.throwsCode(
@@ -564,6 +575,11 @@ function testCatalogNegativeControls(): Outcome {
       'blank objective summary',
     );
     c.throwsCode(
+      () => createCampaignCatalog([mutate(d1, { objective: { kind: 'eliminate', title: '  ', summary: 'ok' } })]),
+      'missing-objective',
+      'blank objective title',
+    );
+    c.throwsCode(
       () => createCampaignCatalog([mutate(d1, { enemies: [] })]),
       'no-enemies',
       'no defenders',
@@ -603,7 +619,7 @@ function testCatalogNegativeControls(): Outcome {
       'enemy-embedded',
       'a defender embedded in a solid',
     );
-    return { controls: 17 };
+    return { controls: 18 };
   });
 }
 
@@ -623,6 +639,153 @@ function testProgressGuards(): Outcome {
 
 // ── Report ──────────────────────────────────────────────────────────────────
 
+function completedState() {
+  let s = initialProgressState(CATALOG);
+  for (let i = 0; i < 5; i++) s = eliminateEnemy(s, CATALOG).state;
+  return s;
+}
+
+function testObjectiveTitleAndSnapshotFields(): Outcome {
+  return testCase('objectiveTitleAndHudSnapshotFields', (c) => {
+    // The reviewed mission carries the exact production HUD banner.
+    c.eq(cargoBreach.objective.title, 'SECURE THE CARGO BAY', 'cargo objective title is the HUD banner');
+
+    const { runtime } = freshRuntime();
+    const snap = runtime.snapshot();
+    c.eq(snap.snapshotVersion, CAMPAIGN_SNAPSHOT_VERSION, 'snapshot advertises its version');
+    c.eq(CAMPAIGN_SNAPSHOT_VERSION, 2, 'snapshot version bumped for the new shape');
+    c.eq(snap.currentObjectiveTitle, 'SECURE THE CARGO BAY', 'current objective title surfaced');
+    c.eq(snap.missions[0].objectiveTitle, 'SECURE THE CARGO BAY', 'per-mission objective title surfaced');
+    c.eq(snap.missionCount, 3, 'missionCount equals the catalog size');
+    c.eq(snap.finaleMissionId, M3, 'finaleMissionId is the last mission');
+    c.eq(snap.furthestUnlockedIndex, 0, 'only mission 1 is reachable on a fresh campaign');
+
+    // furthestUnlockedIndex advances as missions unlock, monotonically.
+    runtime.reportElimination(); // m1 done → m2 current/unlocked
+    c.eq(runtime.snapshot().furthestUnlockedIndex, 1, 'index tracks the frontier after m1');
+    runtime.reportElimination(); // m2 #1
+    runtime.reportElimination(); // m2 #2 → m3 current
+    c.eq(runtime.snapshot().furthestUnlockedIndex, 2, 'index reaches the finale');
+
+    // After completion the finale identity is still exposed; objective title clears.
+    runtime.reportElimination(); // m3 #1
+    runtime.reportElimination(); // m3 #2 → complete
+    const done = runtime.snapshot();
+    c.eq(done.campaignComplete, true, 'campaign complete');
+    c.eq(done.currentObjectiveTitle, null, 'no current objective once complete');
+    c.eq(done.finaleMissionId, M3, 'finaleMissionId still exposed when complete');
+    c.eq(done.furthestUnlockedIndex, 2, 'furthest index holds at the finale when complete');
+    return { snapshot: done };
+  });
+}
+
+function testPostFinaleReplayDeployInvariant(): Outcome {
+  return testCase('postFinaleReplayDeployNeverCoexists', (c) => {
+    // Pure reducers: starting/replaying from a completed state reopens it.
+    const done = completedState();
+    c.eq(done.campaignComplete, true, 'precondition: campaign is complete');
+    c.eq(done.currentMissionId, null, 'precondition: no current mission');
+
+    const afterStart = startMission(done, CATALOG, M1).state;
+    c.eq(afterStart.campaignComplete, false, 'startMission clears campaignComplete');
+    c.eq(afterStart.currentMissionId, M1, 'startMission sets the current mission');
+    c.ok(!(afterStart.campaignComplete && afterStart.currentMissionId !== null), 'invariant holds after start');
+
+    const afterReplay = replayMission(done, CATALOG, M3).state;
+    c.eq(afterReplay.campaignComplete, false, 'replayMission clears campaignComplete');
+    c.eq(afterReplay.currentMissionId, M3, 'replayMission sets the current mission');
+    c.ok(!(afterReplay.campaignComplete && afterReplay.currentMissionId !== null), 'invariant holds after replay');
+
+    // Runtime commands: deploy/replay after the finale reopen the campaign, and
+    // never leave campaignComplete true alongside a current mission.
+    const { runtime } = freshRuntime();
+    for (let i = 0; i < 5; i++) runtime.reportElimination();
+    c.eq(runtime.snapshot().campaignComplete, true, 'runtime reached completion');
+
+    runtime.deploy(M1);
+    let snap = runtime.snapshot();
+    c.eq(snap.campaignComplete, false, 'deploy after finale reopens the campaign');
+    c.eq(snap.currentMissionId, M1, 'deploy after finale sets a current mission');
+    c.ok(!(snap.campaignComplete && snap.currentMissionId !== null), 'invariant holds after deploy');
+
+    // Replaying the finale from the reopened campaign keeps the invariant.
+    runtime.replay(M3);
+    snap = runtime.snapshot();
+    c.eq(snap.campaignComplete, false, 'replay after finale reopens the campaign');
+    c.eq(snap.currentMissionId, M3, 'replay after finale sets a current mission');
+    c.ok(!(snap.campaignComplete && snap.currentMissionId !== null), 'invariant holds after replay');
+    return {};
+  });
+}
+
+function testDeepLinkNormalization(): Outcome {
+  return testCase('lockedAndUnknownDeepLinkNormalizeUrl', (c) => {
+    // defaultMissionId is the frontier mid-campaign, the finale once complete.
+    const fresh = initialProgressState(CATALOG);
+    c.eq(defaultMissionId(CATALOG, fresh), M1, 'default is the frontier on a fresh campaign');
+    c.eq(defaultMissionId(CATALOG, completedState()), M3, 'default is the finale once complete');
+
+    // A locked deep link normalizes the URL to the current/default mission
+    // without deploying into it or forging any completion.
+    const locked = freshRuntime({ requested: M3 });
+    c.eq(locked.runtime.deepLink.outcome, 'locked', 'locked link reported as locked');
+    if (locked.runtime.deepLink.outcome === 'locked') {
+      c.eq(locked.runtime.deepLink.fallbackMissionId, M1, 'locked link carries the frontier fallback');
+    }
+    c.eq(locked.navigation.readRequestedMissionId(), M1, 'locked URL normalized to the frontier');
+    c.deep(locked.navigation.replacements, [M1], 'exactly one URL rewrite for a locked link');
+    c.eq(locked.navigation.reloadRequests.length, 0, 'normalization never triggers a reload');
+    c.eq(locked.runtime.snapshot().currentMissionId, M1, 'player stays at the frontier');
+    c.eq(locked.runtime.snapshot().campaignComplete, false, 'locked link forged no completion');
+
+    // An unknown deep link normalizes the same way.
+    const unknown = freshRuntime({ requested: 'ghost-mission' });
+    c.eq(unknown.runtime.deepLink.outcome, 'unknown', 'unknown link reported as unknown');
+    c.eq(unknown.navigation.readRequestedMissionId(), M1, 'unknown URL normalized to the frontier');
+    c.deep(unknown.navigation.replacements, [M1], 'exactly one URL rewrite for an unknown link');
+
+    // An absent link is left untouched (nothing to normalize).
+    const absent = freshRuntime();
+    c.eq(absent.runtime.deepLink.outcome, 'absent', 'no link ⇒ absent');
+    c.deep(absent.navigation.replacements, [], 'absent link performs no URL rewrite');
+    return { locked: locked.runtime.deepLink, unknown: unknown.runtime.deepLink };
+  });
+}
+
+function testFinalReloadIdentity(): Outcome {
+  return testCase('finalReloadPreservesCompletion', (c) => {
+    // Complete the campaign, persisting the finished state.
+    const persistence = createInMemoryPersistence();
+    const runA = CampaignRuntime.create({
+      catalog: CATALOG,
+      persistence: persistence.adapter,
+      navigation: new InMemoryNavigation(),
+    });
+    for (let i = 0; i < 5; i++) runA.reportElimination();
+    c.eq(runA.snapshot().campaignComplete, true, 'run A completed the campaign');
+
+    // Reload with the URL still pointing at the finale mission.
+    const nav = new InMemoryNavigation(M3);
+    const runB = CampaignRuntime.create({
+      catalog: CATALOG,
+      persistence: persistence.adapter,
+      navigation: nav,
+    });
+    c.eq(runB.hydration.status, 'restored', 'completed save is restored on reload');
+    c.eq(runB.snapshot().campaignComplete, true, 'reload stays complete — never un-completed');
+    c.eq(runB.snapshot().currentMissionId, null, 'no current mission after a completed reload');
+    c.ok(
+      !(runB.snapshot().campaignComplete && runB.snapshot().currentMissionId !== null),
+      'invariant holds across reload',
+    );
+    c.eq(runB.snapshot().finaleMissionId, M3, 'finale identity exposed after reload');
+    c.eq(runB.deepLink.outcome, 'resolved', 'finale deep link resolves (mission is completed)');
+    c.eq(nav.reloadRequests.length, 0, 'a completed reload triggers no navigation');
+    c.deep(runB.progressState.completedOrder, [M1, M2, M3], 'completion order intact after reload');
+    return { hydration: runB.hydration.status, complete: runB.snapshot().campaignComplete };
+  });
+}
+
 export function runAllCampaignTests(): Outcome[] {
   return [
     testCatalogAcceptsDefault(),
@@ -640,6 +803,10 @@ export function runAllCampaignTests(): Outcome[] {
     testTwoSpawnSlots(),
     testCatalogNegativeControls(),
     testProgressGuards(),
+    testObjectiveTitleAndSnapshotFields(),
+    testPostFinaleReplayDeployInvariant(),
+    testDeepLinkNormalization(),
+    testFinalReloadIdentity(),
   ];
 }
 

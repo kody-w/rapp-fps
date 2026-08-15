@@ -159,6 +159,9 @@ export function startMission(
   demotePrevious(draft, missionId);
   setStatus(draft, missionId, 'current');
   draft.currentMissionId = missionId;
+  // A live mission and a complete campaign are mutually exclusive: re-entering a
+  // mission after the finale (deploy/replay) reopens the campaign.
+  draft.campaignComplete = false;
   draft.activeEliminations = draft.records[missionId].bankedEliminations;
   return {
     state: freeze(draft),
@@ -187,6 +190,9 @@ export function replayMission(
   setBanked(draft, missionId, 0);
   setStatus(draft, missionId, 'current');
   draft.currentMissionId = missionId;
+  // As with startMission: replaying (even the finale) reopens the campaign, so a
+  // current mission can never coexist with campaignComplete.
+  draft.campaignComplete = false;
   draft.activeEliminations = 0;
   return {
     state: freeze(draft),

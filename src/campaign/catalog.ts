@@ -11,7 +11,7 @@
  * What it proves, once, at construction:
  *  - ids are well-formed and unique; orders are a contiguous 1..N run (no dup, no gap);
  *  - every mission has exactly two floor-based spawns that stand clear of solids;
- *  - every objective carries a non-empty summary;
+ *  - every objective carries a non-empty title and summary;
  *  - every mission has at least one defender, each with cover that actually collides;
  *  - completion counts are inside `[1, enemies.length]` — no unwinnable mission.
  *
@@ -132,6 +132,14 @@ function validateObjective(mission: MissionDefinition): void {
     throw new CampaignValidationError(
       'missing-objective',
       `mission "${mission.id}" has no objective summary`,
+      mission.id,
+    );
+  }
+  const title = mission.objective?.title;
+  if (typeof title !== 'string' || title.trim().length === 0) {
+    throw new CampaignValidationError(
+      'missing-objective',
+      `mission "${mission.id}" has no objective title`,
       mission.id,
     );
   }

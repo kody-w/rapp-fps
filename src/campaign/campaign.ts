@@ -152,8 +152,16 @@ export class CampaignRuntime {
     );
 
     runtime.emit({ type: CampaignEvents.DeepLinkResolved, resolution });
-    if (isDeployable(resolution)) {
+    if (isDeployable(resolution) && !runtime.state.campaignComplete) {
+      // Only a `resolved` link deploys — and never on top of a completed
+      // campaign, so reloading after the finale preserves completion (a
+      // construction-time deploy would reopen the finale via startMission).
       runtime.applyTransitions(startMission(runtime.state, catalog, resolution.missionId));
+    } else if (resolution.outcome === 'locked' || resolution.outcome === 'unknown') {
+      // Normalise a bad/locked deep link to the canonical current-or-finale
+      // mission. This rewrites the URL only; it neither deploys into the mission
+      // nor forges any completion (the resolution stays `locked`/`unknown`).
+      navigation.replaceRequestedMissionId(resolution.fallbackMissionId);
     }
     runtime.persist();
     return runtime;

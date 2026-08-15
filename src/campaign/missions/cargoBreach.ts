@@ -47,6 +47,7 @@ export const cargoBreach: MissionDefinition = {
     + 'objective end.',
   objective: {
     kind: 'eliminate',
+    title: 'SECURE THE CARGO BAY',
     summary: 'Eliminate the defender holding the beacon terminal.',
     target: [0, 0, -19.1],
   },

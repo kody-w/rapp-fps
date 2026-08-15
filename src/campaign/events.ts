@@ -81,14 +81,17 @@ export type CampaignEventSink = (event: CampaignEvent) => void;
 // ── Snapshots ──────────────────────────────────────────────────────────────
 
 /** Bumped if the snapshot *shape* changes, so a HUD can guard against drift. */
-export const CAMPAIGN_SNAPSHOT_VERSION = 1;
+export const CAMPAIGN_SNAPSHOT_VERSION = 2;
 
 export interface MissionSnapshot {
   readonly id: MissionId;
   readonly order: number;
   readonly title: string;
   readonly status: MissionStatus;
+  /** Long objective sentence (`objective.summary`). */
   readonly objective: string;
+  /** Stable HUD objective banner (`objective.title`). */
+  readonly objectiveTitle: string;
 }
 
 export interface CampaignSnapshot {
@@ -96,11 +99,23 @@ export interface CampaignSnapshot {
   readonly currentMissionId: MissionId | null;
   readonly currentTitle: string | null;
   readonly currentObjective: string | null;
+  /** Stable HUD objective banner for the current mission (`objective.title`). */
+  readonly currentObjectiveTitle: string | null;
   readonly missions: readonly MissionSnapshot[];
   readonly eliminations: { readonly current: number; readonly required: number; readonly remaining: number } | null;
   readonly campaignComplete: boolean;
   readonly completedCount: number;
   readonly totalCount: number;
+  /** Total number of missions in the catalog (alias of `totalCount`, HUD-friendly). */
+  readonly missionCount: number;
+  /**
+   * 0-based index (by order) of the furthest mission the player has reached —
+   * the last non-`locked` mission. Unlocks are contiguous, so this is
+   * `(count of non-locked missions) - 1`; always ≥ 0 (mission 1 starts open).
+   */
+  readonly furthestUnlockedIndex: number;
+  /** The last mission by order — the campaign's finale. Always a real id. */
+  readonly finaleMissionId: MissionId;
 }
 
 /** Build the HUD-facing snapshot from the catalog and progress state. Pure. */
@@ -114,6 +129,7 @@ export function buildCampaignSnapshot(
     title: mission.title,
     status: state.records[mission.id]?.status ?? 'locked',
     objective: mission.objective.summary,
+    objectiveTitle: mission.objective.title,
   }));
 
   const current = state.currentMissionId ? catalog.byId(state.currentMissionId) : undefined;
@@ -128,15 +144,22 @@ export function buildCampaignSnapshot(
       }
     : null;
 
+  const unlockedCount = missions.reduce((n, m) => (m.status === 'locked' ? n : n + 1), 0);
+  const finaleMissionId = catalog.ids[catalog.count - 1];
+
   return {
     snapshotVersion: CAMPAIGN_SNAPSHOT_VERSION,
     currentMissionId: state.currentMissionId,
     currentTitle: current?.title ?? null,
     currentObjective: current?.objective.summary ?? null,
+    currentObjectiveTitle: current?.objective.title ?? null,
     missions,
     eliminations,
     campaignComplete: state.campaignComplete,
     completedCount: state.completedOrder.length,
     totalCount: catalog.count,
+    missionCount: catalog.count,
+    furthestUnlockedIndex: Math.max(0, unlockedCount - 1),
+    finaleMissionId,
   };
 }

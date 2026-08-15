@@ -67,6 +67,12 @@ export interface MissionObjective {
    * slice, but the intent is authored for a future trigger volume).
    */
   readonly kind: 'eliminate' | 'reach' | 'secure';
+  /**
+   * Stable, short objective banner the production HUD renders verbatim (e.g.
+   * `SECURE THE CARGO BAY`). Distinct from `summary`: `title` is the fixed HUD
+   * headline; `summary` is the longer briefing sentence. Must be non-empty.
+   */
+  readonly title: string;
   /** One-line objective shown to the player; must be non-empty. */
   readonly summary: string;
   /** Optional world point for `reach`/`secure` objectives. */
