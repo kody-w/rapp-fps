@@ -43,8 +43,7 @@ export class CombatFX implements System {
   }
 
   reset(): void {
-    this.particles.activeCount = 0;
-    this.particles.mesh.count = 0;
+    this.particles.reset();
     this.decals.activeCount = 0;
     this.decals.mesh.count = 0;
     this.flash.reset();
