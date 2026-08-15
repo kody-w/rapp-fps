@@ -1,0 +1,106 @@
+{
+  "verdict": "INCOMPLETE",
+  "at": "2026-08-15T02:45:49.941Z",
+  "url": "http://127.0.0.1:5281/src/player/harness.html",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "budgetMs": 16.7,
+  "frameMsP95": 14.039,
+  "pointerLocked": false,
+  "lookInputPath": "synthetic-movement-delta (pointer lock unavailable under automation)",
+  "coverageGaps": [
+    "Pointer lock is never granted under Playwright (verified: headless declines silently, headed raises pointerlockerror). Look is exercised by dispatching the mouse deltas a locked pointer would produce, so the lock grant itself is UNVERIFIED by this instrument."
+  ],
+  "passed": 8,
+  "failed": 0,
+  "unobserved": 3,
+  "checks": [
+    {
+      "name": "look",
+      "status": "pass",
+      "detail": "yaw changed by 1.2960 rad under 30 mouse-delta events.",
+      "evidence": {
+        "beforeYaw": 0,
+        "afterYaw": -1.2959999999999996,
+        "pointerLocked": false,
+        "inputPath": "synthetic-movement-delta (pointer lock unavailable under automation)"
+      }
+    },
+    {
+      "name": "look_pitch_clamped",
+      "status": "pass",
+      "detail": "pitch held within ±1.5718 rad when driven hard past vertical (up 1.5608, down -1.5608)."
+    },
+    {
+      "name": "move",
+      "status": "pass",
+      "detail": "travelled 7.660 m in 1.5 s of forward input.",
+      "evidence": {
+        "from": {
+          "x": 0,
+          "y": 1.6599999999999997,
+          "z": 6
+        },
+        "to": {
+          "x": 7.372899949649167,
+          "y": 1.6600000000000001,
+          "z": 3.921367600686433
+        }
+      }
+    },
+    {
+      "name": "move_stops",
+      "status": "pass",
+      "detail": "coasted 0.622 m after release (expected under 1.0 m; more than that is ice)."
+    },
+    {
+      "name": "footsteps",
+      "status": "pass",
+      "detail": "4 footstep events during movement."
+    },
+    {
+      "name": "containment",
+      "status": "pass",
+      "detail": "player remained in the world (y=1.66, 20.5 m from start) after 6 s of continuous forward input.",
+      "evidence": {
+        "pos": {
+          "x": 15.36,
+          "y": 1.6600000000000001,
+          "z": -15.36
+        }
+      }
+    },
+    {
+      "name": "weapon_fires",
+      "status": "unobserved",
+      "detail": "no weapon:fired observed; there is no weapon in this build, or fire input never reaches it."
+    },
+    {
+      "name": "bullet_resolves",
+      "status": "unobserved",
+      "detail": "no shots were fired, so impact resolution could not be observed."
+    },
+    {
+      "name": "enemy_damageable",
+      "status": "unobserved",
+      "detail": "no combat:damage or combat:hit-confirm was observed at any point. Nothing in this build can be fought. This is NOT a pass — an empty arena produces exactly this result."
+    },
+    {
+      "name": "frame_budget",
+      "status": "pass",
+      "detail": "14.039 ms p95 against a 16.7 ms budget, measured while moving, turning and firing (179 paired samples).",
+      "evidence": {
+        "p95": 14.039,
+        "median": 10.284,
+        "samples": 179
+      }
+    },
+    {
+      "name": "no_console_errors",
+      "status": "pass",
+      "detail": "no console errors across the whole play sequence.",
+      "evidence": []
+    }
+  ],
+  "consoleErrors": []
+}
