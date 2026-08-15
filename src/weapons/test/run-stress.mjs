@@ -12,12 +12,13 @@ const browser = await chromium.launch({
     '--enable-zero-copy',
   ],
 });
-const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 const consoleErrors = [];
-page.on('console', (message) => {
-  if (message.type() === 'error') consoleErrors.push(message.text());
-});
-page.on('pageerror', (error) => consoleErrors.push(String(error)));
+const attachErrors = (page, label) => {
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(`${label}: ${message.text()}`);
+  });
+  page.on('pageerror', (error) => consoleErrors.push(`${label}: ${String(error)}`));
+};
 
 const failures = [];
 let assertions = 0;
@@ -25,8 +26,36 @@ const assert = (condition, message) => {
   assertions++;
   if (!condition) failures.push(message);
 };
+const flashAddsDrawCalls = (idle, flash) => flash > idle;
 
 try {
+  // The old runner compared against a historical 84-draw calibration scene.
+  // Measure idle from this exact commit/browser/viewport instead. Multiple
+  // settled frames make shader-startup or callback ordering unable to define
+  // the baseline accidentally.
+  const idleUrl = new URL(url);
+  idleUrl.searchParams.delete('stress');
+  const idlePage = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+  attachErrors(idlePage, 'idle');
+  await idlePage.goto(idleUrl.href, { waitUntil: 'domcontentloaded' });
+  await idlePage.waitForFunction(() => window.__FRAME_READY__ === true, null, { timeout: 45_000 });
+  await idlePage.waitForTimeout(1_200);
+  const idle = await idlePage.evaluate(async () => {
+    const samples = [];
+    for (let i = 0; i < 30; i++) {
+      await new Promise(requestAnimationFrame);
+      samples.push(window.__SCENE_STATS__?.drawCallsPerFrame ?? -1);
+    }
+    return {
+      samples,
+      min: Math.min(...samples),
+      max: Math.max(...samples),
+    };
+  });
+  await idlePage.close();
+
+  const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+  attachErrors(page, 'stress');
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.__FRAME_READY__ === true, null, { timeout: 45_000 });
   await page.waitForTimeout(1_200);
@@ -59,8 +88,17 @@ try {
     `stress window must contain sustained firing; received ${measured.profile.fired} shots`);
   assert(measured.profile.flashFrames > 0,
     `stress window must contain active muzzle-flash frames; received ${measured.profile.flashFrames}`);
-  assert(measured.profile.flashDrawCallsMax > 84,
-    `active flash frames must exceed the 84-call idle frame; received ${measured.profile.flashDrawCallsMax}`);
+  assert(idle.samples.length === 30 && idle.min >= 0,
+    `idle baseline must contain 30 valid frames; received ${JSON.stringify(idle)}`);
+  assert(flashAddsDrawCalls(idle.max, measured.profile.flashDrawCallsMax),
+    `active flash frames must exceed measured idle max ${idle.max}; `
+      + `received ${measured.profile.flashDrawCallsMax}`);
+  const equalNegativeControl = flashAddsDrawCalls(
+    measured.profile.flashDrawCallsMax,
+    measured.profile.flashDrawCallsMax,
+  );
+  assert(equalNegativeControl === false,
+    'equal flash/idle negative control must fail the strict comparator');
   assert(measured.profile.reloadStarts === 0 && measured.profile.reloadEnds === 0,
     `stress window must contain no reload; received ${measured.profile.reloadStarts}/${measured.profile.reloadEnds}`);
   assert(measured.reloading === false, 'weapon must not be reloading at stress-window end');
@@ -79,6 +117,10 @@ try {
     failures,
     consoleErrors,
     ...measured,
+    idle,
+    flashDrawCallDelta: measured.profile.flashDrawCallsMax - idle.max,
+    legacyHardcoded84WouldPass: measured.profile.flashDrawCallsMax > 84,
+    equalNegativeControl,
     ammoSpent,
     flashFrameRatio: measured.profile.flashFrames / measured.profile.frames,
     verdict: measured.profiler.budgetFrameMs.p95 <= 16.7
