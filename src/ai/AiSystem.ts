@@ -167,6 +167,11 @@ export class AiSystem implements System {
     this.prevYaw = this.currYaw = this.agent.yaw;
   }
 
+  get enemyId(): string | number { return this.opts.enemyId; }
+  get currentHealth(): number { return this.agent.health; }
+  get maxHealth(): number { return this.config.maxHealth; }
+  get state(): AiState { return this.agent.state; }
+
   init(ctx: EngineContext): void {
     const { scene } = ctx;
     this.root = new THREE.Group();
