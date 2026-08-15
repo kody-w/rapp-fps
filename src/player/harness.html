@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Player deterministic harness</title>
+</head>
+<body>
+  <pre id="result">running…</pre>
+  <script type="module">
+    import { runPlayerHarness } from './harness.ts';
+
+    try {
+      const report = runPlayerHarness();
+      window.__PLAYER_HARNESS__ = report;
+      document.querySelector('#result').textContent = JSON.stringify(report, null, 2);
+    } catch (error) {
+      window.__PLAYER_HARNESS_ERROR__ = String(error?.stack ?? error);
+      document.querySelector('#result').textContent = window.__PLAYER_HARNESS_ERROR__;
+    }
+  </script>
+</body>
+</html>
