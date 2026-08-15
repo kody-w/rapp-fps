@@ -213,10 +213,62 @@ function testCanonicalArenaBinding(): Outcome {
   };
 }
 
+function testProductionAiOmitsDebugMarkers(): Outcome {
+  const failures: string[] = [];
+  const bus = new EventBusImpl();
+  const ctx = context(bus);
+  const definition = buildArena();
+  const coreWorld = buildStaticWorld(definition);
+  const binding = createAiArenaBinding(definition, coreWorld);
+  const productionAi = new AiSystem({
+    arena: binding.arena,
+    spawn: binding.spawn,
+    yaw: binding.yaw,
+    renderWorld: false,
+    renderMarkers: false,
+  });
+  productionAi.init(ctx);
+  const productionNames: string[] = [];
+  ctx.scene.traverse((object) => {
+    if (object.name.startsWith('ai-debug-')) productionNames.push(object.name);
+  });
+  if (productionNames.length > 0) {
+    failures.push(`production contains debug markers: ${productionNames.join(',')}`);
+  }
+  productionAi.dispose();
+
+  const evidenceAi = new AiSystem({
+    arena: binding.arena,
+    spawn: binding.spawn,
+    yaw: binding.yaw,
+    renderWorld: false,
+    renderMarkers: true,
+  });
+  evidenceAi.init(ctx);
+  const evidenceNames: string[] = [];
+  ctx.scene.traverse((object) => {
+    if (object.name.startsWith('ai-debug-')) evidenceNames.push(object.name);
+  });
+  for (const expected of ['ai-debug-player-marker', 'ai-debug-last-known-marker']) {
+    if (!evidenceNames.includes(expected)) {
+      failures.push(`evidence mode omitted ${expected}`);
+    }
+  }
+  evidenceAi.dispose();
+
+  return {
+    name: 'productionAiOmitsDebugMarkers',
+    pass: failures.length === 0,
+    failures,
+    detail: { productionNames, evidenceNames },
+  };
+}
+
 const tests = [
   testPlayerImpactBecomesEnemyDamage(),
   testEnemyShotHonorsPlayerAndCover(),
   testCanonicalArenaBinding(),
+  testProductionAiOmitsDebugMarkers(),
 ];
 const result = {
   status: tests.every((test) => test.pass) ? 'passed' : 'failed',

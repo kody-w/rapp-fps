@@ -52,6 +52,7 @@ const ai = new AiSystem({
   spawn: aiBinding.spawn,
   yaw: aiBinding.yaw,
   renderWorld: false,
+  renderMarkers: false,
   combatSink: combat.enemySink,
   playerProvider: () => {
     const hasFeet = player.copyFeetPosition(playerFeet);
