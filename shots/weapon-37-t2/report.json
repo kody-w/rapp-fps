@@ -1,0 +1,50 @@
+{
+  "at": "2026-08-15T02:06:23.787Z",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "cpuThrottleRate": 1,
+  "rafDelayMs": 0,
+  "frameBudgetMs": 16.7,
+  "overBudget": false,
+  "performance": {
+    "gpuSupported": true,
+    "gpuCounterBits": 64,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 9.136,
+      "p95": 11.601,
+      "worst": 13.038
+    },
+    "cpuFrameMs": {
+      "samples": 121,
+      "median": 0.9,
+      "p95": 1.6,
+      "worst": 1.9
+    },
+    "rafIntervalMs": {
+      "samples": 121,
+      "median": 16.7,
+      "p95": 16.8,
+      "worst": 17.2
+    },
+    "budgetFrameMsMedian": 9.136,
+    "budgetFrameMsP95": 11.601,
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 9.136,
+      "p95": 11.601,
+      "worst": 13.038
+    },
+    "gpuDisjointCount": 0,
+    "note": "budget uses max(CPU, GPU); rAF interval is scheduler cadence only",
+    "drawCallsPerFrame": 84,
+    "trianglesPerFrame": 85406,
+    "programs": 13,
+    "textures": 28,
+    "geometries": 12
+  },
+  "shots": [
+    "shots/weapon-37-t2/default.png"
+  ],
+  "consoleErrors": []
+}
