@@ -1,0 +1,186 @@
+{
+  "generatedAt": "2026-08-15T02:46:14.729Z",
+  "fixedStepHz": 120,
+  "targets": {
+    "walkSpeedMetersPerSecond": 5.4,
+    "sprintSpeedMetersPerSecond": 7.5,
+    "jumpHeightMeters": 1.05,
+    "maxStepHeightMeters": 0.34,
+    "wallHeightMeters": 0.8
+  },
+  "measurements": {
+    "timeTo95PercentWalkSpeedSeconds": 0.158333,
+    "stopTimeSeconds": 0.191667,
+    "stoppingDistanceMeters": 0.498333,
+    "jumpApexMeters": 1.020628,
+    "jumpAirTimeSeconds": 0.566667,
+    "landingImpactMetersPerSecond": 6.900704,
+    "airStrafeVelocityMetersPerSecond": 1.269333,
+    "crouchTransitionSeconds": 0.125,
+    "crouchTopSpeedMetersPerSecond": 2.65,
+    "sprintStaminaAfterTwoSeconds": 0.444444,
+    "sprintSpeedAfterTwoSeconds": 7.5,
+    "stepPeakFeetHeightMeters": 0.3,
+    "stepFinalZMeters": -4.693636,
+    "wallFinalZMeters": 0.59,
+    "wallFinalFeetYMeters": 0,
+    "wallSlideAlongXMeters": 5.661666,
+    "wallSlideStoppedZMeters": 0.64,
+    "stairGroundedThroughout": true,
+    "stairMaxBodyStepDownMeters": 0.3,
+    "stairReachedFloor": true,
+    "determinismPositionDeltaMeters": 0,
+    "determinismVelocityDeltaMetersPerSecond": 0,
+    "fixedTickCostMicroseconds": 0.975,
+    "estimatedPlayerCostAt60FpsMilliseconds": 0.00195,
+    "footstepEvents": 28,
+    "landedEvents": 1
+  },
+  "assertions": [
+    {
+      "name": "95% walk speed arrives without an instant velocity snap",
+      "passed": true,
+      "actual": 0.158333333333,
+      "expected": "0.12-0.24 s"
+    },
+    {
+      "name": "release-to-stop time is responsive, not icy",
+      "passed": true,
+      "actual": 0.191666666667,
+      "expected": "0.14-0.28 s"
+    },
+    {
+      "name": "stopping distance stays under one body length",
+      "passed": true,
+      "actual": 0.498333333333,
+      "expected": "0.35-0.75 m"
+    },
+    {
+      "name": "jump apex matches the configured height",
+      "passed": true,
+      "actual": 1.020627924085,
+      "expected": "0.98-1.08 m"
+    },
+    {
+      "name": "air control is useful but cannot reverse at ground authority",
+      "passed": true,
+      "actual": 1.269333333333,
+      "expected": "0.8-2.2 m/s"
+    },
+    {
+      "name": "crouch transition is quick without being a single tick",
+      "passed": true,
+      "actual": 0.125,
+      "expected": "0.09-0.18 s"
+    },
+    {
+      "name": "crouch has a real movement cost",
+      "passed": true,
+      "actual": 2.65,
+      "expected": "2.50-2.75 m/s"
+    },
+    {
+      "name": "sprint drains a finite stamina reserve",
+      "passed": true,
+      "actual": 0.444444444444,
+      "expected": "40-50% after 2 s"
+    },
+    {
+      "name": "sprint reaches its tuned top speed",
+      "passed": true,
+      "actual": 7.5,
+      "expected": "7.4-7.6 m/s"
+    },
+    {
+      "name": "0.30 m step top is reached",
+      "passed": true,
+      "actual": 0.3,
+      "expected": "feet 0.285-0.320 m"
+    },
+    {
+      "name": "0.30 m step is traversed rather than edge-stalled",
+      "passed": true,
+      "actual": true,
+      "expected": "true"
+    },
+    {
+      "name": "0.80 m wall is not climbed",
+      "passed": true,
+      "actual": true,
+      "expected": "true"
+    },
+    {
+      "name": "diagonal into a wall slides rather than sticking",
+      "passed": true,
+      "actual": true,
+      "expected": "true"
+    },
+    {
+      "name": "staircase descent stays glued to the ground",
+      "passed": true,
+      "actual": true,
+      "expected": "true"
+    },
+    {
+      "name": "staircase body step-down is bounded by the riser, never a free-fall",
+      "passed": true,
+      "actual": 0.3,
+      "expected": "<= riser (0.36 m) per tick"
+    },
+    {
+      "name": "staircase descent preserves forward progress",
+      "passed": true,
+      "actual": true,
+      "expected": "true"
+    },
+    {
+      "name": "fixed-step result is independent of render batching (position)",
+      "passed": true,
+      "actual": 0,
+      "expected": "<= 1e-9 m"
+    },
+    {
+      "name": "fixed-step result is independent of render batching (velocity)",
+      "passed": true,
+      "actual": 0,
+      "expected": "<= 1e-9 m/s"
+    },
+    {
+      "name": "player CPU cost stays below 0.25 ms at 60 fps",
+      "passed": true,
+      "actual": 0.001950000048,
+      "expected": "<= 0.25 ms"
+    },
+    {
+      "name": "shared footstep event path fired",
+      "passed": true,
+      "actual": true,
+      "expected": "true"
+    },
+    {
+      "name": "shared landed event path fired",
+      "passed": true,
+      "actual": true,
+      "expected": "true"
+    },
+    {
+      "name": "degenerate box is rejected at registration",
+      "passed": true,
+      "actual": true,
+      "expected": "true"
+    },
+    {
+      "name": "out-of-bounds box is rejected at registration",
+      "passed": true,
+      "actual": true,
+      "expected": "true"
+    },
+    {
+      "name": "empty world is rejected at registration",
+      "passed": true,
+      "actual": true,
+      "expected": "true"
+    }
+  ],
+  "passed": true
+}
