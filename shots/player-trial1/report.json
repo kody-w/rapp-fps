@@ -1,0 +1,54 @@
+{
+  "at": "2026-08-15T02:15:11.139Z",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "cpuThrottleRate": 1,
+  "rafDelayMs": 0,
+  "frameBudgetMs": 16.7,
+  "overBudget": false,
+  "performance": {
+    "gpuSupported": true,
+    "gpuCounterBits": 64,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 8.846,
+      "p95": 11.687,
+      "worst": 13.922
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 1.3,
+      "p95": 1.9,
+      "worst": 2
+    },
+    "rafIntervalMs": {
+      "samples": 122,
+      "median": 16.7,
+      "p95": 17.3,
+      "worst": 17.8
+    },
+    "budgetFrameMsMedian": 8.846,
+    "budgetFrameMsP95": 11.687,
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 8.846,
+      "p95": 11.687,
+      "worst": 13.922
+    },
+    "gpuDisjointCount": 0,
+    "note": "budget uses max(CPU, GPU); rAF interval is scheduler cadence only",
+    "drawCallsPerFrame": 54,
+    "trianglesPerFrame": 1158,
+    "programs": 12,
+    "textures": 28,
+    "geometries": 21
+  },
+  "shots": [
+    "shots/player-trial1/default.png",
+    "shots/player-trial1/top-of-step.png",
+    "shots/player-trial1/at-wall.png",
+    "shots/player-trial1/on-stairs.png",
+    "shots/player-trial1/crouched.png"
+  ],
+  "consoleErrors": []
+}
