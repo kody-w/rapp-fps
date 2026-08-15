@@ -1,0 +1,56 @@
+{
+  "at": "2026-08-15T02:26:22.842Z",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "cpuThrottleRate": 1,
+  "rafDelayMs": 0,
+  "frameBudgetMs": 16.7,
+  "overBudget": false,
+  "performance": {
+    "gpuSupported": true,
+    "gpuCounterBits": 64,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 8.284,
+      "p95": 11.199,
+      "worst": 12.236
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 1,
+      "p95": 1.9,
+      "worst": 2.7
+    },
+    "rafIntervalMs": {
+      "samples": 122,
+      "median": 16.7,
+      "p95": 16.8,
+      "worst": 17.6
+    },
+    "budgetFrameMsMedian": 8.284,
+    "budgetFrameMsP95": 11.199,
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 8.284,
+      "p95": 11.199,
+      "worst": 12.236
+    },
+    "gpuDisjointCount": 0,
+    "note": "budget uses max(CPU, GPU); rAF interval is scheduler cadence only",
+    "drawCallsPerFrame": 37,
+    "trianglesPerFrame": 2422,
+    "programs": 13,
+    "textures": 28,
+    "geometries": 18
+  },
+  "shots": [
+    "src/ai/evidence/shots/patrol.png",
+    "src/ai/evidence/shots/notice.png",
+    "src/ai/evidence/shots/telegraph.png",
+    "src/ai/evidence/shots/fire.png",
+    "src/ai/evidence/shots/cover.png",
+    "src/ai/evidence/shots/search.png",
+    "src/ai/evidence/shots/death.png"
+  ],
+  "consoleErrors": []
+}
