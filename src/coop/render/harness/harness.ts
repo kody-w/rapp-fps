@@ -65,6 +65,16 @@ interface HarnessResult {
 }
 
 type Channel = 'r' | 'g' | 'b';
+type Swatch = Channel | 'none';
+
+// Pixel classification thresholds. A channel counts as "on" only if it clears
+// MIN_LEVEL (0..255) AND beats the other two channels by MARGIN; otherwise the
+// sample is 'none'. This closes the oracle gap the cold review found: a plain
+// argmax classifies black [0,0,0] as 'r', so an unrendered (black) slot could
+// have satisfied topChan === 'r'. With a threshold, near-black has no channel
+// on and is 'none', which the isolation assertion rejects.
+const MIN_LEVEL = 96;
+const MARGIN = 64;
 
 const raf = (): Promise<void> => new Promise((resolve) => requestAnimationFrame(() => resolve()));
 
@@ -74,7 +84,24 @@ const quantile = (values: number[], p: number): number | null => {
   return +sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))].toFixed(3);
 };
 
-function dominantChannel(pixel: Uint8Array, offset = 0): Channel {
+function classifySwatch(pixel: Uint8Array, offset = 0): Swatch {
+  const r = pixel[offset];
+  const g = pixel[offset + 1];
+  const b = pixel[offset + 2];
+  const max = Math.max(r, g, b);
+  if (max < MIN_LEVEL) return 'none';
+  if (r === max && r - Math.max(g, b) >= MARGIN) return 'r';
+  if (g === max && g - Math.max(r, b) >= MARGIN) return 'g';
+  if (b === max && b - Math.max(r, g) >= MARGIN) return 'b';
+  return 'none';
+}
+
+/**
+ * The pre-fix argmax classifier, retained ONLY so the empty-slot negative
+ * control can demonstrate that it misclassifies black as red — proving the
+ * control bites and that the hardened classifier actually closes the gap.
+ */
+function naiveArgmax(pixel: Uint8Array, offset = 0): Channel {
   const r = pixel[offset];
   const g = pixel[offset + 1];
   const b = pixel[offset + 2];
@@ -90,11 +117,11 @@ function readPixel(gl: WebGL2RenderingContext, x: number, y: number): Uint8Array
 }
 
 /** Read the full 1-pixel-wide centre column and classify each backing row. */
-function readColumn(gl: WebGL2RenderingContext, x: number, height: number): Channel[] {
+function readColumn(gl: WebGL2RenderingContext, x: number, height: number): Swatch[] {
   const buffer = new Uint8Array(height * 4);
   gl.readPixels(x, 0, 1, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer);
-  const column: Channel[] = [];
-  for (let row = 0; row < height; row++) column.push(dominantChannel(buffer, row * 4));
+  const column: Swatch[] = [];
+  for (let row = 0; row < height; row++) column.push(classifySwatch(buffer, row * 4));
   return column;
 }
 
@@ -192,17 +219,21 @@ function main(): void {
           const topY = top.backing.y + Math.floor(top.backing.height / 2);
           const bottomY = bottom.backing.y + Math.floor(bottom.backing.height / 2);
 
-          coordinator.renderCoop(plan, scene, cameras, renderer);
+          // Clear each slot to a SATURATED green sentinel before drawing, so a
+          // red reading at a slot centre can only come from rendered geometry —
+          // never from a black/unrendered slot that argmax would misread as red.
+          const sentinelGreen = new THREE.Color(0, 1, 0);
+          coordinator.renderCoop(plan, scene, cameras, renderer, { slotClearColors: [sentinelGreen, sentinelGreen] });
           const topPixel = readPixel(gl, cx, topY);
           const bottomPixel = readPixel(gl, cx, bottomY);
-          const topChan = dominantChannel(topPixel);
-          const bottomChan = dominantChannel(bottomPixel);
+          const topChan = classifySwatch(topPixel);
+          const bottomChan = classifySwatch(bottomPixel);
           const slotsDiffer = topChan !== bottomChan;
 
           // Negative control: same camera in both slots ⇒ both slots identical.
-          coordinator.renderCoop(plan, scene, [cameras[0], cameras[0]], renderer);
-          const ctrlTop = dominantChannel(readPixel(gl, cx, topY));
-          const ctrlBottom = dominantChannel(readPixel(gl, cx, bottomY));
+          coordinator.renderCoop(plan, scene, [cameras[0], cameras[0]], renderer, { slotClearColors: [sentinelGreen, sentinelGreen] });
+          const ctrlTop = classifySwatch(readPixel(gl, cx, topY));
+          const ctrlBottom = classifySwatch(readPixel(gl, cx, bottomY));
           const controlMatches = ctrlTop === ctrlBottom;
 
           const pass =
@@ -210,8 +241,52 @@ function main(): void {
             && controlMatches && ctrlTop === 'r';
           section('slotIsolation', pass, {
             topPixel: [...topPixel], bottomPixel: [...bottomPixel],
-            topChan, bottomChan,
+            topChan, bottomChan, slotClear: 'saturated-green-sentinel',
             control: { top: ctrlTop, bottom: ctrlBottom, sameCameraMatches: controlMatches },
+          });
+        }
+      }
+
+      // ── empty/black slot rejection (oracle hardening, cold-review gap) ───
+      // An unrendered slot reads back black [0,0,0]. A plain argmax oracle
+      // classifies black as 'r', so a slot that never rendered could have
+      // satisfied topChan === 'r'. This control renders an EMPTY scene into both
+      // slots over a black clear and asserts the hardened classifier reports
+      // 'none' (not 'r') — so the isolation predicate is REJECTED — while
+      // showing the old argmax WOULD have wrongly accepted black as red.
+      {
+        const cssWidth = 640;
+        const cssHeight = 360;
+        const pixelRatio = 2;
+        renderer.setPixelRatio(pixelRatio);
+        renderer.setSize(cssWidth, cssHeight, false);
+        const plan = planCoopViewports({ cssWidth, cssHeight, pixelRatio, players: 2 });
+        if (!plan.renderable) {
+          section('emptySlotRejection', false, { refused: plan.reason });
+        } else {
+          const [top, bottom] = plan.slots;
+          const cx = Math.floor(plan.backing.width / 2);
+          const topY = top.backing.y + Math.floor(top.backing.height / 2);
+          const bottomY = bottom.backing.y + Math.floor(bottom.backing.height / 2);
+          const black = new THREE.Color(0, 0, 0);
+
+          coordinator.renderCoop(plan, emptyScene, cameras, renderer, { slotClearColors: [black, black] });
+          const topPixel = readPixel(gl, cx, topY);
+          const bottomPixel = readPixel(gl, cx, bottomY);
+          const topSwatch = classifySwatch(topPixel);
+          const bottomSwatch = classifySwatch(bottomPixel);
+          const naiveTop = naiveArgmax(topPixel);
+          const naiveBottom = naiveArgmax(bottomPixel);
+
+          const isolationWouldPass = topSwatch === 'r' && bottomSwatch === 'b';
+          const naiveMisfires = naiveTop === 'r'; // the bug this control guards
+          const pass = topSwatch === 'none' && bottomSwatch === 'none'
+            && !isolationWouldPass && naiveMisfires;
+          section('emptySlotRejection', pass, {
+            topPixel: [...topPixel], bottomPixel: [...bottomPixel],
+            hardened: { top: topSwatch, bottom: bottomSwatch, isolationRejected: !isolationWouldPass },
+            naiveArgmax: { top: naiveTop, bottom: naiveBottom, misclassifiesBlackAsRed: naiveMisfires },
+            thresholds: { minLevel: MIN_LEVEL, margin: MARGIN },
           });
         }
       }

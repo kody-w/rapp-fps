@@ -205,8 +205,19 @@ It reads pixels **back off the GPU** to prove, on real hardware:
 - **slotIsolation** — a shared scene (red slab at `x=-50`, blue slab at `x=+50`)
   drawn through P1 at `(-2,0,0)` looking `-x` and P2 at `(2,0,0)` looking `+x`:
   the **top** slot centre reads red, the **bottom** reads blue, and they differ.
-  A negative control renders both slots through the *same* camera and confirms
-  the read-back would have caught sameness (both slots then read red).
+  Each slot is first cleared to a **saturated green sentinel**, so a red reading
+  can only come from rendered geometry, never from an unrendered slot. Pixels are
+  classified with a **threshold + margin** rule (a channel must clear
+  `MIN_LEVEL=96` and beat the others by `MARGIN=64`, else `none`), not a bare
+  argmax. A negative control renders both slots through the *same* camera and
+  confirms the read-back would have caught sameness (both slots then read red).
+- **emptySlotRejection** — the oracle-hardening control a cold review asked for.
+  A bare `argmax` classifies black `[0,0,0]` as `r`, so an *unrendered* (black)
+  slot could have satisfied `topChan === 'r'`. This control renders an **empty**
+  scene into both slots over a black clear: the hardened classifier reports
+  `none` for both (so the isolation predicate is **rejected**), while the report
+  records that the old argmax **would** have misread black as red — proving the
+  control bites and the gap is closed.
 - **seamTiling** — over an **odd** backing buffer (`641×361`, `splitY=180`) the
   whole buffer is first painted a sentinel green, then each slot is cleared to a
   known colour. The centre column transitions blue→red at exactly `splitY` with
@@ -224,12 +235,13 @@ budget **16.7 ms**:
 
 | trial | samples | median (ms) | p95 (ms) | disjoint | ≤ budget |
 |-------|---------|-------------|----------|----------|----------|
-| 1     | 60      | 0.099       | 0.738    | false    | yes      |
-| 2     | 60      | 0.100       | 0.291    | false    | yes      |
-| 3     | 60      | 0.070       | 0.298    | false    | yes      |
+| 1     | 60      | 0.135       | 0.387    | false    | yes      |
+| 2     | 60      | 0.132       | 0.147    | false    | yes      |
+| 3     | 60      | 0.132       | 0.331    | false    | yes      |
 
 All three trials measured cleanly (no disjoint) and all p95 values are far under
-the 16.7 ms budget.
+the 16.7 ms budget. (Timings vary run to run; the committed `harness/report.json`
+holds the exact numbers from the latest run.)
 
 **Scope of the perf claim.** The numbers above are for the harness's **minimal
 two-slab scene**, and they measure only the *two-view present cost* of this

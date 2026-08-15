@@ -1,5 +1,5 @@
 {
-  "at": "2026-08-15T20:17:20.593Z",
+  "at": "2026-08-15T21:18:48.538Z",
   "target": "http://127.0.0.1:5399/src/coop/render/harness/harness.html",
   "meta": {
     "threeRevision": "185",
@@ -28,10 +28,43 @@
         ],
         "topChan": "r",
         "bottomChan": "b",
+        "slotClear": "saturated-green-sentinel",
         "control": {
           "top": "r",
           "bottom": "r",
           "sameCameraMatches": true
+        }
+      }
+    },
+    {
+      "name": "emptySlotRejection",
+      "pass": true,
+      "detail": {
+        "topPixel": [
+          0,
+          0,
+          0,
+          255
+        ],
+        "bottomPixel": [
+          0,
+          0,
+          0,
+          255
+        ],
+        "hardened": {
+          "top": "none",
+          "bottom": "none",
+          "isolationRejected": true
+        },
+        "naiveArgmax": {
+          "top": "r",
+          "bottom": "r",
+          "misclassifiesBlackAsRed": true
+        },
+        "thresholds": {
+          "minLevel": 96,
+          "margin": 64
         }
       }
     },
@@ -66,22 +99,22 @@
     "trials": [
       {
         "samples": 60,
-        "medianMs": 0.099,
-        "p95Ms": 0.738,
+        "medianMs": 0.135,
+        "p95Ms": 0.387,
         "disjoint": false,
         "underBudget": true
       },
       {
         "samples": 60,
-        "medianMs": 0.1,
-        "p95Ms": 0.291,
+        "medianMs": 0.132,
+        "p95Ms": 0.147,
         "disjoint": false,
         "underBudget": true
       },
       {
         "samples": 60,
-        "medianMs": 0.07,
-        "p95Ms": 0.298,
+        "medianMs": 0.132,
+        "p95Ms": 0.331,
         "disjoint": false,
         "underBudget": true
       }
