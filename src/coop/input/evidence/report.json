@@ -1,0 +1,689 @@
+{
+  "ok": true,
+  "passed": 109,
+  "total": 109,
+  "failures": [],
+  "checks": [
+    {
+      "category": "isolation",
+      "name": "distinct-devices-do-not-bleed",
+      "pass": true,
+      "detail": "a.move.x=1 (want 1), b.move.x=-1 (want -1), differ=true"
+    },
+    {
+      "category": "isolation",
+      "name": "slotA-reads-device0",
+      "pass": true,
+      "detail": "actual=1 expected=1"
+    },
+    {
+      "category": "isolation",
+      "name": "slotB-reads-device1",
+      "pass": true,
+      "detail": "actual=-1 expected=-1"
+    },
+    {
+      "category": "isolation",
+      "name": "jump-on-device0-only-A",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "isolation",
+      "name": "jump-on-device0-only-B",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "isolation",
+      "name": "NEG-shared-device-not-isolated",
+      "pass": true,
+      "detail": "predicate.isolated=false (a.move.x=1 (want 1), b.move.x=1 (want -1), differ=false)"
+    },
+    {
+      "category": "isolation",
+      "name": "NEG-shared-device-values-identical",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "isolation",
+      "name": "NEG-identical-input-not-isolated",
+      "pass": true,
+      "detail": "predicate.isolated=false (a.move.x=1 (want 1), b.move.x=1 (want -1), differ=false)"
+    },
+    {
+      "category": "connect",
+      "name": "unconnected-before-first-sample",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "connect",
+      "name": "connected-after-first-sample",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "connect",
+      "name": "held-adopted-on-connect",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "connect",
+      "name": "no-phantom-edge-on-connect",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "disconnect",
+      "name": "held-before-disconnect-jump",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "disconnect",
+      "name": "held-before-disconnect-fire",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "disconnect",
+      "name": "moving-before-disconnect",
+      "pass": true,
+      "detail": "move=0.7071067811865475,0.7071067811865475"
+    },
+    {
+      "category": "disconnect",
+      "name": "jump-released-on-disconnect",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "disconnect",
+      "name": "fire-released-on-disconnect",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "disconnect",
+      "name": "move-x-zeroed-on-disconnect",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "disconnect",
+      "name": "move-y-zeroed-on-disconnect",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "disconnect",
+      "name": "look-x-zeroed-on-disconnect",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "disconnect",
+      "name": "disconnected-flag",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "disconnect",
+      "name": "peer-unaffected-by-disconnect",
+      "pass": true,
+      "detail": "actual=-1 expected=-1"
+    },
+    {
+      "category": "disconnect",
+      "name": "held-before-event-disconnect",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "disconnect",
+      "name": "released-on-disconnect-event-without-poll",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "focus",
+      "name": "firing-before-blur",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "focus",
+      "name": "suspended-after-blur",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "focus",
+      "name": "fire-released-after-blur",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "focus",
+      "name": "move-zeroed-after-blur",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "focus",
+      "name": "sampling-stays-neutral-while-blurred",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "focus",
+      "name": "fire-stays-released-while-blurred",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "focus",
+      "name": "not-suspended-after-focus",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "focus",
+      "name": "input-restored-after-focus",
+      "pass": true,
+      "detail": "actual=1 expected=1"
+    },
+    {
+      "category": "bfcache",
+      "name": "moving-before-pagehide",
+      "pass": true,
+      "detail": "actual=1 expected=1"
+    },
+    {
+      "category": "bfcache",
+      "name": "suspended-on-pagehide",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "bfcache",
+      "name": "neutral-on-pagehide",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "bfcache",
+      "name": "still-suspended-after-nonpersisted-pageshow",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "bfcache",
+      "name": "resumed-after-persisted-pageshow",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "bfcache",
+      "name": "input-restored-after-restore",
+      "pass": true,
+      "detail": "actual=1 expected=1"
+    },
+    {
+      "category": "bfcache",
+      "name": "listeners-present-before-dispose",
+      "pass": true,
+      "detail": "count=6"
+    },
+    {
+      "category": "bfcache",
+      "name": "listeners-removed-after-dispose",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "bfcache",
+      "name": "manager-disposed-flag",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "bfcache",
+      "name": "dispose-idempotent",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "rejoin",
+      "name": "held-before-leave",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "rejoin",
+      "name": "slot-gone-after-leave",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "rejoin",
+      "name": "left-slot-disposed",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "rejoin",
+      "name": "rejoined-instance-is-fresh",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "rejoin",
+      "name": "rejoined-instance-starts-neutral",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "rejoin",
+      "name": "disconnected-after-remove",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "rejoin",
+      "name": "reconnected-adopts-state",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "rejoin",
+      "name": "reconnect-no-phantom-edge",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "axis",
+      "name": "nan-axis-produces-fault",
+      "pass": true,
+      "detail": "faults=1"
+    },
+    {
+      "category": "axis",
+      "name": "nan-axis-fault-is-typed",
+      "pass": true,
+      "detail": "type=NonFiniteAxisError"
+    },
+    {
+      "category": "axis",
+      "name": "nan-axis-fault-names-axis",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "axis",
+      "name": "nan-slot-released",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "axis",
+      "name": "nan-slot-not-connected",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "axis",
+      "name": "peer-clean-under-nan-fault",
+      "pass": true,
+      "detail": "actual=-1 expected=-1"
+    },
+    {
+      "category": "axis",
+      "name": "sample-throws-aggregate",
+      "pass": true,
+      "detail": "type=AggregateError"
+    },
+    {
+      "category": "axis",
+      "name": "aggregate-carries-typed-error",
+      "pass": true,
+      "detail": "errors"
+    },
+    {
+      "category": "axis",
+      "name": "out-of-range-not-faulted",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "axis",
+      "name": "positive-out-of-range-clamped-to-1",
+      "pass": true,
+      "detail": "actual=1 expected=1"
+    },
+    {
+      "category": "axis",
+      "name": "negative-out-of-range-clamped-to-minus1",
+      "pass": true,
+      "detail": "actual=-1 expected=-1"
+    },
+    {
+      "category": "malformed",
+      "name": "truncated-axes-faults",
+      "pass": true,
+      "detail": "type=MalformedGamepadError"
+    },
+    {
+      "category": "malformed",
+      "name": "truncated-axes-field",
+      "pass": true,
+      "detail": "actual=axes expected=axes"
+    },
+    {
+      "category": "malformed",
+      "name": "truncated-buttons-faults",
+      "pass": true,
+      "detail": "type=MalformedGamepadError"
+    },
+    {
+      "category": "malformed",
+      "name": "truncated-buttons-field",
+      "pass": true,
+      "detail": "actual=buttons expected=buttons"
+    },
+    {
+      "category": "malformed",
+      "name": "nonstandard-mapping-faults",
+      "pass": true,
+      "detail": "type=UnsupportedMappingError"
+    },
+    {
+      "category": "malformed",
+      "name": "malformed-slot-stays-released",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "malformed",
+      "name": "relaxed-mapping-accepted",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "malformed",
+      "name": "relaxed-mapping-reads-axis",
+      "pass": true,
+      "detail": "actual=1 expected=1"
+    },
+    {
+      "category": "mapping",
+      "name": "jump-button-0-drives-jump",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "jump-edge-on-press",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "jump-does-not-trip-others",
+      "pass": true,
+      "detail": "only the mapped action responded"
+    },
+    {
+      "category": "mapping",
+      "name": "jump-edge-clears-while-held",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "mapping",
+      "name": "jump-still-held",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "crouch-button-1-drives-crouch",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "crouch-edge-on-press",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "crouch-does-not-trip-others",
+      "pass": true,
+      "detail": "only the mapped action responded"
+    },
+    {
+      "category": "mapping",
+      "name": "crouch-edge-clears-while-held",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "mapping",
+      "name": "crouch-still-held",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "sprint-button-10-drives-sprint",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "sprint-edge-on-press",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "sprint-does-not-trip-others",
+      "pass": true,
+      "detail": "only the mapped action responded"
+    },
+    {
+      "category": "mapping",
+      "name": "sprint-edge-clears-while-held",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "mapping",
+      "name": "sprint-still-held",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "fire-button-7-drives-fire",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "fire-edge-on-press",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "fire-does-not-trip-others",
+      "pass": true,
+      "detail": "only the mapped action responded"
+    },
+    {
+      "category": "mapping",
+      "name": "fire-edge-clears-while-held",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "mapping",
+      "name": "fire-still-held",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "aim-button-6-drives-aim",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "aim-edge-on-press",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "aim-does-not-trip-others",
+      "pass": true,
+      "detail": "only the mapped action responded"
+    },
+    {
+      "category": "mapping",
+      "name": "aim-edge-clears-while-held",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "mapping",
+      "name": "aim-still-held",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "reload-button-2-drives-reload",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "reload-edge-on-press",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "reload-does-not-trip-others",
+      "pass": true,
+      "detail": "only the mapped action responded"
+    },
+    {
+      "category": "mapping",
+      "name": "reload-edge-clears-while-held",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "mapping",
+      "name": "reload-still-held",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "trigger-value-over-threshold-fires",
+      "pass": true,
+      "detail": "actual=true expected=true"
+    },
+    {
+      "category": "mapping",
+      "name": "trigger-value-under-threshold-idle",
+      "pass": true,
+      "detail": "actual=false expected=false"
+    },
+    {
+      "category": "deadzone",
+      "name": "inside-deadzone-x-zero",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "deadzone",
+      "name": "inside-deadzone-y-zero",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "deadzone",
+      "name": "NEG-outside-deadzone-nonzero",
+      "pass": true,
+      "detail": "move.x=0.25"
+    },
+    {
+      "category": "deadzone",
+      "name": "diagonal-magnitude-le-1",
+      "pass": true,
+      "detail": "|move|=1"
+    },
+    {
+      "category": "look",
+      "name": "look-is-frame-rate-independent",
+      "pass": true,
+      "detail": "1x0.1=0.32000000000000006 2x0.05=0.32000000000000006"
+    },
+    {
+      "category": "look",
+      "name": "huge-dt-clamped-to-max",
+      "pass": true,
+      "detail": "huge=0.32000000000000006 clamped=0.32000000000000006"
+    },
+    {
+      "category": "look",
+      "name": "right-stick-does-not-move",
+      "pass": true,
+      "detail": "actual=0 expected=0"
+    },
+    {
+      "category": "look",
+      "name": "stick-up-looks-up-default",
+      "pass": true,
+      "detail": "look.y=-0.04"
+    }
+  ],
+  "mapping": {
+    "axes": {
+      "leftX": 0,
+      "leftY": 1,
+      "rightX": 2,
+      "rightY": 3
+    },
+    "buttons": {
+      "jump": 0,
+      "crouch": 1,
+      "reload": 2,
+      "aim": 6,
+      "fire": 7,
+      "sprint": 10
+    },
+    "actionButton": {
+      "jump": 0,
+      "crouch": 1,
+      "reload": 2,
+      "aim": 6,
+      "fire": 7,
+      "sprint": 10
+    },
+    "requiredAxisCount": 4,
+    "requiredButtonCount": 11,
+    "mapping": "standard"
+  }
+}
