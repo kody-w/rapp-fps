@@ -306,7 +306,7 @@
   .campaign-card-action { grid-column: 3; }
   .campaign-menu-footer {
     position: sticky;
-    bottom: 8px;
+    top: 8px;
     z-index: 5;
     order: 1;
     align-items: stretch;
@@ -314,8 +314,12 @@
     gap: 9px;
     margin: 14px -6px 0;
     padding: 7px 6px;
-    background: linear-gradient(180deg, rgb(7 16 20 / 0.72), rgb(7 16 20 / 0.98) 32%);
+    background: rgb(7 16 20 / 0.98);
     backdrop-filter: blur(10px);
+  }
+
+  .campaign-menu-hint {
+    display: none;
   }
 }
 
