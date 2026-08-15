@@ -223,14 +223,16 @@ export function buildArena(): ArenaDefinition {
   );
 
   // ── East flank: a raised overwatch deck reached by real steps ───────────
-  // The player motor is verified on steps, so verticality is built from a stair
-  // of axis-aligned treads rather than a ramp. The deck grants a height read
-  // over the cluster and the west lane; a parapet gives cover in return, and it
-  // is itself exposed from the north — a reason to move, not a free perch.
+  // The player motor (PR #40) is verified on steps up to maxStepHeight = 0.34 m
+  // but NOT on slopes, so verticality is a stair of axis-aligned treads. Issue
+  // #43: the treads MUST ascend toward the deck (tallest tread flush with the
+  // deck top) and every northward rise MUST stay <= 0.34 m, or the climb is
+  // geometrically unreachable. `fixtures/deck-traversal` drives the real motor
+  // from floor to deck and proves it; keep the two in sync.
   const deckTop = 1.6;
   const deckXmin = 5.6;
   const deckZmin = -16.5;
-  const deckZmax = -10.0;
+  const deckZmax = -10.0; // south (spawn-facing) edge of the deck
   push(box(
     'deck',
     [(deckXmin + X_MAX) / 2, deckTop - 0.2, (deckZmin + deckZmax) / 2],
@@ -238,19 +240,33 @@ export function buildArena(): ArenaDefinition {
     'galvanized',
     'metal',
   ));
-  // Five 0.32 m treads climbing north from the floor to the deck front.
-  const rise = deckTop / 5;
-  const tread = 0.5;
-  for (let i = 0; i < 5; i++) {
-    const h = rise * (i + 1);
-    const zFront = deckZmax + tread * (i + 1); // starts just south of the deck
-    push(onFloor(`step-${i}`, [7.4, zFront - tread / 2], [2.2, tread], h, 'galvanized', 'metal'));
+  // Ascending treads climbing NORTH up to the deck. i=0 is the TOP tread, flush
+  // with the deck top and contiguous with its south edge; each tread further
+  // south is one `rise` lower. rise = deckTop/6 = 0.267 m < maxStepHeight
+  // (0.34 m) with margin, and the tallest tread equals deck height, so the last
+  // move onto the deck is flat, not a wall.
+  const stepCount = 6;
+  const rise = deckTop / stepCount; // 0.2667 m per step, < 0.34 m
+  const tread = 0.5; // tread depth (Z), metres
+  const stairXCenter = 7.4;
+  const stairWidth = 2.2; // x[6.30, 8.50]
+  for (let i = 0; i < stepCount; i++) {
+    const h = deckTop - rise * i; // i=0 -> 1.600 (deck height), i=5 -> 0.267
+    const zCenter = deckZmax + tread * i + tread / 2; // i=0 -> -9.75 (flush to deck), stepping south
+    push(onFloor(`step-${i}`, [stairXCenter, zCenter], [stairWidth, tread], h, 'galvanized', 'metal'));
   }
-  // Deck parapets: west edge (faces the lane) and south edge (faces spawn),
-  // 1.0 m above the deck — chest-high when standing on it.
+  // Deck parapets, 1.0 m above the deck (chest-high when standing on it):
+  //  - west edge, faces the west lane (stops short of the south edge so the
+  //    south rail can own the corner without overlapping it);
+  //  - south edge, faces spawn, but SPLIT to leave a doorway over the stair so
+  //    the climb actually lands on the deck. Issue #43: the prior single-span
+  //    south parapet walled the top of the stairs off.
+  const gapXMin = stairXCenter - stairWidth / 2; // 6.30 (stair west edge)
+  const gapXMax = stairXCenter + stairWidth / 2 + 0.30; // 8.80 (east clearance)
   push(
-    box('parapet-w', [deckXmin + 0.2, deckTop + 0.5, (deckZmin + deckZmax) / 2], [0.4, 1.0, deckZmax - deckZmin], 'darkMetal', 'metal'),
-    box('parapet-s', [(deckXmin + X_MAX) / 2, deckTop + 0.5, deckZmax - 0.2], [X_MAX - deckXmin, 1.0, 0.4], 'darkMetal', 'metal'),
+    box('parapet-w', [deckXmin + 0.2, deckTop + 0.5, (deckZmin + (deckZmax - 0.4)) / 2], [0.4, 1.0, (deckZmax - 0.4) - deckZmin], 'darkMetal', 'metal'),
+    box('parapet-s-w', [(deckXmin + gapXMin) / 2, deckTop + 0.5, deckZmax - 0.2], [gapXMin - deckXmin, 1.0, 0.4], 'darkMetal', 'metal'),
+    box('parapet-s-e', [(gapXMax + X_MAX) / 2, deckTop + 0.5, deckZmax - 0.2], [X_MAX - gapXMax, 1.0, 0.4], 'darkMetal', 'metal'),
   );
 
   // ── Objective end: a loading-dock ledge with the beacon terminal ────────
@@ -307,8 +323,12 @@ export function buildArena(): ArenaDefinition {
       caption: 'Down the west lane: chest-high concrete and a broken crate stack give the crouch-and-peek rhythm.',
     },
     {
-      name: 'overwatch', position: [8.9, 3.35, -12.2], lookAt: [-1.6, 0.9, -18.2],
-      caption: 'From the overwatch deck, north-west over the parapet: a height read down the length of the arena onto the beacon objective, with the container cluster breaking the sightline.',
+      name: 'overwatch', position: [8.9, 3.26, -12.2], lookAt: [-1.6, 0.9, -18.2],
+      caption: 'Standing eye height (deck top 1.60 m + 1.66 m eye) on the now-reachable overwatch deck, north-west over the parapet onto the beacon objective. The traversal fixture proves a player can stand here.',
+    },
+    {
+      name: 'stairs', position: [9.15, 1.62, -4.7], lookAt: [7.1, 1.15, -10.4],
+      caption: 'The corrected access stair: six 0.267 m treads (each rise < the 0.34 m motor step limit) climbing north-west to the deck through the parapet doorway gap. deck-traversal.report.json proves the shipping PlayerMotor walks floor -> deck up these exact boxes.',
     },
     {
       name: 'objective', position: [1.6, 1.7, -15.4], lookAt: [0, 1.6, -1.5],

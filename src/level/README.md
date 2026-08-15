@@ -89,9 +89,13 @@ the objective — the cool/warm split shipped shooters use. `N8AO` is **not** us
 - A **west lane** with chest-high concrete (crouch-and-peek) and a broken crate
   stack.
 - An **east overwatch deck** reached by real **steps** (the motor is verified on
-  steps, so verticality is a stair of boxes, not a ramp), with a parapet for
-  cover — itself exposed from the north, so holding it is a trade, not a free
-  perch.
+  steps, so verticality is a stair of boxes, not a ramp): six ascending
+  0.267 m treads (each rise < the shipping motor's 0.34 m step limit), the top
+  tread flush with the deck, climbing through a **doorway gap in the south
+  parapet** so the climb actually lands on the deck. The parapet is cover but is
+  itself exposed from the north, so holding the deck is a trade, not a free
+  perch. That a *player* — not a free camera — can walk floor→deck up these exact
+  boxes is proven by the traversal fixture (see below), not asserted.
 - An **objective end** with a cool beacon that draws the eye and gives bloom a
   second, colder source.
 
@@ -112,11 +116,51 @@ npm exec --prefix <repo> -- vite <repo> --host 127.0.0.1 --port 5283 --strictPor
 node tools/shoot.mjs \
   --url http://127.0.0.1:5283/src/level/harness.html \
   --out shots/arena \
-  --shots default,spawn,lane_west,overwatch,objective,silhouette,materials
+  --shots default,spawn,lane_west,overwatch,stairs,objective,silhouette,materials
 ```
 
 The arena owns `window.__SHOT__`; shot names and captions are in
 `window.__SHOT_LIST__`.
+
+## Traversal proof — a player can actually reach the deck
+
+Correspondence proves the rendered geometry and the collision boxes *agree*.
+It says nothing about whether a **human** can climb what they agree on: the
+first version of this deck (PR #38) had an inverted staircase and a solid south
+parapet, so render and collision agreed on geometry a player could not reach
+(issue #43). `fixtures/deck-traversal.harness.mjs` closes that gap with the only
+witness that counts — the **shipping `PlayerMotor` + `StaticBoxWorld`** (the
+player subsystem, PR #40, tuning pinned at `DEFAULT_PLAYER_TUNING`) driven
+against the arena's **real `StaticWorld`** (`buildStaticWorld(buildArena())`).
+
+It spawns a capsule **on the floor** south of the stairs and drives ordinary
+"forward" (north) WASD intent at the engine's 120 Hz fixed step — **no
+teleport, no `motor.position =`, no free camera** — until the feet finish
+standing on the deck. Every target (deck height, stair centre, spawn) is derived
+from the arena geometry, so the fixture cannot drift from a layout change. Five
+assertions gate it: started on the floor, stayed grounded through the climb
+(0 airborne ticks), each step-up ≤ `maxStepHeight`, reached the deck, finished
+standing on the deck footprint past the parapet.
+
+```sh
+node src/level/fixtures/run-deck-traversal.mjs \
+  --url http://127.0.0.1:5283/src/level/fixtures/deck-traversal.harness.html
+```
+
+- Fixed geometry: **5/5 PASS**, feet finish at y=1.60 m, x=7.40, z=−11.12
+  (deck interior, past the parapet), max step-up **0.267 m ≤ 0.34 m**, 0 airborne
+  ticks. Report: `evidence/deck-traversal.report.json`.
+- **Negative control** (the pre-fix geometry, run by temporarily reverting the
+  stairs): the same motor is **blocked at the base of the 1.60 m first tread**,
+  never reaches the deck — 2 assertions FAIL. Report:
+  `evidence/deck-traversal.baseline-defect.report.json`. This is what makes the
+  fixture a real test rather than a tautology: it fails on the defect it guards
+  against.
+
+> Running the fixture requires the player subsystem (`src/player/`, PR #40) to be
+> present in the tree — the harness imports the real motor from it. The committed
+> level subsystem does not vendor or edit `src/player/`; the import is the
+> "narrowly scoped test import" carve-out.
 
 ### Measured (ANGLE Metal / Apple M4, 1920×1080, 16.7 ms budget)
 
@@ -126,22 +170,25 @@ the **worst** p95 is reported. Raw reports: `evidence/timing-trial-{1,2,3}.json`
 
 | trial | budget p95 (max CPU/GPU) | GPU median | worst single frame | disjoint |
 |-------|--------------------------|------------|--------------------|----------|
-| 1 | 14.545 ms | 11.712 ms | 18.421 ms | 0 |
-| 2 | **15.332 ms** | 11.986 ms | 18.121 ms | 0 |
-| 3 | 14.922 ms | 11.813 ms | 19.663 ms | 0 |
+| 1 | 13.958 ms | 9.718 ms | 17.526 ms | 0 |
+| 2 | **14.410 ms** | 10.203 ms | 17.659 ms | 0 |
+| 3 | 14.328 ms | 10.114 ms | 16.624 ms | 0 |
 
-Worst-of-three p95 **15.332 ms ≤ 16.7 ms** (the harness reports `overBudget:false`
-on all three, 0 console errors). **38 draw calls, 822 triangles**, 15 programs,
+Worst-of-three p95 **14.410 ms ≤ 16.7 ms** (the harness reports `overBudget:false`
+on all three, 0 console errors). **38 draw calls, 870 triangles**, 15 programs,
 35 textures. Note the honest limitation: p95 clears budget, but occasional
-single frames spike to ~18–19 ms; on this shared machine those are within
+single frames spike to ~17–18 ms; on this shared machine those are within
 run-to-run variance rather than a steady overrun. See PR body for the full
 report.
 
 Visual claims map to captures: `spawn.png` (left/right sightline break),
-`lane_west.png` (crouch-and-peek cover), `overwatch.png` (elevated height read
-over the parapet onto the beacon), `objective.png` (backlit container silhouette),
-`silhouette.png` (whole-arena read), `materials.png` (weathered-container IBL
-response). All six are regenerated by the `shoot.mjs` command above.
+`lane_west.png` (crouch-and-peek cover), `overwatch.png` (standing eye height on
+the now-reachable deck, over the parapet onto the beacon), `stairs.png` (the
+corrected ascending stair climbing through the parapet doorway — the geometry
+issue #43 blocked), `objective.png` (backlit container silhouette, ascending
+stair visible at left), `silhouette.png` (whole-arena read), `materials.png`
+(weathered-container IBL response). All seven are regenerated by the `shoot.mjs`
+command above.
 
 ## Scope / not shipped here
 
