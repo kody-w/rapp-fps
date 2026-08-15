@@ -3,6 +3,12 @@ import { Engine } from '../core/engine.js';
 import { RenderSystem } from '../render/RenderSystem.js';
 import { TestLevel } from '../level/TestLevel.js';
 import { CombatFX } from './CombatFX.js';
+import {
+  DECAL_MAX_SIZE,
+  DECAL_MIN_SIZE,
+  DECAL_SURFACE_OFFSET,
+} from './Decals.js';
+import { MAX_PARTICLE_PIXELS } from './Particles.js';
 import { setSeed, random } from './RNG.js';
 import { Events } from '../core/contracts.js';
 import type { SurfaceKind, UpdateContext, EngineContext, System } from '../core/contracts.js';
@@ -136,8 +142,15 @@ function runStressTest() {
   console.log('Running stress test...');
 
   const fragShader = (fx.decals as any).material.fragmentShader as string;
-  if (fragShader.includes('smoothstep(0.8, 0.6')) throw new Error("Shader uses invalid smoothstep");
-  if (!fragShader.includes('1.0 - smoothstep(0.6, 0.8')) throw new Error("Shader missing valid smoothstep");
+  if (fragShader.includes('smoothstep(0.78, 0.5')) throw new Error("Shader uses invalid smoothstep");
+  if (!fragShader.includes('1.0 - smoothstep(0.5, 0.78')) throw new Error("Shader missing valid smoothstep");
+  const particleVertex = (fx.particles as any).material.vertexShader as string;
+  if (!particleVertex.includes(`clamp(projected, 1.0, ${MAX_PARTICLE_PIXELS.toFixed(1)})`)) {
+    throw new Error(`Particle shader is missing the ${MAX_PARTICLE_PIXELS}px projected-size clamp`);
+  }
+  if (!(fx.particles.mesh as THREE.Points).isPoints) {
+    throw new Error('Impact particles regressed from soft points to geometry silhouettes');
+  }
   
   const sys = (engine as any).systems as any[];
   if (sys.filter(s => s.name === 'fx').length !== 1) throw new Error("Multiple or missing FX systems");
@@ -199,6 +212,28 @@ function runStressTest() {
   for(let i=0; i<16; i++) {
     if (matrixA.elements[i] !== matrixB.elements[i]) throw new Error('Determinism failed: identical seeds produced different matrices');
   }
+
+  const decalPosition = new THREE.Vector3();
+  const decalRotation = new THREE.Quaternion();
+  const decalScale = new THREE.Vector3();
+  matrixB.decompose(decalPosition, decalRotation, decalScale);
+  if (Math.abs(decalPosition.y - DECAL_SURFACE_OFFSET) > 1e-6) {
+    throw new Error(`Decal offset ${decalPosition.y} != ${DECAL_SURFACE_OFFSET}`);
+  }
+  const decalNormal = new THREE.Vector3(0, 0, 1).applyQuaternion(decalRotation);
+  if (decalNormal.angleTo(new THREE.Vector3(0, 1, 0)) > 1e-6) {
+    throw new Error(`Decal normal misaligned: ${decalNormal.toArray()}`);
+  }
+  if (decalScale.x < DECAL_MIN_SIZE || decalScale.x > DECAL_MAX_SIZE) {
+    throw new Error(`Decal size ${decalScale.x} outside ${DECAL_MIN_SIZE}..${DECAL_MAX_SIZE}`);
+  }
+  let refusedInvalid = false;
+  try {
+    fx.decals.emit(new THREE.Vector3(), new THREE.Vector3(), 'concrete');
+  } catch {
+    refusedInvalid = true;
+  }
+  if (!refusedInvalid) throw new Error('Decal accepted a zero impact normal');
 
   fx.reset();
   engine.bus.emit(Events.WeaponFired, { origin: new THREE.Vector3(0,0,0), direction: new THREE.Vector3(1,0,0) });
