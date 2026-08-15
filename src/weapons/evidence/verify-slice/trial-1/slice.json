@@ -1,11 +1,11 @@
 {
   "verdict": "SLICE VERIFIED",
-  "at": "2026-08-15T13:29:17.253Z",
+  "at": "2026-08-15T14:04:48.077Z",
   "url": "http://127.0.0.1:5285/",
   "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
   "viewport": "1920x1080",
   "budgetMs": 16.7,
-  "frameMsP95": 8.32,
+  "frameMsP95": 8.203,
   "pointerLocked": false,
   "lookInputPath": "synthetic-movement-delta (pointer lock unavailable under automation)",
   "coverageGaps": [
@@ -34,24 +34,24 @@
     {
       "name": "move",
       "status": "pass",
-      "detail": "travelled 7.784 m in 1.5 s of forward input.",
+      "detail": "travelled 7.742 m in 1.5 s of forward input.",
       "evidence": {
         "from": {
           "x": 0,
-          "y": 1.66,
+          "y": 1.6600000000000001,
           "z": -1.6
         },
         "to": {
-          "x": 7.327423619732951,
+          "x": 7.288112030953327,
           "y": 1.6600000000000001,
-          "z": -4.226074473878874
+          "z": -4.211985598282303
         }
       }
     },
     {
       "name": "move_stops",
       "status": "pass",
-      "detail": "coasted 0.543 m after release (expected under 1.0 m; more than that is ice)."
+      "detail": "coasted 0.540 m after release (expected under 1.0 m; more than that is ice)."
     },
     {
       "name": "footsteps",
@@ -65,7 +65,7 @@
       "evidence": {
         "pos": {
           "x": 11.66,
-          "y": 1.6600000000000001,
+          "y": 1.66,
           "z": -9.66
         }
       }
@@ -73,7 +73,7 @@
     {
       "name": "weapon_fires",
       "status": "pass",
-      "detail": "17 weapon:fired events in 1.2 s of held fire."
+      "detail": "18 weapon:fired events in 1.2 s of held fire."
     },
     {
       "name": "bullet_resolves",
@@ -92,17 +92,17 @@
             "z": 0
           },
           "material": "concrete",
-          "distance": 0.4399981700714358,
+          "distance": 0.4422154024288327,
           "damage": 28,
           "source": {
-            "x": 11.602038814114785,
-            "y": 0.27059130425357325,
-            "z": -9.348141545878619
+            "x": 11.600975474053906,
+            "y": 0.27057308665685664,
+            "z": -9.345499764806911
           },
           "direction": {
-            "x": 0.19247157382146937,
-            "y": -0.6149827946094445,
-            "z": -0.7646900389079517
+            "x": 0.19391111178425133,
+            "y": -0.6118581242777967,
+            "z": -0.7668299136587277
           }
         }
       }
@@ -115,13 +115,13 @@
     {
       "name": "frame_budget",
       "status": "pass",
-      "detail": "8.320 ms p95 against a 16.7 ms budget, measured while moving, turning and firing (181 paired samples).",
+      "detail": "8.203 ms p95 against a 16.7 ms budget, measured while moving, turning and firing (179 paired samples).",
       "evidence": {
-        "p95": 8.32,
-        "median": 6.835,
-        "samples": 181,
-        "gpuP95": 8.32,
-        "cpuP95": 3.3
+        "p95": 8.203,
+        "median": 6.421,
+        "samples": 179,
+        "gpuP95": 8.203,
+        "cpuP95": 3.4
       }
     },
     {

@@ -1,11 +1,11 @@
 {
   "verdict": "SLICE VERIFIED",
-  "at": "2026-08-15T13:30:03.725Z",
+  "at": "2026-08-15T14:05:26.147Z",
   "url": "http://127.0.0.1:5285/",
   "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
   "viewport": "1920x1080",
   "budgetMs": 16.7,
-  "frameMsP95": 8.42,
+  "frameMsP95": 8.832,
   "pointerLocked": false,
   "lookInputPath": "synthetic-movement-delta (pointer lock unavailable under automation)",
   "coverageGaps": [
@@ -34,7 +34,7 @@
     {
       "name": "move",
       "status": "pass",
-      "detail": "travelled 7.660 m in 1.5 s of forward input.",
+      "detail": "travelled 7.680 m in 1.5 s of forward input.",
       "evidence": {
         "from": {
           "x": 0,
@@ -42,16 +42,16 @@
           "z": -1.6
         },
         "to": {
-          "x": 7.2105055266469025,
-          "y": 1.6600000000000001,
-          "z": -4.184172212494531
+          "x": 7.229483538868161,
+          "y": 1.66,
+          "z": -4.190973740022568
         }
       }
     },
     {
       "name": "move_stops",
       "status": "pass",
-      "detail": "coasted 0.532 m after release (expected under 1.0 m; more than that is ice)."
+      "detail": "coasted 0.512 m after release (expected under 1.0 m; more than that is ice)."
     },
     {
       "name": "footsteps",
@@ -82,9 +82,9 @@
       "evidence": {
         "sample": {
           "point": {
-            "x": 11.686725954387,
+            "x": 11.686876597901298,
             "y": 0,
-            "z": -9.684603763669973
+            "z": -9.684861688357806
           },
           "normal": {
             "x": 0,
@@ -92,17 +92,17 @@
             "z": 0
           },
           "material": "concrete",
-          "distance": 0.44226327209056765,
+          "distance": 0.44252004607100487,
           "damage": 28,
           "source": {
-            "x": 11.601188478855853,
-            "y": 0.27057376961520996,
-            "z": -9.345384104280619
+            "x": 11.60127574063277,
+            "y": 0.2706172379949978,
+            "z": -9.345357940352669
           },
           "direction": {
-            "x": 0.1934084988039223,
-            "y": -0.6117934422549138,
-            "z": -0.7670084332028537
+            "x": 0.19343950184528486,
+            "y": -0.6115366759036623,
+            "z": -0.7672053526602555
           }
         }
       }
@@ -115,13 +115,13 @@
     {
       "name": "frame_budget",
       "status": "pass",
-      "detail": "8.420 ms p95 against a 16.7 ms budget, measured while moving, turning and firing (180 paired samples).",
+      "detail": "8.832 ms p95 against a 16.7 ms budget, measured while moving, turning and firing (186 paired samples).",
       "evidence": {
-        "p95": 8.42,
-        "median": 6.995,
-        "samples": 180,
-        "gpuP95": 8.42,
-        "cpuP95": 3.4
+        "p95": 8.832,
+        "median": 7.617,
+        "samples": 186,
+        "gpuP95": 8.832,
+        "cpuP95": 3.2
       }
     },
     {

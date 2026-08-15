@@ -11,6 +11,12 @@
     "shot-15",
     "flash"
   ],
+  "blindComparisonPoses": [
+    "default",
+    "ads",
+    "sway",
+    "shot-5"
+  ],
   "viewmodel": {
     "drawCallsRifle": 3,
     "triangles": 7312,
@@ -19,12 +25,36 @@
       "polymerTris": 3348,
       "accentTris": 688
     },
-    "triangleCeiling": 9000,
+    "triangleCeiling": 8000,
     "materialGroups": [
       "metal",
       "polymer",
       "accent"
     ]
+  },
+  "authoredEnvelope": {
+    "unionMin": [
+      -0.072,
+      -0.23,
+      -0.912
+    ],
+    "unionMax": [
+      0.075,
+      0.127,
+      0.21
+    ],
+    "gateMin": [
+      -0.09,
+      -0.24,
+      -0.92
+    ],
+    "gateMax": [
+      0.1,
+      0.16,
+      0.22
+    ],
+    "withinGate": true,
+    "note": "local-space union of the three merged groups; kept within the blockout screen footprint"
   },
   "perfBefore": {
     "drawCalls": 72,
@@ -34,7 +64,8 @@
     "geometries": 12,
     "gpuBudgetP95Ms": 7.205,
     "gpuBudgetWorstMs": 9.046,
-    "overBudget": false
+    "overBudget": false,
+    "source": "user-authored blockout baseline metrics.json + prior blockout capture"
   },
   "perfAfter": {
     "drawCalls": 72,
@@ -42,8 +73,8 @@
     "programs": 11,
     "textures": 16,
     "geometries": 12,
-    "gpuBudgetP95Ms": 5.833,
-    "gpuBudgetWorstMs": 6.462,
+    "gpuBudgetP95Ms": 9.32,
+    "gpuBudgetWorstMs": 10.535,
     "overBudget": false
   },
   "anchorProof": {
@@ -96,7 +127,7 @@
       "passed": 11,
       "failed": 0,
       "unobserved": 0,
-      "frameMsP95": 8.32,
+      "frameMsP95": 8.203,
       "consoleErrors": 0
     },
     {
@@ -105,7 +136,7 @@
       "passed": 11,
       "failed": 0,
       "unobserved": 0,
-      "frameMsP95": 8.1,
+      "frameMsP95": 7.579,
       "consoleErrors": 0
     },
     {
@@ -114,9 +145,9 @@
       "passed": 11,
       "failed": 0,
       "unobserved": 0,
-      "frameMsP95": 8.42,
+      "frameMsP95": 8.832,
       "consoleErrors": 0
     }
   ],
-  "note": "draws unchanged at 3 for the rifle (72 scene-wide); programs +1 is the vertex-colour shader variant; muzzle/ejection anchors are byte-identical to the blockout, so authoritative-ray and split-RNG tests are unaffected."
+  "note": "Rifle stays 3 draws (72 scene-wide). Viewmodel 7312 tris < 8000 ceiling. Local envelope within x[-0.09,0.10] y[-0.24,0.16] z[-0.92,0.22]. Textures unchanged at 16 (zero image textures); programs 10->11 is the vertex-colour shader variant. muzzle/ejection LOCAL anchors are byte-identical to the blockout so authoritative-ray and split-RNG tests are unaffected."
 }

@@ -26,8 +26,12 @@ import {
   EJECTION_ANCHOR,
 } from '../RifleGeometry.js';
 
-/** A camera-local weapon: a few thousand triangles is fine, tens of thousands is not. */
-const TRIANGLE_CEILING = 9000;
+/** Authoritative gate: the finished weapon must not exceed the blockout's screen
+ *  footprint, so the union of all authored geometry must fit this local box. */
+const TRIANGLE_CEILING = 8000;
+/** Authored local-space envelope the union of the three groups must stay within. */
+const ENVELOPE_MIN: [number, number, number] = [-0.09, -0.24, -0.92];
+const ENVELOPE_MAX: [number, number, number] = [0.10, 0.16, 0.22];
 /** An anchor is "on" a surface if the nearest triangle is within this distance. */
 const SURFACE_TOLERANCE_M = 0.003;
 /** The six axis probe directions used for inside/outside ray parity. */
@@ -137,6 +141,31 @@ function run(): AnchorResult {
       note: 'one merged BufferGeometry per group => three draw calls',
     },
   });
+
+  // 1b. Authored envelope: the union of all three groups must stay inside the
+  // gate box, so the finished art never obstructs more screen than the blockout.
+  const union = new THREE.Box3();
+  for (const g of [rifle.metal, rifle.polymer, rifle.accent]) {
+    g.computeBoundingBox();
+    union.union(g.boundingBox!);
+  }
+  const min = union.min.toArray();
+  const max = union.max.toArray();
+  const withinEnvelope =
+    min[0] >= ENVELOPE_MIN[0] && min[1] >= ENVELOPE_MIN[1] && min[2] >= ENVELOPE_MIN[2] &&
+    max[0] <= ENVELOPE_MAX[0] && max[1] <= ENVELOPE_MAX[1] && max[2] <= ENVELOPE_MAX[2];
+  checks.push({
+    name: 'authored-envelope',
+    pass: withinEnvelope,
+    detail: {
+      unionMin: min.map((v) => Number(v.toFixed(4))),
+      unionMax: max.map((v) => Number(v.toFixed(4))),
+      gateMin: ENVELOPE_MIN,
+      gateMax: ENVELOPE_MAX,
+      note: 'local-space; keeps screen obstruction within the blockout footprint',
+    },
+  });
+
   rifle.metal.dispose();
   rifle.polymer.dispose();
   rifle.accent.dispose();

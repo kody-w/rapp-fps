@@ -3,7 +3,7 @@
   "pageErrors": [],
   "status": "passed",
   "pass": true,
-  "triangleCeiling": 9000,
+  "triangleCeiling": 8000,
   "surfaceToleranceM": 0.003,
   "checks": [
     {
@@ -12,7 +12,7 @@
       "detail": {
         "totalTris": 7312,
         "reported": 7312,
-        "ceiling": 9000,
+        "ceiling": 8000,
         "groups": {
           "metalTris": 3276,
           "polymerTris": 3348,
@@ -31,6 +31,33 @@
         ],
         "allHaveVertexColor": true,
         "note": "one merged BufferGeometry per group => three draw calls"
+      }
+    },
+    {
+      "name": "authored-envelope",
+      "pass": true,
+      "detail": {
+        "unionMin": [
+          -0.072,
+          -0.23,
+          -0.912
+        ],
+        "unionMax": [
+          0.075,
+          0.127,
+          0.21
+        ],
+        "gateMin": [
+          -0.09,
+          -0.24,
+          -0.92
+        ],
+        "gateMax": [
+          0.1,
+          0.16,
+          0.22
+        ],
+        "note": "local-space; keeps screen obstruction within the blockout footprint"
       }
     },
     {

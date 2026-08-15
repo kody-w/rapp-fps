@@ -276,19 +276,19 @@ function buildSights(b: GroupBuilder): void {
 // ── Stock, cheek riser and butt pad ─────────────────────────────────────────
 function buildStock(b: GroupBuilder): void {
   // Stock neck bridging receiver to butt.
-  b.add('polymer', place(rbox(0.05, 0.055, 0.1, 0.012, 2), 0, 0.012, 0.11), TINT.stock);
+  b.add('polymer', place(rbox(0.05, 0.055, 0.1, 0.012, 2), 0, 0.012, 0.095), TINT.stock);
   // Main stock body.
-  b.add('polymer', place(rbox(0.07, 0.085, 0.13, 0.016, 2), 0, 0.0, 0.17), TINT.stock);
+  b.add('polymer', place(rbox(0.07, 0.085, 0.13, 0.016, 2), 0, 0.0, 0.145), TINT.stock);
   // Cheek riser.
-  b.add('polymer', place(rbox(0.055, 0.03, 0.12, 0.012, 1), 0, 0.06, 0.15), TINT.stock);
+  b.add('polymer', place(rbox(0.055, 0.03, 0.12, 0.012, 1), 0, 0.06, 0.125), TINT.stock);
   // Rubber butt pad.
-  b.add('polymer', place(rbox(0.072, 0.11, 0.028, 0.014, 2), 0, -0.005, 0.225), TINT.buttpad, { hemi: 0.16, base: 0.82 });
+  b.add('polymer', place(rbox(0.072, 0.11, 0.028, 0.014, 2), 0, -0.005, 0.195), TINT.buttpad, { hemi: 0.16, base: 0.82 });
   // Pad ridges.
   for (let i = 0; i < 3; i++) {
-    b.add('polymer', place(greeble(0.06, 0.008, 0.006), 0, 0.03 - i * 0.03, 0.24), TINT.magazineRib, { hemi: 0.04, base: 0.5 });
+    b.add('polymer', place(greeble(0.06, 0.008, 0.006), 0, 0.03 - i * 0.03, 0.205), TINT.magazineRib, { hemi: 0.04, base: 0.5 });
   }
   // Sling loop.
-  b.add('accent', place(new THREE.TorusGeometry(0.01, 0.003, 6, 12), 0.03, -0.02, 0.19, 0, Math.PI / 2, 0), TINT.bronzeDark);
+  b.add('accent', place(new THREE.TorusGeometry(0.01, 0.003, 6, 12), 0.03, -0.02, 0.16, 0, Math.PI / 2, 0), TINT.bronzeDark);
 }
 
 // ── Pistol grip with finger grooves ─────────────────────────────────────────
@@ -321,15 +321,15 @@ function buildTrigger(b: GroupBuilder): void {
 function buildMagazine(b: GroupBuilder): void {
   // Two angled body segments suggest a gently curved magazine.
   b.add('polymer', place(rbox(0.05, 0.11, 0.066, 0.01, 2), 0, -0.1, -0.15, 0.06, 0, 0), TINT.magazine);
-  b.add('polymer', place(rbox(0.05, 0.11, 0.062, 0.01, 2), 0.0, -0.2, -0.135, 0.14, 0, 0), TINT.magazine);
+  b.add('polymer', place(rbox(0.05, 0.10, 0.062, 0.01, 2), 0.0, -0.16, -0.135, 0.14, 0, 0), TINT.magazine);
   // Segmentation / witness ribs.
   for (let i = 0; i < 5; i++) {
     const t = i / 4;
-    b.add('polymer', place(greeble(0.054, 0.006, 0.05), 0, -0.08 - t * 0.13, -0.152 + t * 0.02), TINT.magazineRib, { hemi: 0.05, base: 0.5 });
+    b.add('polymer', place(greeble(0.054, 0.006, 0.05), 0, -0.08 - t * 0.10, -0.152 + t * 0.02), TINT.magazineRib, { hemi: 0.05, base: 0.5 });
   }
   // Floor plate.
-  b.add('polymer', place(rbox(0.056, 0.02, 0.07, 0.008, 1), 0, -0.256, -0.117), TINT.grip);
-  b.add('accent', place(greeble(0.05, 0.006, 0.05), 0, -0.267, -0.117), TINT.bronzeDark);
+  b.add('polymer', place(rbox(0.056, 0.02, 0.07, 0.008, 1), 0, -0.216, -0.117), TINT.grip);
+  b.add('accent', place(greeble(0.05, 0.006, 0.05), 0, -0.227, -0.117), TINT.bronzeDark);
 }
 
 function collect(builder: GroupBuilder): RifleGeometrySet {
