@@ -226,6 +226,7 @@ function testProductionAiOmitsDebugMarkers(): Outcome {
     yaw: binding.yaw,
     renderWorld: false,
     renderMarkers: false,
+    renderGaze: false,
   });
   productionAi.init(ctx);
   const productionNames: string[] = [];
@@ -243,13 +244,18 @@ function testProductionAiOmitsDebugMarkers(): Outcome {
     yaw: binding.yaw,
     renderWorld: false,
     renderMarkers: true,
+    renderGaze: true,
   });
   evidenceAi.init(ctx);
   const evidenceNames: string[] = [];
   ctx.scene.traverse((object) => {
     if (object.name.startsWith('ai-debug-')) evidenceNames.push(object.name);
   });
-  for (const expected of ['ai-debug-player-marker', 'ai-debug-last-known-marker']) {
+  for (const expected of [
+    'ai-debug-player-marker',
+    'ai-debug-last-known-marker',
+    'ai-debug-gaze',
+  ]) {
     if (!evidenceNames.includes(expected)) {
       failures.push(`evidence mode omitted ${expected}`);
     }
