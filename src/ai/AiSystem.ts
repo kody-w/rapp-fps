@@ -51,6 +51,8 @@ export interface AiSystemOptions {
   renderWorld?: boolean;
   /** Evidence-only ground-truth player and last-known-position markers. */
   renderMarkers?: boolean;
+  /** Evidence-only line showing the agent's current facing/perception state. */
+  renderGaze?: boolean;
   /** Target id the enemy attributes sight/last-known to. */
   targetId?: string;
   /** Bus id this enemy answers to for {@link Events.Damage}. */
@@ -91,6 +93,7 @@ export class AiSystem implements System {
   private readonly opts: {
     renderWorld: boolean;
     renderMarkers: boolean;
+    renderGaze: boolean;
     targetId: string;
     playerProvider?: (ctx: EngineContext) => PlayerSample | null;
     enemyId: string | number;
@@ -123,8 +126,8 @@ export class AiSystem implements System {
   private visor!: THREE.MeshStandardMaterial;
   private visorGlow!: THREE.Sprite;
   private visorGlowMat!: THREE.SpriteMaterial;
-  private gaze!: THREE.Mesh;
-  private gazeMat!: THREE.MeshBasicMaterial;
+  private gaze?: THREE.Mesh;
+  private gazeMat?: THREE.MeshBasicMaterial;
   private telegraph!: THREE.Mesh;
   private telegraphMat!: THREE.MeshStandardMaterial;
   private muzzle!: THREE.Mesh;
@@ -146,6 +149,7 @@ export class AiSystem implements System {
     this.opts = {
       renderWorld: options.renderWorld ?? true,
       renderMarkers: options.renderMarkers ?? true,
+      renderGaze: options.renderGaze ?? true,
       targetId: options.targetId ?? 'player',
       playerProvider: options.playerProvider,
       enemyId: options.enemyId ?? 'enemy-01',
@@ -298,7 +302,7 @@ export class AiSystem implements System {
     );
 
     this.updateDeath(a.state, a.deathSeconds);
-    this.updateGaze(a.state);
+    if (this.opts.renderGaze) this.updateGaze(a.state);
     this.updateTelegraph();
     this.updateFiring();
     if (this.opts.renderMarkers) this.updateMarkers();
@@ -463,15 +467,22 @@ export class AiSystem implements System {
   }
 
   private buildEffects(): void {
-    // Gaze bar: a thin beam from the eye along forward, tinted by state.
-    const gazeGeo = new THREE.CylinderGeometry(0.02, 0.02, 1, 8);
-    gazeGeo.translate(0, 0.5, 0); // origin at the base so we can scale length from the eye
-    gazeGeo.rotateX(-Math.PI / 2); // lay the cylinder along −Z (forward)
-    this.gazeMat = new THREE.MeshBasicMaterial({ color: 0x36d17a, transparent: true, opacity: 0.5 });
-    this.gaze = new THREE.Mesh(gazeGeo, this.gazeMat);
-    this.gaze.position.y = this.agent.config.eyeHeight;
-    this.body.add(this.gaze);
-    this.disposables.push(gazeGeo, this.gazeMat);
+    if (this.opts.renderGaze) {
+      // Evidence gaze bar: state/facing readout, never production combat art.
+      const gazeGeo = new THREE.CylinderGeometry(0.02, 0.02, 1, 8);
+      gazeGeo.translate(0, 0.5, 0);
+      gazeGeo.rotateX(-Math.PI / 2);
+      this.gazeMat = new THREE.MeshBasicMaterial({
+        color: 0x36d17a,
+        transparent: true,
+        opacity: 0.5,
+      });
+      this.gaze = new THREE.Mesh(gazeGeo, this.gazeMat);
+      this.gaze.name = 'ai-debug-gaze';
+      this.gaze.position.y = this.agent.config.eyeHeight;
+      this.body.add(this.gaze);
+      this.disposables.push(gazeGeo, this.gazeMat);
+    }
 
     // Telegraph: a charging orb above the head that swells and heats up over
     // the wind-up. A sphere reads as "charging to fire" from any camera angle.
@@ -542,17 +553,20 @@ export class AiSystem implements System {
     this.telegraph.visible = false;
     this.muzzle.visible = false;
     this.tracer.visible = false;
-    this.gaze.visible = false;
+    if (this.gaze) this.gaze.visible = false;
   }
 
   private updateGaze(state: AiState): void {
-    if (state === 'dead') { this.gaze.visible = false; return; }
-    this.gaze.visible = true;
-    this.gazeMat.color.setHex(STATE_COLOR[state]);
+    const gaze = this.gaze;
+    const material = this.gazeMat;
+    if (!gaze || !material) return;
+    if (state === 'dead') { gaze.visible = false; return; }
+    gaze.visible = true;
+    material.color.setHex(STATE_COLOR[state]);
     // A confident, longer beam when it actually sees you; a stub otherwise.
     const len = this.agent.canSeeNow ? 3.4 : 1.1;
-    this.gaze.scale.set(1, 1, len);
-    this.gazeMat.opacity = this.agent.canSeeNow ? 0.65 : 0.3;
+    gaze.scale.set(1, 1, len);
+    material.opacity = this.agent.canSeeNow ? 0.65 : 0.3;
   }
 
   private updateTelegraph(): void {
