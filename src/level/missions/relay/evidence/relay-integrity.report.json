@@ -1,0 +1,231 @@
+{
+  "url": "http://127.0.0.1:5294/src/level/missions/relay/fixtures/relay-integrity.harness.html",
+  "consoleErrors": [],
+  "at": "2026-08-15T16:18:17.807Z",
+  "ok": true,
+  "renderer": "real THREE.WebGLRenderer (headless WebGL2)",
+  "correspondenceChecks": [
+    {
+      "name": "core-contract",
+      "ok": true,
+      "detail": "assertValidStaticWorld passed"
+    },
+    {
+      "name": "box-count",
+      "ok": true,
+      "detail": "31 boxes vs 31 collidable solids"
+    },
+    {
+      "name": "bijection",
+      "ok": true,
+      "detail": "31 solids each matched one box on bounds + surface"
+    },
+    {
+      "name": "render-backing",
+      "ok": true,
+      "detail": "all 31 colliders have rendered geometry at every corner"
+    },
+    {
+      "name": "render-membership",
+      "ok": true,
+      "detail": "every collidable solid is in a rendered group"
+    }
+  ],
+  "mergedBuffers": {
+    "meshes": 10,
+    "vertices": 1108,
+    "triangles": 554,
+    "materials": [
+      "beacon",
+      "concrete",
+      "concreteDark",
+      "contact-shadows",
+      "darkMetal",
+      "galvanized",
+      "lampWarm",
+      "rust",
+      "safety",
+      "wood"
+    ]
+  },
+  "lifecycle": {
+    "geomAfterBuild": 9,
+    "geomAfterDispose": 0
+  },
+  "assertions": [
+    {
+      "name": "correspondence_all_five_green",
+      "passed": true,
+      "actual": {
+        "ok": true,
+        "checks": [
+          {
+            "name": "core-contract",
+            "ok": true
+          },
+          {
+            "name": "box-count",
+            "ok": true
+          },
+          {
+            "name": "bijection",
+            "ok": true
+          },
+          {
+            "name": "render-backing",
+            "ok": true
+          },
+          {
+            "name": "render-membership",
+            "ok": true
+          }
+        ]
+      },
+      "expected": "all five correspondence checks pass against the real merged buffers"
+    },
+    {
+      "name": "merged_buffers_non_empty",
+      "passed": true,
+      "actual": {
+        "meshes": 10,
+        "vertices": 1108,
+        "triangles": 554,
+        "materials": [
+          "beacon",
+          "concrete",
+          "concreteDark",
+          "contact-shadows",
+          "darkMetal",
+          "galvanized",
+          "lampWarm",
+          "rust",
+          "safety",
+          "wood"
+        ]
+      },
+      "expected": "the arena mounted real, non-empty merged geometry (one mesh per material)"
+    },
+    {
+      "name": "shot_hook_installed",
+      "passed": true,
+      "actual": {
+        "shotHook": "function"
+      },
+      "expected": "the level installed window.__SHOT__ for the evidence tool"
+    },
+    {
+      "name": "static_world_published",
+      "passed": true,
+      "actual": {
+        "boxes": 31
+      },
+      "expected": "the shipping StaticWorld is published and non-empty"
+    },
+    {
+      "name": "box_count_detail_present",
+      "passed": true,
+      "actual": {
+        "detail": "31 boxes vs 31 collidable solids"
+      },
+      "expected": "box-count correspondence detail present and green"
+    },
+    {
+      "name": "dispose_removes_arena_root",
+      "passed": true,
+      "actual": {
+        "arenaRootPresent": false,
+        "sceneChildren": 0
+      },
+      "expected": "dispose removed the arena root group from the scene"
+    },
+    {
+      "name": "dispose_cleans_globals",
+      "passed": true,
+      "actual": {
+        "shotHook": "undefined",
+        "arenaCheck": "undefined"
+      },
+      "expected": "dispose deleted the window.__SHOT__ and window.__ARENA_CHECK__ hooks"
+    },
+    {
+      "name": "dispose_releases_geometry",
+      "passed": true,
+      "actual": {
+        "geomAfterBuild": 9,
+        "geomAfterDispose": 0
+      },
+      "expected": "GPU geometry handles dropped after dispose (merged buffers freed)"
+    },
+    {
+      "name": "rebuild_correspondence_green",
+      "passed": true,
+      "actual": {
+        "ok": true,
+        "checks": [
+          {
+            "name": "core-contract",
+            "ok": true
+          },
+          {
+            "name": "box-count",
+            "ok": true
+          },
+          {
+            "name": "bijection",
+            "ok": true
+          },
+          {
+            "name": "render-backing",
+            "ok": true
+          },
+          {
+            "name": "render-membership",
+            "ok": true
+          }
+        ]
+      },
+      "expected": "a fresh build on a new scene passes correspondence again (no leaked state)"
+    },
+    {
+      "name": "rebuild_matches_first_build",
+      "passed": true,
+      "actual": {
+        "first": {
+          "meshes": 10,
+          "vertices": 1108,
+          "triangles": 554,
+          "materials": [
+            "beacon",
+            "concrete",
+            "concreteDark",
+            "contact-shadows",
+            "darkMetal",
+            "galvanized",
+            "lampWarm",
+            "rust",
+            "safety",
+            "wood"
+          ]
+        },
+        "rebuilt": {
+          "meshes": 10,
+          "vertices": 1108,
+          "triangles": 554,
+          "materials": [
+            "beacon",
+            "concrete",
+            "concreteDark",
+            "contact-shadows",
+            "darkMetal",
+            "galvanized",
+            "lampWarm",
+            "rust",
+            "safety",
+            "wood"
+          ]
+        }
+      },
+      "expected": "the rebuilt merged geometry is identical to the first build (deterministic)"
+    }
+  ]
+}
