@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-15T02:20:42.823Z",
+  "generatedAt": "2026-08-15T02:46:14.729Z",
   "fixedStepHz": 120,
   "targets": {
     "walkSpeedMetersPerSecond": 5.4,
@@ -31,8 +31,8 @@
     "stairReachedFloor": true,
     "determinismPositionDeltaMeters": 0,
     "determinismVelocityDeltaMetersPerSecond": 0,
-    "fixedTickCostMicroseconds": 0.941667,
-    "estimatedPlayerCostAt60FpsMilliseconds": 0.001883,
+    "fixedTickCostMicroseconds": 0.975,
+    "estimatedPlayerCostAt60FpsMilliseconds": 0.00195,
     "footstepEvents": 28,
     "landedEvents": 1
   },
@@ -148,7 +148,7 @@
     {
       "name": "player CPU cost stays below 0.25 ms at 60 fps",
       "passed": true,
-      "actual": 0.001883333286,
+      "actual": 0.001950000048,
       "expected": "<= 0.25 ms"
     },
     {

@@ -2,7 +2,9 @@
  * Player evidence harness. One page that carries both kinds of proof.
  *
  * It boots the real engine, the real render pipeline and the player subsystem
- * over the calibration level, wired exactly as `main.ts` wires the game, so:
+ * over the calibration level with a real `PlayerInput` on the canvas, the way
+ * the game would integrate the player (`main.ts` itself still ships an input
+ * stub with no player), so:
  *
  *  - `tools/shoot.mjs` can capture real GPU frames and time them against the
  *    16.7 ms budget (`window.engine`, `__SCENE_STATS__`, `__FRAME_READY__`,
@@ -16,9 +18,9 @@
  */
 
 import { Engine } from '../core/engine.js';
-import type { InputState } from '../core/contracts.js';
 import { RenderSystem } from '../render/RenderSystem.js';
 import { PlayerCalibrationLevel } from './PlayerCalibrationLevel.js';
+import { PlayerInput } from './PlayerInput.js';
 import { PlayerSystem } from './PlayerSystem.js';
 import { runPlayerHarness, type PlayerHarnessReport } from './harness-report.js';
 
@@ -38,19 +40,14 @@ if (!(canvas instanceof HTMLCanvasElement)) throw new Error('Harness canvas is m
 
 const engine = new Engine(canvas);
 
-// A neutral, headless input: no pointer lock, no motion. Shot poses drive the
-// player through `__SHOT__`, and the numeric harness runs the motor directly.
-const input: InputState = {
-  move: { x: 0, y: 0 },
-  look: { x: 0, y: 0 },
-  jump: false,
-  crouch: false,
-  sprint: false,
-  fire: false,
-  aim: false,
-  reload: false,
-  pressed: () => false,
-};
+// Real browser input on the canvas, wired as production would: mouse look, WASD,
+// jump/crouch/sprint, and pointer lock REQUESTED on click. Look is armed by the
+// request, not the grant, so a dispatched mousemove drives the identical delta
+// path an automated acceptance run depends on. With no input the player stands
+// still — exactly what the GPU-capture poses want — while the named `__SHOT__`
+// poses drive the motor directly and the numeric harness builds its own motors,
+// so neither is disturbed by input being live here.
+const input = new PlayerInput(canvas);
 engine.input = input;
 
 const render = new RenderSystem();
@@ -70,7 +67,12 @@ engine.renderer.info.autoReset = false;
 engine.present = () => {
   const info = engine.renderer.info;
   info.reset();
+  // Apply the player's transient view effects for the draw only, then restore
+  // the authoritative pose — the same bracket RenderSystem uses for shake — so
+  // window.engine.camera reports the true eye pose between frames.
+  player.applyViewEffects();
   render.render();
+  player.restoreView();
   (window as unknown as Record<string, unknown>).__SCENE_STATS__ = {
     drawCallsPerFrame: info.render.calls,
     trianglesPerFrame: info.render.triangles,
