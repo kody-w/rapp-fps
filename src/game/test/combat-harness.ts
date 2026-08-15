@@ -408,18 +408,39 @@ function testTracerVisualLifetime(): Outcome {
   ai.update({ dt: 0.03, elapsed: 1.03, frame: 1, alpha: 1 }, ctx);
   ai.update({ dt: 0, elapsed: 1.06, frame: 2, alpha: 1 }, ctx);
   const expired = !internal.tracer.visible && !internal.muzzle.visible;
+  internal.sink.onFire?.({
+    origin: { x: 0, y: 1.7, z: -1 },
+    direction: { x: 0, y: 0, z: 1 },
+    aimError: 0,
+    burstIndex: 0,
+    time: 2,
+  });
+  ai.update({ dt: 0.01, elapsed: 2, frame: 3, alpha: 1 }, ctx);
+  const visibleBeforeDeath = internal.tracer.visible;
+  ai.agent.state = 'dead';
+  ai.update({ dt: 0, elapsed: 2.01, frame: 4, alpha: 1 }, ctx);
+  const hiddenOnDeath = !internal.tracer.visible && !internal.muzzle.visible;
   if (!firstVisible) failures.push('fresh FireShot did not show tracer/muzzle');
   if (Math.abs(firstLength - 0.4) > 1e-9) {
     failures.push(`near-camera visual length ${firstLength} != 0.4`);
   }
   if (!expired) failures.push('tracer/muzzle remained visible after 60ms');
+  if (!visibleBeforeDeath || !hiddenOnDeath) {
+    failures.push('pending tracer/muzzle did not hide immediately on death');
+  }
   ai.dispose();
 
   return {
     name: 'tracerVisualLifetime',
     pass: failures.length === 0,
     failures,
-    detail: { firstVisible, firstLength, expired },
+    detail: {
+      firstVisible,
+      firstLength,
+      expired,
+      visibleBeforeDeath,
+      hiddenOnDeath,
+    },
   };
 }
 
