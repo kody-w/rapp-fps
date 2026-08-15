@@ -59,6 +59,16 @@ export class PlayerInput implements InputState {
 
   pressed = (action: string): boolean => this.edgeActions.has(action);
 
+  /**
+   * Raise an action edge for the current frame, as a keydown would. Lets an
+   * on-screen touch button drive the same edge-consumed actions (jump) the
+   * keyboard produces, without the DOM ever knowing whether a key or a thumb
+   * caused it. Held state (e.g. `jump`) is owned by the caller/keyboard.
+   */
+  press = (action: string): void => {
+    this.edgeActions.add(action);
+  };
+
   consumePressed(action: string): boolean {
     const hadAction = this.edgeActions.has(action);
     this.edgeActions.delete(action);

@@ -71,6 +71,13 @@ export interface InputState {
   reload: boolean;
   /** Edge-triggered: true only on the frame the key went down. */
   pressed: (action: string) => boolean;
+  /**
+   * Imperative edge trigger, mirroring a key going down for one frame — how an
+   * on-screen touch button raises an action (e.g. jump) that the motor consumes
+   * as an edge, since holding a button never produces a keyboard-style keydown.
+   * Optional so synthetic/harness inputs need not implement it.
+   */
+  press?: (action: string) => void;
 }
 
 /** Minimal typed pub/sub. Deliberately not a dependency on any framework. */

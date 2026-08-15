@@ -51,17 +51,20 @@ const CSS = `
 .tc-thumb{position:absolute;left:50%;top:50%;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.42);will-change:transform}
 .tc-fire{position:absolute;right:34px;bottom:48px;width:96px;height:96px;border-radius:50%;border:2px solid rgba(255,80,80,.5);background:rgba(255,60,60,.16);color:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;font:600 14px/1 system-ui,-apple-system,sans-serif;letter-spacing:.09em}
 .tc-fire.tc-on{background:rgba(255,60,60,.44);transform:scale(.94)}
+.tc-jump{position:absolute;right:142px;bottom:64px;width:78px;height:78px;border-radius:50%;border:2px solid rgba(120,180,255,.5);background:rgba(90,150,255,.16);color:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;font:600 13px/1 system-ui,-apple-system,sans-serif;letter-spacing:.08em}
+.tc-jump.tc-on{background:rgba(90,150,255,.42);transform:scale(.94)}
 html.${TOUCH_CLASS} .combat-hud .hud-reticle{display:none!important}
 `;
 
 /** What a live finger is currently driving. */
-type Role = 'move' | 'look' | 'fire';
+type Role = 'move' | 'look' | 'fire' | 'jump';
 
 export class TouchControls {
   private readonly root: HTMLDivElement;
   private readonly base: HTMLDivElement;
   private readonly thumb: HTMLDivElement;
   private readonly fire: HTMLDivElement;
+  private readonly jump: HTMLDivElement;
 
   /** identifier → role, for every finger the overlay currently owns. */
   private readonly touches = new Map<number, Role>();
@@ -80,8 +83,10 @@ export class TouchControls {
     this.thumb = el('div', 'tc-thumb');
     this.fire = el('div', 'tc-fire');
     this.fire.textContent = 'FIRE';
+    this.jump = el('div', 'tc-jump');
+    this.jump.textContent = 'JUMP';
     this.base.appendChild(this.thumb);
-    this.root.append(this.base, this.fire);
+    this.root.append(this.base, this.fire, this.jump);
     document.body.appendChild(this.root);
 
     // Non-passive so preventDefault actually cancels Safari scroll/zoom/gestures.
@@ -104,6 +109,7 @@ export class TouchControls {
       this.touches.set(t.identifier, role);
       if (role === 'move') this.beginMove(t.clientX, t.clientY);
       else if (role === 'look') this.lookLast = { x: t.clientX, y: t.clientY };
+      else if (role === 'jump') this.setJump(true);
       else this.setFire(true);
     }
   };
@@ -125,6 +131,7 @@ export class TouchControls {
       this.touches.delete(t.identifier);
       if (role === 'move') this.endMove();
       else if (role === 'fire') this.setFire(false);
+      else if (role === 'jump') this.setJump(false);
     }
   };
 
@@ -134,6 +141,7 @@ export class TouchControls {
    * "Anywhere else" — the whole surface outside the two widgets — looks.
    */
   private classify(x: number, y: number): Role {
+    if (hits(this.jump, x, y)) return 'jump';
     if (hits(this.fire, x, y)) return 'fire';
     const inLeft = x < innerWidth * 0.5;
     const inBottom = y > innerHeight * 0.42;
@@ -198,6 +206,15 @@ export class TouchControls {
     this.fire.classList.toggle('tc-on', on);
   }
 
+  // ── Jump: tap to hop ─────────────────────────────────────────────────────
+  // The motor consumes jump as an edge (one hop per press), so the press() seam
+  // raises that edge on landing; the held `jump` flag mirrors a held Space.
+  private setJump(on: boolean): void {
+    if (on) this.input.press?.('jump');
+    this.input.jump = on;
+    this.jump.classList.toggle('tc-on', on);
+  }
+
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
@@ -212,6 +229,7 @@ export class TouchControls {
     this.input.move.x = 0;
     this.input.move.y = 0;
     this.input.fire = false;
+    this.input.jump = false;
     this.root.remove();
     document.documentElement.classList.remove(TOUCH_CLASS);
   }
