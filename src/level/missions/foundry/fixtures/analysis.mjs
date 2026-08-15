@@ -44,6 +44,16 @@ const round = (v, d = 4) => {
   return Math.round(v * s) / s;
 };
 
+/**
+ * Objective arrival radius derived from the AUTHORED `FinalObjective.footprint`:
+ * the footprint's diagonal reach plus the player's own capsule radius. There is
+ * no magic constant — halving the authored footprint shrinks this radius, so the
+ * acceptance test is controlled by the field (proven non-vacuously below).
+ */
+function objectiveArrivalRadius(footprint, playerRadius) {
+  return Math.hypot(footprint[0], footprint[1]) + playerRadius;
+}
+
 /** Drive the shipping motor along feet-space waypoints with plain forward
  *  intent (steer yaw toward the next waypoint; never teleport). */
 function driveRoute(solver, tuning, spawn, waypoints, objective) {
@@ -103,9 +113,17 @@ function driveRoute(solver, tuning, spawn, waypoints, objective) {
   const final = traj[traj.length - 1];
   const start = traj[0];
   const hToObj = Math.hypot(objXZ[0] - final.x, objXZ[1] - final.z);
+  const arrivalRadius = objectiveArrivalRadius(objective.footprint, tuning.radius);
+  const arrivalRadiusHalfFootprint = objectiveArrivalRadius(
+    [objective.footprint[0] / 2, objective.footprint[1] / 2], tuning.radius,
+  );
   const reachedObjective = final.grounded
     && Math.abs(final.y - gTop) < 0.06
-    && hToObj <= 2.2;
+    && hToObj <= arrivalRadius;
+  // Non-vacuous: the SAME arrival distance, judged against a HALVED authored
+  // footprint, would be rejected — so `FinalObjective.footprint` (not a constant)
+  // controls acceptance. Accepted now AND would-reject-if-smaller = field-driven.
+  const footprintControlsAcceptance = hToObj <= arrivalRadius && hToObj > arrivalRadiusHalfFootprint;
 
   return {
     ticks: traj.length,
@@ -117,6 +135,10 @@ function driveRoute(solver, tuning, spawn, waypoints, objective) {
     minFeetY: round(minFeetY, 5),
     reachedGantry,
     reachedGantryTick,
+    objectiveFootprint: objective.footprint,
+    arrivalRadiusM: round(arrivalRadius, 3),
+    arrivalRadiusHalfFootprintM: round(arrivalRadiusHalfFootprint, 3),
+    footprintControlsAcceptance,
     hToObjectiveM: round(hToObj, 3),
     reachedObjective,
     trajectory: traj,
@@ -169,6 +191,23 @@ try {
     minSeparationM: round(sep, 3),
     allClear: spawnEval.every((e) => e.fits && e.insideBounds && e.feetOnFloor),
     twoDistinctSpawns: def.playerSpawns.length === 2 && sep > 2.0,
+  };
+
+  // Enemy spawn clearance — an explicit gate, not assumed. The defender must also
+  // stand in a clear, in-bounds, floor-level cell; measured with the SAME shipping
+  // capsule yardstick (radius/standing height) used for the player slots.
+  const enemyV = new THREE.Vector3(...def.enemySpawn);
+  const enemyFits = solver.canFit(enemyV, tuning.standingHeight, tuning.radius);
+  const enemyInsideBounds = def.enemySpawn[0] > b.min[0] + tuning.radius && def.enemySpawn[0] < b.max[0] - tuning.radius
+    && def.enemySpawn[2] > b.min[2] + tuning.radius && def.enemySpawn[2] < b.max[2] - tuning.radius
+    && def.enemySpawn[1] >= b.min[1] && def.enemySpawn[1] <= b.max[1];
+  const enemySpawnReport = {
+    spawn: def.enemySpawn,
+    capsule: { radius: tuning.radius, standingHeight: tuning.standingHeight },
+    feetOnFloor: Math.abs(def.enemySpawn[1]) < 1e-6,
+    fits: enemyFits,
+    insideBounds: enemyInsideBounds,
+    clear: enemyFits && enemyInsideBounds && Math.abs(def.enemySpawn[1]) < 1e-6,
   };
 
   // ── 3. Initial line-of-sight policy (measured, not assumed) ──────────────
@@ -248,12 +287,14 @@ try {
     { name: 'world_valid', passed: worldReport.valid, actual: worldReport.detail },
     { name: 'collidable_within_ceiling', passed: worldReport.withinCeiling, actual: { boxes: worldReport.collidableBoxes, ceiling: MAX_COLLIDABLE } },
     { name: 'two_feet_based_spawns_clear', passed: spawnsReport.allClear && spawnsReport.twoDistinctSpawns, actual: { slots: spawnEval, minSeparationM: spawnsReport.minSeparationM } },
+    { name: 'enemy_spawn_clear', passed: enemySpawnReport.clear, actual: enemySpawnReport },
     { name: 'initial_los_objective_occluded_from_all_spawns', passed: losReport.objectiveOccludedFromAllSpawns, actual: losFromSpawns },
     { name: 'stair_rises_within_motor_limit', passed: stairReport.withinMotorLimit && stairReport.topTreadFlushWithGantry, actual: { maxDesignedRiseM: stairReport.maxDesignedRiseM, limit: tuning.maxStepHeight, topFlush: stairReport.topTreadFlushWithGantry } },
     { name: 'route_started_on_floor', passed: Math.abs(route.start.y) < 0.02 && route.trajectory.slice(0, 3).some((s) => s.grounded), actual: { startY: route.start.y } },
     { name: 'route_climb_stays_grounded', passed: route.airborneClimbTicks === 0, actual: { airborneClimbTicks: route.airborneClimbTicks } },
     { name: 'route_step_up_within_motor_limit', passed: route.maxSteppedHeightM <= tuning.maxStepHeight + 1e-3 && route.maxSingleTickRiseMm <= tuning.maxStepHeight * 1000 + 1, actual: { maxSteppedHeightM: route.maxSteppedHeightM, maxSingleTickRiseMm: route.maxSingleTickRiseMm, limitMm: tuning.maxStepHeight * 1000 } },
     { name: 'route_reached_final_objective', passed: route.reachedGantry && route.reachedObjective, actual: { reachedGantry: route.reachedGantry, reachedObjective: route.reachedObjective, hToObjectiveM: route.hToObjectiveM, final: route.final } },
+    { name: 'objective_acceptance_derived_from_footprint', passed: route.reachedObjective && route.footprintControlsAcceptance, actual: { footprint: route.objectiveFootprint, arrivalRadiusM: route.arrivalRadiusM, arrivalRadiusHalfFootprintM: route.arrivalRadiusHalfFootprintM, hToObjectiveM: route.hToObjectiveM } },
     { name: 'negative_control_fails_climb', passed: !negative.reachedGantry && !negative.reachedObjective, actual: { reachedGantry: negative.reachedGantry, reachedObjective: negative.reachedObjective, finalY: negative.final.y } },
     { name: 'topology_distinct_from_cargo', passed: topo.allDistinct, actual: topo.fields },
   ];
@@ -271,6 +312,7 @@ try {
     },
     world: worldReport,
     spawns: spawnsReport,
+    enemySpawn: enemySpawnReport,
     los: losReport,
     stair: stairReport,
     route: routeReport,

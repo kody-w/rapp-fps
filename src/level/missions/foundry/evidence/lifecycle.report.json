@@ -1,11 +1,13 @@
 {
   "url": "http://127.0.0.1:5295/src/level/missions/foundry/fixtures/lifecycle.html",
   "consoleErrors": [],
-  "at": "2026-08-15T15:58:28.567Z",
+  "at": "2026-08-15T16:39:44.104Z",
   "ok": true,
   "baselineChildren": 0,
   "cycles": [
     {
+      "initThrew": false,
+      "initError": null,
       "correspondenceOk": true,
       "correspondenceBoxCount": 36,
       "correspondenceCollidable": 36,
@@ -19,6 +21,8 @@
       "addedChildren": 8
     },
     {
+      "initThrew": false,
+      "initError": null,
       "correspondenceOk": true,
       "correspondenceBoxCount": 36,
       "correspondenceCollidable": 36,
@@ -32,6 +36,21 @@
       "addedChildren": 8
     }
   ],
+  "undefinedDressingCycle": {
+    "initThrew": false,
+    "initError": null,
+    "correspondenceOk": true,
+    "correspondenceBoxCount": 36,
+    "correspondenceCollidable": 36,
+    "hooksInstalled": true,
+    "hooksCleared": true,
+    "updateThrew": false,
+    "childrenBaseline": 0,
+    "childrenAfterInit": 8,
+    "childrenAfterDispose": 0,
+    "returnedToBaseline": true,
+    "addedChildren": 8
+  },
   "assertions": [
     {
       "name": "cycle1_correspondence_ok",
@@ -55,6 +74,10 @@
     },
     {
       "name": "scene_returns_to_baseline",
+      "passed": true
+    },
+    {
+      "name": "undefined_dressing_option_safe",
       "passed": true
     }
   ]

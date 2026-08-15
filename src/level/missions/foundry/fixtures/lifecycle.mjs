@@ -15,38 +15,53 @@ import { RenderSystem } from '../../../../render/RenderSystem.js';
 import { ArenaLevel } from '../../../ArenaLevel.js';
 import { buildStaticWorld } from '../../../staticWorld.js';
 import { buildFoundry } from '../foundry.js';
+import { createFoundryLevel } from '../index.js';
 
 const out = window;
 const HOOK_KEYS = ['__SHOT__', '__SHOT_LIST__', '__ARENA_CHECK__', '__LEVEL_STATIC_WORLD__', '__ARENA_SPAWNS__', '__CONTACT_SHADOWS__', '__CONTAINER_DRESSING__'];
 
 const anyHooksPresent = () => HOOK_KEYS.some((k) => k in out && out[k] !== undefined);
 
-function runCycle(engine, baselineChildren) {
-  const def = buildFoundry();
-  const world = buildStaticWorld(def);
-  const level = new ArenaLevel(def, world, { containerDressing: false });
+function runCycle(engine, baselineChildren, makeLevel) {
+  const level = makeLevel();
 
-  level.init(engine.context);
+  // Capture an init throw as DATA (never let it escape): a regression in the
+  // container-dressing guard must surface as a failed assertion, not a harness
+  // crash. `initError` is retained for the evidence report.
+  let initThrew = false;
+  let initError = null;
+  try {
+    level.init(engine.context);
+  } catch (err) {
+    initThrew = true;
+    initError = err instanceof Error ? err.message : String(err);
+  }
+
   const afterInitChildren = engine.scene.children.length;
   const report = level.correspondence;
-  const correspondenceOk = !!(report && report.ok);
-  const hooksInstalled = anyHooksPresent();
+  const correspondenceOk = !initThrew && !!(report && report.ok);
+  const hooksInstalled = !initThrew && anyHooksPresent();
 
   // A few presentation updates (beacon pulse) — must not throw.
   let updateThrew = false;
-  try {
-    for (let i = 0; i < 5; i++) {
-      level.update({ dt: 1 / 60, elapsed: i / 60, frame: i, alpha: 0 });
+  if (!initThrew) {
+    try {
+      for (let i = 0; i < 5; i++) {
+        level.update({ dt: 1 / 60, elapsed: i / 60, frame: i, alpha: 0 });
+      }
+    } catch {
+      updateThrew = true;
     }
-  } catch {
-    updateThrew = true;
   }
 
-  level.dispose();
+  // Dispose must be safe even after a failed init (defensive teardown).
+  try { level.dispose(); } catch { /* swallow — measured via returnedToBaseline */ }
   const afterDisposeChildren = engine.scene.children.length;
   const hooksCleared = !anyHooksPresent();
 
   return {
+    initThrew,
+    initError,
     correspondenceOk,
     correspondenceBoxCount: report ? report.boxCount : null,
     correspondenceCollidable: report ? report.collidableCount : null,
@@ -74,18 +89,36 @@ try {
   await engine.init();
 
   const baseline = engine.scene.children.length;
-  const cycle1 = runCycle(engine, baseline);
-  const cycle2 = runCycle(engine, baseline);
+  const makeDressingFalse = () => {
+    const def = buildFoundry();
+    const world = buildStaticWorld(def);
+    return new ArenaLevel(def, world, { containerDressing: false });
+  };
+  const cycle1 = runCycle(engine, baseline, makeDressingFalse);
+  const cycle2 = runCycle(engine, baseline, makeDressingFalse);
+
+  // Reproducing gate for the container-dressing guard: a caller passing an
+  // EXPLICIT `undefined` through the public seam must NOT re-open the throwing
+  // default-on dressing path. Pre-fix (spread over a `false` default) this init
+  // threw `Cannot read properties of undefined (reading 'index')`; post-fix
+  // (`options.containerDressing ?? false`) it inits, corresponds, and tears down.
+  const undefinedDressingCycle = runCycle(
+    engine, baseline, () => createFoundryLevel({ containerDressing: undefined }).level,
+  );
 
   const ok = [cycle1, cycle2].every((c) =>
     c.correspondenceOk && c.hooksInstalled && c.hooksCleared
-    && !c.updateThrew && c.returnedToBaseline && c.addedChildren > 0);
+    && !c.updateThrew && c.returnedToBaseline && c.addedChildren > 0)
+    && !undefinedDressingCycle.initThrew
+    && undefinedDressingCycle.correspondenceOk
+    && undefinedDressingCycle.returnedToBaseline;
 
   out.__FOUNDRY_LIFECYCLE__ = {
     at: new Date().toISOString(),
     ok,
     baselineChildren: baseline,
     cycles: [cycle1, cycle2],
+    undefinedDressingCycle,
     assertions: [
       { name: 'cycle1_correspondence_ok', passed: cycle1.correspondenceOk },
       { name: 'cycle2_correspondence_ok', passed: cycle2.correspondenceOk },
@@ -93,6 +126,7 @@ try {
       { name: 'both_cleared_hooks_on_dispose', passed: cycle1.hooksCleared && cycle2.hooksCleared },
       { name: 'no_update_throw', passed: !cycle1.updateThrew && !cycle2.updateThrew },
       { name: 'scene_returns_to_baseline', passed: cycle1.returnedToBaseline && cycle2.returnedToBaseline },
+      { name: 'undefined_dressing_option_safe', passed: !undefinedDressingCycle.initThrew && undefinedDressingCycle.correspondenceOk && undefinedDressingCycle.returnedToBaseline },
     ],
   };
   out.__FRAME_READY__ = true;

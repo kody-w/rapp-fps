@@ -71,9 +71,11 @@ const n = report.route.negativeControl;
 console.log(`foundry analysis — "${report.mission}" — ${report.route.fixedStepHz} Hz shipping motor`);
 console.log(`  world: ${w.collidableBoxes} collidable boxes (<= ${w.ceiling}: ${w.withinCeiling}), valid=${w.valid}`);
 console.log(`  spawns: ${report.spawns.slots.length} slots, minSep=${report.spawns.minSeparationM} m, allClear=${report.spawns.allClear}`);
+console.log(`  enemy spawn: (${report.enemySpawn.spawn.join(',')}) clear=${report.enemySpawn.clear} (fits=${report.enemySpawn.fits} inBounds=${report.enemySpawn.insideBounds} feetOnFloor=${report.enemySpawn.feetOnFloor})`);
 console.log(`  los: objective occluded from all spawns = ${report.los.objectiveOccludedFromAllSpawns}`);
 console.log(`  stair: rises=${JSON.stringify(report.stair.rises)} maxRise=${report.stair.maxDesignedRiseM} m topFlush=${report.stair.topTreadFlushWithGantry}`);
 console.log(`  route(+): ticks=${r.ticks} reachedObjective=${r.reachedObjective} maxStepUp=${r.maxSteppedHeightM} m airborneClimb=${r.airborneClimbTicks} final=(${r.final.x},${r.final.y},${r.final.z})`);
+console.log(`  objective acceptance: footprint=[${r.objectiveFootprint.join(',')}] arrivalRadius=${r.arrivalRadiusM} m (half-footprint=${r.arrivalRadiusHalfFootprintM} m) hToObj=${r.hToObjectiveM} m footprintControls=${r.footprintControlsAcceptance}`);
 console.log(`  route(−): sabotage=${n.sabotage} reachedGantry=${n.reachedGantry} reachedObjective=${n.reachedObjective} (must be false)`);
 console.log(`  fingerprint vs cargo: allDistinct=${report.fingerprint.allDistinct}`);
 for (const f of report.fingerprint.fields) {

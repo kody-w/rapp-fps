@@ -70,15 +70,17 @@ commands in **Reproduce**. Every gate currently **passes**.
 | One-source solids ⇄ render ⇄ collision, proven against **real GPU buffers** | `evidence/correspondence/report.json` | `ok`, 43 solids, 36 collidable = 36 boxes, 5/5 checks, `consoleErrors: []` |
 | Core world validation (`assertValidStaticWorld`) | analysis + correspondence | pass |
 | Two clear **feet-based** player spawns | `evidence/analysis.report.json › spawns` | `[-4,0,3.2]`, `[4,0,3.2]`, both feet-on-floor, capsule (r0.34/h1.78) fits, inside bounds, 8 m apart |
-| Enemy spawn | `…› spawns`, `foundry.ts` | `[1,0,-9.5]` |
+| Enemy spawn **clearance** (explicit gate) | `…› enemySpawn`, `foundry.ts` | `[1,0,-9.5]` measured with the shipping player capsule (r0.34/h1.78): `fits`, `insideBounds`, `feetOnFloor` all true |
 | ≥4 cover ids | `foundry.ts › enemyCoverIds` | 5: `plinth-e2, ladle-car, furnace-buttress, console-obj, parapet-s` |
 | Final objective metadata + location | `foundry.ts › finalObjective` | `console-obj` (`shutdown`) at `[-9,2.65,-12.8]`, deck `gantry-deck`, stand 1.7 |
 | **Shipping-motor** deterministic route floor→lane→stairs→objective; each rise ≤0.34 m; zero airborne | `…› route.positive` | reached objective ✔, `maxStepUp 0.2833 m`, `airborneClimbTicks 0`, `minFeetY 0`, lands on deck y=1.7 |
 | **Failing negative control** (non-vacuous) | `…› route.negativeControl` | remove `step-3` → doubled 0.567 m riser → climber **stalls at y=0.567**, never reaches gantry/objective |
+| Objective acceptance derived from **authored `FinalObjective.footprint`** (non-vacuous) | `…› route.positive` | `arrivalRadius = hypot(1.6,1.0)+0.34 = 2.227 m`; arrival `hToObj 1.846 m` accepted, but **rejected** against a halved footprint (radius 1.283 m) → `footprintControlsAcceptance: true` |
 | Spawn capsule clearance + bounds | `…› spawns` | measured per slot (fits/insideBounds/feetOnFloor) |
 | Initial LOS policy | `…› los` | objective **occluded from both spawns** (slot0 by `plinth-w1`, slot1 by `parapet-s`) |
 | Topology fingerprint distinct from Cargo (unique bounds/count/id/route/sightline) | `…› fingerprint` | `allDistinct: true` (table above) |
 | Lifecycle init/update/dispose ×2 | `evidence/lifecycle.report.json` | correspondence OK both cycles, hooks installed **and cleared**, scene → baseline (0 children), no update throw |
+| Empty-container path safe for `{ containerDressing: undefined }` (reproducing) | `…› undefinedDressingCycle` | `createFoundryLevel({ containerDressing: undefined })` coerces to `false`: `initThrew: false`, correspondence OK, scene → baseline. Pre-fix this threw `Cannot read properties of undefined (reading 'index')` |
 | Visual frames @ 1920×1080 | `evidence/frames/*.png` | `furnace_contrast, casting_lane, gantry_traversal, final_objective, silhouette` |
 | 3 hardware trials ≤16.7 ms, zero errors, explicit **port 5295** | `evidence/timing-trial-{1,2,3}/report.json` | p95 **6.73 / 6.66 / 6.71 ms**, `gpuDisjointCount 0`, `consoleErrors: []` |
 | `tsc` clean | `npx tsc --noEmit` | exit 0 |
@@ -169,23 +171,30 @@ const { level, definition, staticWorld } = createFoundryLevel();
 `ArenaDefinition` consumes this unchanged; the extra fields (`mission`,
 `playerSpawns`, `enemySpawn`, `finalObjective`, `routeWaypoints`) are additive.
 
-`createFoundryLevel` defaults **`containerDressing: false`** because the Foundry
-authors no `container`-material solids — see the first weakness below.
+`createFoundryLevel` resolves **`containerDressing` to `false`** (via
+`options.containerDressing ?? false`, so omitted *and* explicit-`undefined`
+both mean off) because the Foundry authors no `container`-material solids — see
+the first weakness below.
 
 ---
 
 ## Honest weaknesses & limitations
 
-- **Container-dressing must be off for this arena.** The shared
-  `ArenaLevel.init` runs the cargo-specific `createContainerDressingLayer` after
-  the correspondence check, and that layer throws on an **empty** container
-  selection (`mergeGeometries([])`). Foundry has zero container solids, so
-  `createFoundryLevel` defaults `containerDressing: false` (and the harnesses do
-  the same). A parent that bypasses the helper and calls
-  `new ArenaLevel(buildFoundry(), …)` with default options **will throw**; pass
-  `{ containerDressing: false }` (or `?dressing=0`). Fixing the shared layer to
-  no-op on an empty list would remove this footgun but is out of this mission's
-  ownership.
+- **Container-dressing must be off for this arena (now enforced at the seam).**
+  The shared `ArenaLevel.init` runs the cargo-specific
+  `createContainerDressingLayer` after the correspondence check, and that layer
+  throws on an **empty** container selection (`mergeGeometries([])`). Foundry has
+  zero container solids, so `createFoundryLevel` **coalesces the option to
+  `false`**: `options.containerDressing ?? false`, so both an omitted option and
+  an explicit `{ containerDressing: undefined }` resolve to off (only a
+  deliberate `true` re-enables it). A reproducing lifecycle gate
+  (`undefined_dressing_option_safe`) locks this in — it was red before the fix
+  (`Cannot read properties of undefined (reading 'index')`) and is green now.
+  The residual, out-of-ownership caveat: a parent that **bypasses the helper**
+  and calls `new ArenaLevel(buildFoundry(), …)` with default options still
+  throws; it must pass `{ containerDressing: false }` (or `?dressing=0`). Fixing
+  the shared layer to no-op on an empty list would remove that last edge but is
+  out of this mission's ownership.
 - **The route proof measures traversability, not AI.** A deterministic
   waypoint-follower drives the **real** `PlayerMotor` (no teleporting, gravity on,
   120 Hz fixed step); it proves a human-controlled walker can make the climb, and

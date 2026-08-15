@@ -67,6 +67,11 @@ report.cycles.forEach((c, i) => {
   console.log(`  cycle ${i + 1}: correspondence=${c.correspondenceOk} (boxes ${c.correspondenceBoxCount}/${c.correspondenceCollidable}) `
     + `added=${c.addedChildren} afterDispose=${c.childrenAfterDispose} baseline=${c.returnedToBaseline} hooks(installed=${c.hooksInstalled} cleared=${c.hooksCleared}) updateThrew=${c.updateThrew}`);
 });
+const u = report.undefinedDressingCycle;
+if (u) {
+  console.log(`  undefined-dressing cycle: initThrew=${u.initThrew}${u.initError ? ` ("${u.initError}")` : ''} `
+    + `correspondence=${u.correspondenceOk} (boxes ${u.correspondenceBoxCount}/${u.correspondenceCollidable}) baseline=${u.returnedToBaseline}`);
+}
 for (const a of report.assertions) {
   console.log(`  [${a.passed ? 'PASS' : 'FAIL'}] ${a.name}`);
 }

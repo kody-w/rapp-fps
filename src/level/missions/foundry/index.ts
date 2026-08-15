@@ -43,14 +43,17 @@ export interface FoundryLevel {
  * world is derived once from the same solids the level renders (one-source
  * discipline) and shared with the level so collision and geometry cannot drift.
  *
- * `containerDressing` defaults to `false`: the Foundry authors no
- * `container`-material solids, so the shared cargo-dressing layer has nothing to
- * build (and its merge step throws on an empty selection). A caller may still
- * override any option — including turning dressing back on — via `options`.
+ * `containerDressing` defaults to `false`, and an **explicit `undefined`** from a
+ * caller is coalesced to `false` too: the Foundry authors no `container`-material
+ * solids, so the shared cargo-dressing layer has nothing to build (and its merge
+ * step throws on an empty selection). Only an explicit `true`/`false` from the
+ * caller is honoured; passing `{ containerDressing: undefined }` cannot re-open
+ * the throwing default-on path. A caller may still turn dressing on deliberately.
  */
 export function createFoundryLevel(options: ArenaLevelOptions = {}): FoundryLevel {
   const definition = buildFoundry();
   const staticWorld = buildStaticWorld(definition);
-  const level = new ArenaLevel(definition, staticWorld, { containerDressing: false, ...options });
+  const containerDressing = options.containerDressing ?? false;
+  const level = new ArenaLevel(definition, staticWorld, { ...options, containerDressing });
   return { definition, staticWorld, level };
 }

@@ -1,7 +1,7 @@
 {
   "url": "http://127.0.0.1:5295/src/level/missions/foundry/fixtures/analysis.html",
   "consoleErrors": [],
-  "at": "2026-08-15T16:04:55.213Z",
+  "at": "2026-08-15T16:38:51.620Z",
   "ok": true,
   "mission": "foundry-last-light",
   "tuning": {
@@ -50,6 +50,21 @@
     "minSeparationM": 8,
     "allClear": true,
     "twoDistinctSpawns": true
+  },
+  "enemySpawn": {
+    "spawn": [
+      1,
+      0,
+      -9.5
+    ],
+    "capsule": {
+      "radius": 0.34,
+      "standingHeight": 1.78
+    },
+    "feetOnFloor": true,
+    "fits": true,
+    "insideBounds": true,
+    "clear": true
   },
   "los": {
     "policy": "objective occluded from every player spawn (cover-defended finale)",
@@ -123,6 +138,13 @@
       "minFeetY": 0,
       "reachedGantry": true,
       "reachedGantryTick": 2069,
+      "objectiveFootprint": [
+        1.6,
+        1
+      ],
+      "arrivalRadiusM": 2.227,
+      "arrivalRadiusHalfFootprintM": 1.283,
+      "footprintControlsAcceptance": true,
       "hToObjectiveM": 1.846,
       "reachedObjective": true,
       "trajectory": [
@@ -27288,6 +27310,25 @@
       }
     },
     {
+      "name": "enemy_spawn_clear",
+      "passed": true,
+      "actual": {
+        "spawn": [
+          1,
+          0,
+          -9.5
+        ],
+        "capsule": {
+          "radius": 0.34,
+          "standingHeight": 1.78
+        },
+        "feetOnFloor": true,
+        "fits": true,
+        "insideBounds": true,
+        "clear": true
+      }
+    },
+    {
       "name": "initial_los_objective_occluded_from_all_spawns",
       "passed": true,
       "actual": [
@@ -27355,6 +27396,19 @@
           "stepped": 0,
           "wp": 6
         }
+      }
+    },
+    {
+      "name": "objective_acceptance_derived_from_footprint",
+      "passed": true,
+      "actual": {
+        "footprint": [
+          1.6,
+          1
+        ],
+        "arrivalRadiusM": 2.227,
+        "arrivalRadiusHalfFootprintM": 1.283,
+        "hToObjectiveM": 1.846
       }
     },
     {
