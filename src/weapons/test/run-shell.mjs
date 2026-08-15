@@ -10,7 +10,10 @@ page.on('pageerror', (error) => errors.push(String(error)));
 page.on('console', (message) => {
   if (message.type() === 'error') errors.push(message.text());
 });
-await page.goto('http://127.0.0.1:5282/src/weapons/test/shell.html', {
+const urlArg = process.argv.find((arg) => arg.startsWith('--url='));
+const url = urlArg?.slice('--url='.length)
+  ?? 'http://127.0.0.1:5282/src/weapons/test/shell.html';
+await page.goto(url, {
   waitUntil: 'domcontentloaded',
 });
 await page.waitForFunction(() => window.__SHELL_READY__ === true);

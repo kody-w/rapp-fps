@@ -1,12 +1,22 @@
 /**
- * Procedural first-person viewmodel. This is intentionally blockout geometry,
- * not finished art: boxes, cylinders and an iron-sight ring establish silhouette
- * while pose timing, sway, ADS and kick are proved. Three merged material groups
- * keep the rifle itself to three draw calls.
+ * Procedural first-person viewmodel for the DUSKLINE A7. Finished, chamfered art
+ * built by RifleGeometry.ts: every primary silhouette form is a rounded/authored
+ * solid, sights are a layered rear aperture plus a front post between ears, and
+ * functional cues (upper/lower receiver seam, stepped muzzle device, handguard
+ * vents, trigger guard, ejection-port recess, charging handle, selector,
+ * magazine segmentation, stock pad) are modelled. Material hierarchy is baked
+ * into vertex colours. The rifle stays three merged material groups — metal,
+ * polymer, accent — so it renders in three draw calls. This module owns pose
+ * timing, sway, ADS, kick, muzzle flash and the muzzle/ejection anchors; the art
+ * itself lives in RifleGeometry.ts.
  */
 
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import {
+  buildDusklineRifle,
+  MUZZLE_ANCHOR,
+  EJECTION_ANCHOR,
+} from './RifleGeometry.js';
 
 export interface ViewmodelPose {
   ads: number;
@@ -39,8 +49,6 @@ const ADS: LocalPose = {
   position: new THREE.Vector3(0, -0.103, -0.62),
   rotation: new THREE.Euler(0, 0, 0),
 };
-const ONE = new THREE.Vector3(1, 1, 1);
-const DEG = Math.PI / 180;
 
 export class WeaponViewmodel {
   readonly root = new THREE.Group();
@@ -61,8 +69,8 @@ export class WeaponViewmodel {
     this.root.userData.noHit = true;
     this.buildRifle();
 
-    this.muzzle.position.set(0, 0.018, -0.91);
-    this.ejectionPort.position.set(0.073, 0.025, -0.13);
+    this.muzzle.position.copy(MUZZLE_ANCHOR);
+    this.ejectionPort.position.copy(EJECTION_ANCHOR);
     this.root.add(this.muzzle, this.ejectionPort);
 
     this.buildFlash();
@@ -178,72 +186,49 @@ export class WeaponViewmodel {
   }
 
   private buildRifle(): void {
-    const metal: THREE.BufferGeometry[] = [];
-    const polymer: THREE.BufferGeometry[] = [];
-    const accent: THREE.BufferGeometry[] = [];
+    const { metal, polymer, accent } = buildDusklineRifle();
 
-    metal.push(box(0.12, 0.105, 0.34, 0, 0.015, -0.09));
-    metal.push(box(0.068, 0.018, 0.53, 0, 0.078, -0.28));
-    metal.push(cylinder(0.014, 0.014, 0.34, 0, 0.024, -0.61));
-    metal.push(cylinder(0.026, 0.022, 0.075, 0, 0.024, -0.82));
-    metal.push(box(0.025, 0.025, 0.045, 0.071, 0.045, -0.015));
-    metal.push(box(0.008, 0.042, 0.09, 0.064, 0.026, -0.13));
-
-    polymer.push(box(0.112, 0.09, 0.31, 0, 0.01, -0.40));
-    polymer.push(box(0.095, 0.09, 0.15, 0, 0.005, 0.13));
-    polymer.push(box(0.075, 0.032, 0.12, 0, 0.07, 0.13));
-    polymer.push(box(0.074, 0.18, 0.095, 0, -0.115, -0.09, -12 * DEG));
-    polymer.push(box(0.064, 0.15, 0.065, 0, -0.105, 0.075, 19 * DEG));
-    polymer.push(box(0.065, 0.042, 0.085, 0, -0.05, 0.005));
-
-    // Rear aperture and front post make the ADS position visually testable.
-    accent.push(torus(0.019, 0.0035, 0, 0.106, 0.055));
-    accent.push(box(0.008, 0.057, 0.008, 0, 0.103, -0.57));
-    accent.push(box(0.008, 0.05, 0.01, -0.024, 0.10, -0.57));
-    accent.push(box(0.008, 0.05, 0.01, 0.024, 0.10, -0.57));
-    for (let index = 0; index < 6; index++) {
-      accent.push(box(0.075, 0.006, 0.01, 0, 0.09, -0.13 - index * 0.055));
-    }
-
+    // Dark gunmetal, matte polymer and a subdued coyote-bronze accent. Each
+    // group carries baked per-part vertex colours, so a single material per group
+    // still resolves upper/lower, barrel, rail and hardware as distinct tones.
     const metalMaterial = new THREE.MeshStandardMaterial({
-      color: 0x303940,
-      metalness: 0.88,
-      roughness: 0.36,
+      color: 0x2b3138,
+      metalness: 0.9,
+      roughness: 0.44,
+      vertexColors: true,
     });
     const polymerMaterial = new THREE.MeshStandardMaterial({
-      color: 0x37433e,
-      metalness: 0.08,
-      roughness: 0.72,
+      color: 0x3b3f3a,
+      metalness: 0.05,
+      roughness: 0.8,
+      vertexColors: true,
     });
     const accentMaterial = new THREE.MeshStandardMaterial({
-      color: 0x9b7a45,
-      metalness: 0.82,
-      roughness: 0.3,
+      color: 0x8c6a3f,
+      metalness: 0.72,
+      roughness: 0.38,
+      vertexColors: true,
     });
     this.resources.push(metalMaterial, polymerMaterial, accentMaterial);
 
-    this.addMergedPart(metal, metalMaterial, 'metal');
-    this.addMergedPart(polymer, polymerMaterial, 'polymer');
-    this.addMergedPart(accent, accentMaterial, 'sights');
+    this.addRiflePart(metal, metalMaterial, 'metal');
+    this.addRiflePart(polymer, polymerMaterial, 'polymer');
+    this.addRiflePart(accent, accentMaterial, 'accent');
   }
 
-  private addMergedPart(
-    geometries: THREE.BufferGeometry[],
+  private addRiflePart(
+    geometry: THREE.BufferGeometry,
     material: THREE.Material,
     name: string,
   ): void {
-    const merged = mergeGeometries(geometries, false);
-    for (const geometry of geometries) geometry.dispose();
-    if (!merged) throw new Error(`Could not merge Duskline ${name} geometry.`);
-    merged.computeBoundingSphere();
-    const mesh = new THREE.Mesh(merged, material);
+    const mesh = new THREE.Mesh(geometry, material);
     mesh.name = `duskline-${name}`;
     mesh.userData.noHit = true;
     mesh.frustumCulled = false;
     mesh.castShadow = false;
     mesh.receiveShadow = false;
     this.root.add(mesh);
-    this.resources.push(merged);
+    this.resources.push(geometry);
   }
 
   private buildFlash(): void {
@@ -299,58 +284,6 @@ export class WeaponViewmodel {
     this.flashMaterials[1].opacity = t * 0.82;
     this.muzzleLight.intensity = this.flashLightIntensity * t * t;
   }
-}
-
-function box(
-  width: number,
-  height: number,
-  depth: number,
-  x: number,
-  y: number,
-  z: number,
-  rotationX = 0,
-): THREE.BufferGeometry {
-  const geometry = new THREE.BoxGeometry(width, height, depth);
-  return transformed(geometry, x, y, z, rotationX);
-}
-
-function cylinder(
-  radiusTop: number,
-  radiusBottom: number,
-  length: number,
-  x: number,
-  y: number,
-  z: number,
-): THREE.BufferGeometry {
-  const geometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, length, 12, 1);
-  return transformed(geometry, x, y, z, Math.PI / 2);
-}
-
-function torus(
-  radius: number,
-  tube: number,
-  x: number,
-  y: number,
-  z: number,
-): THREE.BufferGeometry {
-  const geometry = new THREE.TorusGeometry(radius, tube, 8, 16);
-  return transformed(geometry, x, y, z, 0);
-}
-
-function transformed(
-  geometry: THREE.BufferGeometry,
-  x: number,
-  y: number,
-  z: number,
-  rotationX: number,
-): THREE.BufferGeometry {
-  const matrix = new THREE.Matrix4().compose(
-    new THREE.Vector3(x, y, z),
-    new THREE.Quaternion().setFromEuler(new THREE.Euler(rotationX, 0, 0)),
-    ONE,
-  );
-  geometry.applyMatrix4(matrix);
-  return geometry;
 }
 
 function smoothstep(value: number): number {

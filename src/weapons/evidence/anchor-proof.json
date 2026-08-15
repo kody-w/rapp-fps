@@ -1,0 +1,85 @@
+{
+  "url": "http://127.0.0.1:5285/src/weapons/test/anchor.html",
+  "pageErrors": [],
+  "status": "passed",
+  "pass": true,
+  "triangleCeiling": 9000,
+  "surfaceToleranceM": 0.003,
+  "checks": [
+    {
+      "name": "triangle-ceiling",
+      "pass": true,
+      "detail": {
+        "totalTris": 7312,
+        "reported": 7312,
+        "ceiling": 9000,
+        "groups": {
+          "metalTris": 3276,
+          "polymerTris": 3348,
+          "accentTris": 688
+        }
+      }
+    },
+    {
+      "name": "three-material-groups",
+      "pass": true,
+      "detail": {
+        "groups": [
+          "metal",
+          "polymer",
+          "accent"
+        ],
+        "allHaveVertexColor": true,
+        "note": "one merged BufferGeometry per group => three draw calls"
+      }
+    },
+    {
+      "name": "muzzle-anchor-inside-cluster",
+      "pass": true,
+      "detail": {
+        "anchor": [
+          0,
+          0.018,
+          -0.91
+        ],
+        "insideVotes": "6/6",
+        "axisCrossings": [
+          1,
+          1,
+          1,
+          1,
+          9,
+          1
+        ],
+        "nearestSurfaceMm": 2,
+        "toleranceMm": 3
+      }
+    },
+    {
+      "name": "ejection-anchor-on-port",
+      "pass": true,
+      "detail": {
+        "anchor": [
+          0.073,
+          0.025,
+          -0.13
+        ],
+        "nearestSurfaceMm": 1,
+        "toleranceMm": 3,
+        "insidePortFootprint": true,
+        "clusterBox": {
+          "min": [
+            0.03999999910593033,
+            0.004999999422580004,
+            -0.1899999976158142
+          ],
+          "max": [
+            0.07500000298023224,
+            0.054999999701976776,
+            -0.07000000029802322
+          ]
+        }
+      }
+    }
+  ]
+}
