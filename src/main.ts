@@ -43,6 +43,7 @@ engine.input = input;
 // the same `input` object: bottom-left joystick → move, bottom-right button →
 // fire, drag elsewhere → look. No-ops (returns null) on desktop.
 const touchControls = mountTouchControls(input);
+const gestureBinding = touchControls ? 'TAP' : 'CLICK';
 
 const playerEye = new THREE.Vector3();
 const playerFeet = new THREE.Vector3();
@@ -178,7 +179,7 @@ const armAudio = (): void => {
 
 let unsubscribeAudioStatus = (): void => {};
 if (enabled('audio')) {
-  if (enabled('hud')) hud.setInteraction({ action: 'ENABLE AUDIO', binding: 'CLICK' });
+  if (enabled('hud')) hud.setInteraction({ action: 'DEPLOY', binding: gestureBinding });
   addAudioArmListeners();
   unsubscribeAudioStatus = audio.subscribeStatus((status) => {
     document.documentElement.dataset.audio = status.state;
@@ -195,8 +196,8 @@ if (enabled('audio')) {
       addAudioArmListeners();
       if (enabled('hud')) {
         hud.setInteraction({
-          action: status.state === 'unarmed' ? 'ENABLE AUDIO' : 'RESUME AUDIO',
-          binding: 'CLICK',
+          action: status.state === 'unarmed' ? 'DEPLOY' : 'RESUME',
+          binding: gestureBinding,
         });
       }
       return;
