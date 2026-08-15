@@ -1,0 +1,285 @@
+{
+  "ok": true,
+  "total": 15,
+  "passed": 15,
+  "failed": 0,
+  "failures": [],
+  "tests": [
+    {
+      "name": "catalogAcceptsDefaultCampaign",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "ids": [
+          "cargo-breach",
+          "blackfrost-vault",
+          "tidewall-hold"
+        ]
+      }
+    },
+    {
+      "name": "defaultFreshState",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "snapshot": {
+          "snapshotVersion": 1,
+          "currentMissionId": "cargo-breach",
+          "currentTitle": "Cargo Breach",
+          "currentObjective": "Eliminate the defender holding the beacon terminal.",
+          "missions": [
+            {
+              "id": "cargo-breach",
+              "order": 1,
+              "title": "Cargo Breach",
+              "status": "current",
+              "objective": "Eliminate the defender holding the beacon terminal."
+            },
+            {
+              "id": "blackfrost-vault",
+              "order": 2,
+              "title": "Blackfrost Vault",
+              "status": "locked",
+              "objective": "Clear both defenders and secure the vault core."
+            },
+            {
+              "id": "tidewall-hold",
+              "order": 3,
+              "title": "Tidewall Hold",
+              "status": "locked",
+              "objective": "Break the seawall hold and reach the tide beacon."
+            }
+          ],
+          "eliminations": {
+            "current": 0,
+            "required": 1,
+            "remaining": 1
+          },
+          "campaignComplete": false,
+          "completedCount": 0,
+          "totalCount": 3
+        }
+      }
+    },
+    {
+      "name": "deepLinkLockedUnlockedUnknown",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "lockedFinal": {
+          "outcome": "locked",
+          "missionId": "tidewall-hold",
+          "order": 3,
+          "blockedBy": "blackfrost-vault"
+        },
+        "unlocked": {
+          "outcome": "resolved",
+          "missionId": "blackfrost-vault",
+          "order": 2,
+          "status": "unlocked"
+        }
+      }
+    },
+    {
+      "name": "deepLinkNoSuccessFallback",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "locked": {
+          "outcome": "locked",
+          "missionId": "tidewall-hold",
+          "order": 3,
+          "blockedBy": "blackfrost-vault"
+        },
+        "unknown": {
+          "outcome": "unknown",
+          "requested": "ghost-mission"
+        }
+      }
+    },
+    {
+      "name": "deepLinkResolvedDeploys",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "deepLink": {
+          "outcome": "resolved",
+          "missionId": "blackfrost-vault",
+          "order": 2,
+          "status": "current"
+        },
+        "current": "blackfrost-vault"
+      }
+    },
+    {
+      "name": "eliminationProgression",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "events": [
+          "campaign:deep-link-resolved",
+          "campaign:enemy-eliminated",
+          "campaign:mission-completed",
+          "campaign:mission-unlocked",
+          "campaign:enemy-eliminated",
+          "campaign:checkpoint-banked",
+          "campaign:enemy-eliminated",
+          "campaign:checkpoint-banked",
+          "campaign:mission-completed",
+          "campaign:mission-unlocked"
+        ]
+      }
+    },
+    {
+      "name": "deathRetryCheckpoint",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "events": [
+          "campaign:deep-link-resolved",
+          "campaign:enemy-eliminated",
+          "campaign:mission-completed",
+          "campaign:mission-unlocked",
+          "campaign:enemy-eliminated",
+          "campaign:checkpoint-banked",
+          "campaign:mission-failed",
+          "campaign:enemy-eliminated",
+          "campaign:checkpoint-banked",
+          "campaign:mission-completed",
+          "campaign:mission-unlocked",
+          "campaign:enemy-eliminated",
+          "campaign:mission-failed"
+        ]
+      }
+    },
+    {
+      "name": "finalCompletionCompletesCampaign",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "completedOrder": [
+          "cargo-breach",
+          "blackfrost-vault",
+          "tidewall-hold"
+        ]
+      }
+    },
+    {
+      "name": "deterministicEventSequence",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "sequence": [
+          "campaign:deep-link-resolved",
+          "campaign:enemy-eliminated",
+          "campaign:mission-completed",
+          "campaign:mission-unlocked",
+          "campaign:enemy-eliminated",
+          "campaign:checkpoint-banked",
+          "campaign:enemy-eliminated",
+          "campaign:checkpoint-banked",
+          "campaign:mission-completed",
+          "campaign:mission-unlocked",
+          "campaign:enemy-eliminated",
+          "campaign:enemy-eliminated",
+          "campaign:mission-completed",
+          "campaign:campaign-completed"
+        ]
+      }
+    },
+    {
+      "name": "persistenceHydrationRoundTrip",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "restored": {
+          "snapshotVersion": 1,
+          "currentMissionId": "blackfrost-vault",
+          "currentTitle": "Blackfrost Vault",
+          "currentObjective": "Clear both defenders and secure the vault core.",
+          "missions": [
+            {
+              "id": "cargo-breach",
+              "order": 1,
+              "title": "Cargo Breach",
+              "status": "completed",
+              "objective": "Eliminate the defender holding the beacon terminal."
+            },
+            {
+              "id": "blackfrost-vault",
+              "order": 2,
+              "title": "Blackfrost Vault",
+              "status": "current",
+              "objective": "Clear both defenders and secure the vault core."
+            },
+            {
+              "id": "tidewall-hold",
+              "order": 3,
+              "title": "Tidewall Hold",
+              "status": "locked",
+              "objective": "Break the seawall hold and reach the tide beacon."
+            }
+          ],
+          "eliminations": {
+            "current": 1,
+            "required": 2,
+            "remaining": 1
+          },
+          "campaignComplete": false,
+          "completedCount": 1,
+          "totalCount": 3
+        }
+      }
+    },
+    {
+      "name": "persistenceMalformedRefused",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "hydration": {
+          "status": "refused",
+          "reason": "stored value is not valid JSON"
+        }
+      }
+    },
+    {
+      "name": "persistenceVersionMismatchAndMigration",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "migratedRead": "migrated"
+      }
+    },
+    {
+      "name": "twoFloorSpawnSlotsValidated",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "derived": {
+          "position": [
+            2.6,
+            0,
+            -1.6
+          ],
+          "method": "preferred-offset",
+          "attempts": 1
+        },
+        "separation": 2.6
+      }
+    },
+    {
+      "name": "catalogRejectsEveryFault",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "controls": 17
+      }
+    },
+    {
+      "name": "progressMachineGuards",
+      "pass": true,
+      "failures": [],
+      "detail": {}
+    }
+  ]
+}
