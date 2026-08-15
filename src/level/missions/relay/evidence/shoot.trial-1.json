@@ -1,0 +1,55 @@
+{
+  "at": "2026-08-15T16:11:12.349Z",
+  "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "viewport": "1920x1080",
+  "cpuThrottleRate": 1,
+  "rafDelayMs": 0,
+  "frameBudgetMs": 16.7,
+  "overBudget": false,
+  "performance": {
+    "gpuSupported": true,
+    "gpuCounterBits": 64,
+    "gpuFrameMs": {
+      "samples": 120,
+      "median": 5.057,
+      "p95": 7.358,
+      "worst": 8.516
+    },
+    "cpuFrameMs": {
+      "samples": 122,
+      "median": 0.2,
+      "p95": 0.3,
+      "worst": 0.6
+    },
+    "rafIntervalMs": {
+      "samples": 122,
+      "median": 16.7,
+      "p95": 17.6,
+      "worst": 17.7
+    },
+    "budgetFrameMsMedian": 5.057,
+    "budgetFrameMsP95": 7.358,
+    "budgetFrameMs": {
+      "samples": 120,
+      "median": 5.057,
+      "p95": 7.358,
+      "worst": 8.516
+    },
+    "gpuDisjointCount": 0,
+    "note": "budget uses max(CPU, GPU); rAF interval is scheduler cadence only",
+    "drawCallsPerFrame": 24,
+    "trianglesPerFrame": 1110,
+    "programs": 12,
+    "textures": 22,
+    "geometries": 13
+  },
+  "shots": [
+    "src/level/missions/relay/evidence/shots/spawn.png",
+    "src/level/missions/relay/evidence/shots/switchyard.png",
+    "src/level/missions/relay/evidence/shots/stairs.png",
+    "src/level/missions/relay/evidence/shots/controldeck.png",
+    "src/level/missions/relay/evidence/shots/objective.png",
+    "src/level/missions/relay/evidence/shots/silhouette.png"
+  ],
+  "consoleErrors": []
+}
