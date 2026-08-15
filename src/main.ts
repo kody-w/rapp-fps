@@ -24,11 +24,12 @@ import {
   createAiArenaBinding,
 } from './game/index.js';
 import { CampaignSystem } from './campaign/CampaignSystem.js';
+import {
+  campaignMenuRequired,
+  waitForCampaignSelection,
+} from './campaign/CampaignMenu.js';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
-const engine = new Engine(canvas);
-
-const render = new RenderSystem();
 const campaign = CampaignSystem.create({
   store: window.localStorage,
   location: {
@@ -39,6 +40,14 @@ const campaign = CampaignSystem.create({
     reload: () => location.reload(),
   },
 });
+if (campaignMenuRequired(location.search)) {
+  canvas.style.visibility = 'hidden';
+  await waitForCampaignSelection(campaign);
+}
+canvas.style.visibility = 'visible';
+
+const engine = new Engine(canvas);
+const render = new RenderSystem();
 const arenaDefinition = campaign.definition;
 const staticWorld = buildStaticWorld(arenaDefinition);
 const level = new ArenaLevel(arenaDefinition, staticWorld);
