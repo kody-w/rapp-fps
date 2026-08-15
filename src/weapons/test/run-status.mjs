@@ -47,6 +47,20 @@ try {
       for (let i = 0; i < frames; i++) weapon.update({ dt, elapsed: i * dt, frame: i, alpha: 0 }, ctx);
     };
     const runFixed = (ticks) => { for (let i = 0; i < ticks; i++) weapon.fixedUpdate(step, ctx); };
+    // Movement spread is gameplay state advanced on the 120 Hz fixed step, so a
+    // faithful ramp drives BOTH the fixed simulation and the render presentation,
+    // exactly as the engine's accumulator loop does. (Before the defect-#2 fix,
+    // movement spread advanced inside update(), so render frames alone ramped it;
+    // that render-rate dependence was the bug. Driving fixedUpdate here is not a
+    // test relaxation — it makes the harness mirror the real engine loop.)
+    const runFrames = (frames, dt) => {
+      let acc = 0;
+      for (let i = 0; i < frames; i++) {
+        acc += dt;
+        while (acc >= step) { weapon.fixedUpdate(step, ctx); acc -= step; }
+        weapon.update({ dt, elapsed: i * dt, frame: i, alpha: acc / step }, ctx);
+      }
+    };
 
     // Analytic reference points from the tuning.
     const cfg = window.DUSKLINE_A7;
@@ -64,13 +78,13 @@ try {
     reset();
     const aStart = statuses.length;
     input.move.x = 0; input.move.y = 1;
-    runUpdates(90, 1 / 60);
+    runFrames(90, 1 / 60);
     const phaseA = statuses.slice(aStart).map((s) => s.spread);
 
     // Phase B — stop; spread relaxes back to the hip-still minimum.
     input.move.x = 0; input.move.y = 0;
     const bStart = statuses.length;
-    runUpdates(150, 1 / 60);
+    runFrames(150, 1 / 60);
     const phaseB = statuses.slice(bStart).map((s) => s.spread);
 
     // Phase C — aim down sights while still; spread reaches the global minimum.

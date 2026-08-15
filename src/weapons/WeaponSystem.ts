@@ -22,6 +22,11 @@ const FIXED_STEP = 1 / 120;
 const CAPTURE_SAMPLE_TICKS = 4;
 const FIRE_EPSILON = 1e-9;
 const RANDOM_SEED = 0xd057a7;
+// Cosmetics draw from a stream separate from gameplay so that consuming a
+// cosmetic random (muzzle flash, shell eject) cannot shift the bullet-deviation
+// sequence. Sharing one stream meant a visuals-on live burst and a
+// visuals-suppressed evidence capture fired different shot patterns.
+const COSMETIC_SEED = 0x0c05e71c;
 
 export interface WeaponCapture {
   readonly name: string;
@@ -40,8 +45,10 @@ export class WeaponSystem implements System {
   private ballistics!: HitscanBallistics;
   private ctx!: EngineContext;
 
-  private randomSource = mulberry32(RANDOM_SEED);
-  private readonly random = (): number => this.randomSource();
+  private gameplayRandomSource = mulberry32(RANDOM_SEED);
+  private readonly gameplayRandom = (): number => this.gameplayRandomSource();
+  private cosmeticRandomSource = mulberry32(COSMETIC_SEED);
+  private readonly cosmeticRandom = (): number => this.cosmeticRandomSource();
 
   private baseFov = 75;
   private ammo: number;
@@ -86,7 +93,7 @@ export class WeaponSystem implements System {
       this.config,
       ctx.scene,
       ctx.bus,
-      this.random,
+      this.gameplayRandom,
     );
     this.emitStatus();
   }
@@ -104,6 +111,14 @@ export class WeaponSystem implements System {
   fixedUpdate(step: number, ctx: EngineContext): void {
     if (this.captureFrozen) return;
     this.simulationTime += step;
+
+    // Movement spread is gameplay state — a fired round's cone reads this.speed,
+    // so it must advance on the deterministic 120 Hz fixed step, not the render
+    // frame. Integrating it in update() made a strafing player's accuracy depend
+    // on their frame rate: a shot sampled the speed left by the previous rendered
+    // frame, so the same input produced a different cone at 30 Hz than at 240 Hz.
+    const targetSpeed = Math.min(1, Math.hypot(ctx.input.move.x, ctx.input.move.y));
+    this.speed = damp(this.speed, targetSpeed, 0.11, step);
 
     const aimTarget = ctx.input.aim && !this.reloading ? 1 : 0;
     const previousAim = this.aim;
@@ -175,8 +190,8 @@ export class WeaponSystem implements System {
       this.lookY = damp(this.lookY, targetLookY, 0.045, dt);
       this.moveX = damp(this.moveX, ctx.input.move.x, 0.075, dt);
       this.moveY = damp(this.moveY, ctx.input.move.y, 0.075, dt);
-      const targetSpeed = Math.min(1, Math.hypot(ctx.input.move.x, ctx.input.move.y));
-      this.speed = damp(this.speed, targetSpeed, 0.11, dt);
+      // this.speed is advanced on the fixed step (gameplay). walkPhase is
+      // presentation-only viewmodel bob, so it may read speed at render rate.
       this.walkPhase += this.speed * 9.2 * dt;
       this.viewmodel.updateFlash(dt);
       this.shells.update(dt);
@@ -261,13 +276,13 @@ export class WeaponSystem implements System {
     this.recoil.fire(aim);
 
     if (visuals) {
-      this.viewmodel.triggerFlash(this.random);
+      this.viewmodel.triggerFlash(this.cosmeticRandom);
       this.shells.eject(
         this.viewmodel.ejectionWorld(new THREE.Vector3()),
         right,
         up,
         forward,
-        this.random,
+        this.cosmeticRandom,
       );
     }
   }
@@ -419,7 +434,8 @@ export class WeaponSystem implements System {
   private resetCapture(): void {
     this.captureFrozen = false;
     this.suppressCaptureVisuals = false;
-    this.randomSource = mulberry32(RANDOM_SEED);
+    this.gameplayRandomSource = mulberry32(RANDOM_SEED);
+    this.cosmeticRandomSource = mulberry32(COSMETIC_SEED);
     this.recoil.reset();
     this.viewmodel.clearFlash();
     this.shells.reset();

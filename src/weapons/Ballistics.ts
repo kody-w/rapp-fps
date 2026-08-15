@@ -34,6 +34,8 @@ export class HitscanBallistics {
   private readonly muzzleDirection = new THREE.Vector3();
   private readonly aimPoint = new THREE.Vector3();
   private readonly normal = new THREE.Vector3();
+  private readonly instanceMatrix = new THREE.Matrix4();
+  private readonly instanceWorldMatrix = new THREE.Matrix4();
 
   constructor(
     private readonly config: WeaponConfig,
@@ -104,7 +106,20 @@ export class HitscanBallistics {
     if (!hit) return { direction: this.muzzleDirection.clone(), impact: null };
 
     if (hit.face) {
-      this.normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld).normalize();
+      // The geometry normal is in the mesh's local space. For an InstancedMesh
+      // the hit instance's true world transform is `matrixWorld × instanceMatrix`,
+      // so transforming by `matrixWorld` alone drops the per-instance rotation
+      // and scale and orients impacts on instanced geometry wrongly. Compose the
+      // instance matrix when the hit carries an instanceId; fall back to the
+      // object world matrix for ordinary meshes.
+      const instanced = hit.object as THREE.InstancedMesh;
+      if (instanced.isInstancedMesh === true && hit.instanceId != null) {
+        instanced.getMatrixAt(hit.instanceId, this.instanceMatrix);
+        this.instanceWorldMatrix.multiplyMatrices(hit.object.matrixWorld, this.instanceMatrix);
+        this.normal.copy(hit.face.normal).transformDirection(this.instanceWorldMatrix).normalize();
+      } else {
+        this.normal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld).normalize();
+      }
     } else {
       this.normal.copy(this.muzzleDirection).negate();
     }
