@@ -96,11 +96,15 @@ try {
       audioState: audio.status.state,
       dropped: audio.status.droppedWhileUnarmed - beforeDropped,
       flashIntensity: fx.flash.light.intensity,
+      prompt: document.querySelector('.hud-interaction-action')?.textContent,
+      binding: document.querySelector('.hud-interaction-binding')?.textContent,
     };
   });
   assert.equal(preArm.audioState, 'unarmed');
   assert.equal(preArm.dropped, 1, 'pre-arm event was queued or ignored silently');
   assert(preArm.flashIntensity > 0, 'WeaponFired did not reach CombatFX');
+  assert.equal(preArm.prompt, 'DEPLOY');
+  assert.equal(preArm.binding, 'CLICK');
 
   await page.locator('#game').click({ position: { x: 40, y: 40 } });
   await page.waitForFunction(() => window.engine.get('audio').status.state === 'armed', null, {
@@ -119,7 +123,7 @@ try {
     };
   });
   assert.equal(suspended.state, 'suspended');
-  assert.equal(suspended.prompt, 'RESUME AUDIO');
+  assert.equal(suspended.prompt, 'RESUME');
   await page.locator('#game').click({ position: { x: 42, y: 42 } });
   await page.waitForFunction(() => window.engine.get('audio').status.state === 'armed', null, {
     timeout: 10_000,
