@@ -143,9 +143,9 @@ function launch(missionId: MissionId): void {
 function statusLabel(status: MenuCardState['status']): string {
   switch (status) {
     case 'current': return 'CURRENT OPERATION';
-    case 'completed': return 'SECURED';
+    case 'completed': return '\u2713 SECURED';
     case 'unlocked': return 'AVAILABLE';
-    case 'locked': return 'CLASSIFIED';
+    case 'locked': return '\u25a3 CLASSIFIED';
   }
 }
 
