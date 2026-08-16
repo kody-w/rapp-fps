@@ -17,3 +17,14 @@
 export { cargoBreach, cargoBreachDerivedSpawn } from './cargoBreach.js';
 export { relayBlackout } from './relayBlackout.js';
 export { foundryLastLight } from './foundryLastLight.js';
+
+// Campaign-authored escalation/siege arenas (orders 4–10). Each authors its own
+// box-world arena with the shared helpers (`authoring.ts`) and is re-validated
+// against real geometry by the catalog.
+export { tidalVault } from './tidalVault.js';
+export { emberlineYards } from './emberlineYards.js';
+export { glasshouse } from './glasshouse.js';
+export { coldstoreNine } from './coldstoreNine.js';
+export { substrata } from './substrata.js';
+export { ashfallChapel } from './ashfallChapel.js';
+export { vantageSpire } from './vantageSpire.js';

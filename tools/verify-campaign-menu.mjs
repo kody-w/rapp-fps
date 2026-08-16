@@ -60,7 +60,7 @@ try {
   }));
   assert.equal(fresh.engineExists, false, 'engine constructed behind the campaign menu');
   assert.equal(fresh.canvasHidden, true, 'game canvas is visible behind menu boot');
-  assert.equal(fresh.menu.cards.length, 3);
+  assert.equal(fresh.menu.cards.length, 10);
   assert.deepEqual(
     fresh.menu.cards.map((card) => ({
       id: card.id,
@@ -71,6 +71,13 @@ try {
       { id: 'cargo-breach', status: 'current', selectable: true },
       { id: 'relay-blackout', status: 'locked', selectable: false },
       { id: 'foundry-last-light', status: 'locked', selectable: false },
+      { id: 'tidal-vault', status: 'locked', selectable: false },
+      { id: 'emberline-yards', status: 'locked', selectable: false },
+      { id: 'glasshouse', status: 'locked', selectable: false },
+      { id: 'coldstore-nine', status: 'locked', selectable: false },
+      { id: 'substrata', status: 'locked', selectable: false },
+      { id: 'ashfall-chapel', status: 'locked', selectable: false },
+      { id: 'vantage-spire', status: 'locked', selectable: false },
     ],
   );
   assert.equal(fresh.activeElement, 'continue', 'Continue did not receive initial focus');
@@ -223,7 +230,7 @@ try {
     activeElement: document.activeElement?.getAttribute('data-menu-action') ?? null,
   }));
   assert.equal(mobile.engineExists, false);
-  assert.equal(mobile.cardCount, 3);
+  assert.equal(mobile.cardCount, 10);
   assert(mobile.scrollWidth <= mobile.viewportWidth, 'mobile menu overflows horizontally');
   assert(mobile.menuScrollHeight > mobile.menuClientHeight, 'mobile mission list is not scrollable');
   assert.equal(mobile.activeElement, 'continue');

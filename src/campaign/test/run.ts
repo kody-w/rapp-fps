@@ -54,6 +54,7 @@ import type {
   MissionDefinition,
 } from '../index.js';
 import { fixtureBravo, fixtureCharlie } from './fixtures.js';
+import { createProductionCampaignCatalog, productionMissions } from '../production.js';
 
 // ── Tiny assertion harness ──────────────────────────────────────────────────
 
@@ -786,8 +787,45 @@ function testFinalReloadIdentity(): Outcome {
   });
 }
 
+function testProductionCampaignCatalog(): Outcome {
+  return testCase('productionCampaignCatalog', (c) => {
+    // The REAL shipping catalog — every one of the ten arenas built and validated.
+    const catalog = createProductionCampaignCatalog();
+    c.eq(catalog.count, 10, 'production campaign has ten missions');
+    c.eq(productionMissions.length, 10, 'productionMissions holds ten missions');
+    c.eq(catalog.firstMissionId, asMissionId('cargo-breach'), 'first mission is cargo-breach');
+    c.eq(catalog.ids[9], asMissionId('vantage-spire'), 'finale is vantage-spire');
+
+    // Orders are a contiguous 1..10 run matching declaration order.
+    for (let i = 0; i < productionMissions.length; i++) {
+      c.eq(productionMissions[i].order, i + 1, `mission ${i} order is ${i + 1}`);
+    }
+
+    // The runtime is one-defender-per-mission: every mission must be completable
+    // by a single elimination, and each arena exposes >= 2 cover ids for the AI.
+    for (const m of catalog.missions) {
+      const req = m.completion.requiredEliminations ?? m.enemies.length;
+      c.eq(req, 1, `${m.id} completes on a single elimination`);
+      c.ok(catalog.arenaFor(m.id).enemyCoverIds.length >= 2, `${m.id} exposes >= 2 cover ids`);
+    }
+
+    // Walk the whole campaign end-to-end: deploy → clear → unlock next, proving
+    // all ten are reachable and the finale completes the campaign.
+    let state = initialProgressState(catalog);
+    for (const m of catalog.missions) {
+      state = startMission(state, catalog, m.id).state;
+      state = eliminateEnemy(state, catalog).state;
+      c.eq(state.records[m.id].status, 'completed', `${m.id} completes after its elimination`);
+    }
+    c.eq(state.campaignComplete, true, 'clearing all ten completes the campaign');
+
+    return { count: catalog.count };
+  });
+}
+
 export function runAllCampaignTests(): Outcome[] {
   return [
+    testProductionCampaignCatalog(),
     testCatalogAcceptsDefault(),
     testDefaultState(),
     testDeepLinkResolverStates(),

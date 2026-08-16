@@ -4,13 +4,30 @@ import {
   cargoBreach,
   foundryLastLight,
   relayBlackout,
+  tidalVault,
+  emberlineYards,
+  glasshouse,
+  coldstoreNine,
+  substrata,
+  ashfallChapel,
+  vantageSpire,
 } from './missions/index.js';
 import type { MissionDefinition } from './types.js';
 
+// The ten shipping missions in campaign order, across three difficulty tiers:
+//  insertion (1–3), escalation (4–7), siege (8–10). Each is a single-defender
+//  hold; the curve is carried by arena scale, hold depth, sightlines and biome.
 export const productionMissions = [
   cargoBreach,
   relayBlackout,
   foundryLastLight,
+  tidalVault,
+  emberlineYards,
+  glasshouse,
+  coldstoreNine,
+  substrata,
+  ashfallChapel,
+  vantageSpire,
 ] as const satisfies readonly MissionDefinition[];
 
 export function arenaTopologyFingerprint(arena: ArenaDefinition): string {

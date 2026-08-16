@@ -1,10 +1,18 @@
 {
   "ok": true,
-  "total": 19,
-  "passed": 19,
+  "total": 20,
+  "passed": 20,
   "failed": 0,
   "failures": [],
   "tests": [
+    {
+      "name": "productionCampaignCatalog",
+      "pass": true,
+      "failures": [],
+      "detail": {
+        "count": 10
+      }
+    },
     {
       "name": "catalogAcceptsComposedCampaign",
       "pass": true,
