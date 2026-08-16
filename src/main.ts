@@ -131,6 +131,7 @@ const combat = coopEnabled && player2
       {
         id: 'player-2',
         eyeProvider: () => player2.copyEyePosition(player2Eye) ? player2Eye : null,
+        activeProvider: () => coopSession?.isPlayer2Active ?? false,
       },
     ],
   })
@@ -169,34 +170,39 @@ ai = new AiSystem({
           alive: coopCombat.isAlive('player-2'),
           active: coopSession.isPlayer2Active,
         },
-      ].filter((candidate) => candidate.hasFeet && candidate.alive && candidate.active);
-      if (candidates.length === 0) return null;
+      ].filter((candidate) => candidate.hasFeet).map((candidate) => ({
+        id: candidate.id,
+        position: {
+          x: candidate.feet.x,
+          y: candidate.feet.y,
+          z: candidate.feet.z,
+        },
+        alive: candidate.alive,
+        active: candidate.active,
+      }));
       const from = {
         x: enemy.x,
         y: enemy.y + DEFAULT_ENEMY_CONFIG.eyeHeight,
         z: enemy.z,
       };
-      const visible = candidates.filter((candidate) => lineOfSightClear(
-        aiBinding.arena.world,
-        from,
-        {
-          x: candidate.feet.x,
-          y: candidate.feet.y + DEFAULT_ENEMY_CONFIG.targetSampleHeight,
-          z: candidate.feet.z,
-        },
-      ));
-      const pool = visible.length > 0 ? visible : candidates;
-      pool.sort((a, b) => (
-        enemy.distanceToSquared(a.feet) - enemy.distanceToSquared(b.feet)
-      ));
-      const target = pool[0];
+      const selected = coopRuntime!.selectNearestVisibleTarget(
+        enemy,
+        candidates,
+        (candidate) => lineOfSightClear(
+          aiBinding.arena.world,
+          from,
+          {
+            x: candidate.position.x,
+            y: candidate.position.y + DEFAULT_ENEMY_CONFIG.targetSampleHeight,
+            z: candidate.position.z,
+          },
+        ),
+      );
+      if (!selected) return null;
+      const target = selected.candidate;
       return {
         id: target.id,
-        position: {
-          x: target.feet.x,
-          y: target.feet.y,
-          z: target.feet.z,
-        },
+        position: target.position,
         alive: true,
       };
     }

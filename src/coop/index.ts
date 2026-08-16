@@ -10,6 +10,12 @@ export type {
   CoopSessionOptions,
 } from './CoopSessionSystem.js';
 export { CoopAvatarSystem } from './CoopAvatarSystem.js';
+export { selectNearestVisibleTarget } from './selectAiTarget.js';
+export type {
+  CoopTargetCandidate,
+  CoopTargetPoint,
+  CoopTargetSelection,
+} from './selectAiTarget.js';
 export {
   CoopRenderCoordinator,
   checkExactTiling,

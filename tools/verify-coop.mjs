@@ -21,7 +21,7 @@ rmSync(join(OUT, 'coop.json'), { force: true });
 
 function fixtureUrl() {
   const url = new URL(TARGET);
-  url.searchParams.set('mission', 'cargo-breach');
+  url.searchParams.set('mission', 'relay-blackout');
   url.searchParams.set('campaignFixture', '1');
   url.searchParams.set('coopFixture', '1');
   return url.href;
@@ -70,6 +70,74 @@ function distance(a, b) {
 
 let verdict = 'REFUSED';
 try {
+  await page.goto(TARGET, {
+    waitUntil: 'domcontentloaded',
+    timeout: 60_000,
+  });
+  await page.waitForFunction(() => window.__CAMPAIGN_MENU__?.state?.visible === true);
+  await page.locator('[data-menu-action="coop"]').check();
+  await page.locator('[data-menu-action="continue"]').click();
+  await page.waitForURL((current) => (
+    current.searchParams.get('play') === '1'
+    && current.searchParams.get('coop') === '1'
+  ), { timeout: 10_000 });
+  await page.waitForFunction(() => window.__FRAME_READY__ === true, null, {
+    timeout: 45_000,
+  });
+  await page.waitForFunction(() => (
+    window.__COOP__?.state?.playerCount === 1
+    && document.querySelector('.hud-interaction-action')?.textContent === 'P2 PRESS START'
+  ), null, { timeout: 10_000 });
+  const joinPrompt = await page.evaluate(() => ({
+    playerCount: window.__COOP__.state.playerCount,
+    mode: window.__COOP__.state.mode,
+    prompt: document.querySelector('.hud-interaction-action')?.textContent,
+    coopQuery: new URLSearchParams(location.search).get('coop'),
+  }));
+  assert.deepEqual(joinPrompt, {
+    playerCount: 1,
+    mode: 'single-player',
+    prompt: 'P2 PRESS START',
+    coopQuery: '1',
+  });
+  pass('menu-to-join', 'menu-selected co-op boots P1 and requests gamepad Start', joinPrompt);
+
+  await page.evaluate(() => {
+    const buttons = Array.from({ length: 16 }, () => ({ pressed: false, value: 0 }));
+    buttons[9] = { pressed: true, value: 1 };
+    window.__COOP_PAD__ = {
+      index: 0,
+      id: 'automation-standard-pad',
+      connected: true,
+      mapping: 'standard',
+      axes: [0, 0, 0, 0],
+      buttons,
+      timestamp: performance.now(),
+    };
+    Object.defineProperty(navigator, 'getGamepads', {
+      configurable: true,
+      value: () => [window.__COOP_PAD__],
+    });
+  });
+  await page.waitForFunction(() => window.__COOP__?.state?.playerCount === 2, null, {
+    timeout: 10_000,
+  });
+  const hardwareJoined = await snapshot();
+  assert.equal(hardwareJoined.mode, 'horizontal-split');
+  assert.equal(player(hardwareJoined, 'player-2').connected, true);
+  await page.evaluate(() => {
+    window.__COOP_PAD__.buttons[9] = { pressed: false, value: 0 };
+    window.__COOP_PAD__.connected = false;
+    window.__COOP_PAD__.timestamp = performance.now();
+  });
+  await page.waitForFunction(() => window.__COOP__?.state?.playerCount === 1, null, {
+    timeout: 10_000,
+  });
+  const hardwareLeft = await snapshot();
+  assert.equal(hardwareLeft.mode, 'single-player');
+  assert.equal(player(hardwareLeft, 'player-1').alive, true);
+  pass('hardware-seam', 'standard pad Start joined P2; disconnect restored P1 full-screen');
+
   await page.goto(fixtureUrl(), {
     waitUntil: 'domcontentloaded',
     timeout: 60_000,
@@ -128,6 +196,82 @@ try {
     topHash,
     bottomHash,
   });
+
+  await page.evaluate(() => {
+    window.__COOP_TEST__.setAxes([1, -1, 1, -1]);
+    window.__COOP_TEST__.setButton('fire', true);
+    window.__COOP_TEST__.blur();
+  });
+  await page.waitForTimeout(50);
+  const blurred = await snapshot();
+  assert.equal(blurred.inputSuspended, true);
+  assert.deepEqual(player(blurred, 'player-2').input, {
+    move: { x: 0, y: 0 },
+    look: { x: 0, y: 0 },
+    fire: false,
+    aim: false,
+  });
+  assert.equal(blurred.lifecycleListeners, 6);
+  await page.evaluate(() => {
+    window.__COOP_TEST__.neutral();
+    window.__COOP_TEST__.focus();
+    window.__COOP_TEST__.pagehide();
+    window.__COOP_TEST__.pageshow();
+  });
+  await page.waitForTimeout(50);
+  const resumed = await snapshot();
+  assert.equal(resumed.inputSuspended, false);
+  assert.equal(resumed.lifecycleListeners, 6);
+  pass('focus-bfcache', 'focus/BFCache released input and retained one listener set');
+
+  const beforeP2Combat = await snapshot();
+  const enemyHealthBefore = await page.evaluate(
+    () => window.__INTEGRATION__.gameplay.state.enemyHealth,
+  );
+  const combatPrepared = await page.evaluate(() => {
+    const { player2, ai } = window.__INTEGRATION__;
+    const THREE = window.THREE;
+    const objective = window.__CAMPAIGN__.mission.objective.target;
+    const motor = player2.getMotor();
+    if (!Array.isArray(objective) || !motor) return { ok: false };
+    const candidate = new THREE.Vector3(...objective);
+    if (!motor.world.canFit(candidate, 1.78, 0.34)) return { ok: false };
+    const original = motor.position.toArray();
+    const target = new THREE.Vector3();
+    if (!ai.copyPosition(target)) return { ok: false };
+    target.y += 1.05;
+    motor.teleport(candidate);
+    player2.lookAt(target);
+    return { ok: true, original };
+  });
+  assert.equal(combatPrepared.ok, true, 'P2 authored combat lane is unavailable');
+  await page.waitForTimeout(200);
+  await page.evaluate(() => window.__COOP_TEST__.setButton('fire', true));
+  await page.waitForTimeout(55);
+  await page.evaluate(() => window.__COOP_TEST__.setButton('fire', false));
+  await page.waitForTimeout(120);
+  const afterP2Combat = await snapshot();
+  const enemyHealthAfter = await page.evaluate(
+    () => window.__INTEGRATION__.gameplay.state.enemyHealth,
+  );
+  assert(
+    enemyHealthAfter < enemyHealthBefore,
+    'P2 gamepad ballistics did not damage the real enemy',
+  );
+  assert.equal(
+    player(afterP2Combat, 'player-1').ammo,
+    player(beforeP2Combat, 'player-1').ammo,
+  );
+  assert.equal(
+    player(afterP2Combat, 'player-1').health,
+    player(beforeP2Combat, 'player-1').health,
+  );
+  await page.evaluate((original) => {
+    window.__INTEGRATION__.player2.getMotor().teleport(
+      new window.THREE.Vector3(...original),
+    );
+  }, combatPrepared.original);
+  pass('p2-combat-authority', 'P2 rifle damaged enemy without consuming/damaging P1');
 
   await page.evaluate(() => window.__COOP_TEST__.neutral());
   const beforeMove = await snapshot();
@@ -194,7 +338,18 @@ try {
   assert.equal(afterP2Death.campaignTransitioning, false);
   pass('health-isolation', 'P2 damage/death did not damage P1 or end the mission');
 
+  let leaveRefused = false;
+  try {
+    await page.evaluate(() => window.__COOP_TEST__.leavePlayer2());
+  } catch (error) {
+    leaveRefused = String(error).includes('only at a checkpoint');
+  }
+  assert.equal(leaveRefused, true, 'P2 left after the checkpoint had closed');
+  assert.equal((await snapshot()).playerCount, 2);
+  pass('checkpoint-refusal', 'join/leave is refused outside a checkpoint');
+
   const beforeLeave = await snapshot();
+  await page.evaluate(() => window.__COOP_TEST__.checkpoint());
   await page.evaluate(() => window.__COOP_TEST__.leavePlayer2());
   await page.waitForFunction(() => window.__COOP__.state.playerCount === 1);
   const afterLeave = await snapshot();
@@ -214,6 +369,8 @@ try {
   await page.evaluate(() => window.__COOP_TEST__.disconnect());
   await page.waitForTimeout(50);
   const disconnected = await snapshot();
+  assert.equal(disconnected.playerCount, 1);
+  assert.equal(disconnected.mode, 'single-player');
   assert.equal(player(disconnected, 'player-2').connected, false);
   assert.deepEqual(player(disconnected, 'player-2').input, {
     move: { x: 0, y: 0 },
@@ -223,6 +380,41 @@ try {
   });
   assert.equal(player(disconnected, 'player-1').alive, true);
   pass('disconnect', 'disconnect neutralized P2 and preserved P1');
+
+  const wipeReload = page.waitForNavigation({
+    waitUntil: 'domcontentloaded',
+    timeout: 10_000,
+  });
+  await page.evaluate(() => window.__COOP_TEST__.damagePlayer('player-1', 100));
+  await wipeReload;
+  await page.waitForFunction(() => (
+    window.__FRAME_READY__ === true
+    && window.__COOP__?.state?.playerCount === 2
+  ), null, { timeout: 45_000 });
+  const checkpointRetry = await snapshot();
+  assert.equal(player(checkpointRetry, 'player-1').health, 100);
+  assert.equal(player(checkpointRetry, 'player-2').health, 100);
+  assert.equal(checkpointRetry.campaignTransitioning, false);
+  pass('active-party-wipe', 'disconnected P2 did not block P1 checkpoint wipe/retry');
+
+  const disposed = await page.evaluate(() => {
+    window.__INTEGRATION__.dispose();
+    return {
+      coop: Boolean(window.__COOP__),
+      fixture: Boolean(window.__COOP_TEST__),
+      hudRoots: document.querySelectorAll('[data-hud-root]').length,
+      coopHudRoots: document.querySelectorAll('[data-coop-hud-root]').length,
+      audio: window.__INTEGRATION__.audio.status.state,
+    };
+  });
+  assert.deepEqual(disposed, {
+    coop: false,
+    fixture: false,
+    hudRoots: 0,
+    coopHudRoots: 0,
+    audio: 'closed',
+  });
+  pass('disposal', 'co-op globals, HUD roots, listeners, audio, and GPU systems disposed');
 
   assert.deepEqual(errors, [], `console errors:\n${errors.join('\n')}`);
   verdict = 'PASS';

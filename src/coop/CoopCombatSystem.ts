@@ -21,12 +21,14 @@ export const CoopEvents = {
 export interface CoopCombatPlayer {
   readonly id: string;
   readonly eyeProvider: () => THREE.Vector3 | null;
+  readonly activeProvider?: () => boolean;
   readonly maxHealth?: number;
 }
 
 interface PlayerState {
   readonly id: string;
   readonly eyeProvider: () => THREE.Vector3 | null;
+  readonly activeProvider: () => boolean;
   readonly maxHealth: number;
   health: number;
 }
@@ -88,6 +90,7 @@ export class CoopCombatSystem implements System {
       this.players.set(player.id, {
         id: player.id,
         eyeProvider: player.eyeProvider,
+        activeProvider: player.activeProvider ?? (() => true),
         maxHealth,
         health: maxHealth,
       });
@@ -253,7 +256,8 @@ export class CoopCombatSystem implements System {
     bus.emit(Events.Damage, damage);
     this.emitPlayerStatus(player, bus);
 
-    const allDead = [...this.players.values()].every((entry) => entry.health <= 0);
+    const active = [...this.players.values()].filter((entry) => entry.activeProvider());
+    const allDead = active.length > 0 && active.every((entry) => entry.health <= 0);
     if (allDead && !this.wiped) {
       this.wiped = true;
       bus.emit(CoopEvents.PartyWiped, { playerIds: [...this.players.keys()] });

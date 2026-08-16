@@ -71,6 +71,7 @@ export class CoopSessionSystem implements System {
   private readonly unsubscribers: Array<() => void> = [];
   private readonly checkpointOrigin = new THREE.Vector3();
   private readonly checkpointFeet = new THREE.Vector3();
+  private checkpointOriginSet = false;
   private disposed = false;
   private evidenceHandle: { readonly state: unknown } | null = null;
 
@@ -118,14 +119,12 @@ export class CoopSessionSystem implements System {
   init(ctx: EngineContext): void {
     if (!this.runtime) throw new Error('CoopSessionSystem.bindRuntime() is required before init');
     this.ctx = ctx;
-    this.runtime.player1.copyFeetPosition(this.checkpointOrigin);
     this.unsubscribers.push(
       ctx.bus.on<{ ownerId?: string | number }>(Events.WeaponFired, (event) => {
         if (event?.ownerId === 'player-1' || event?.ownerId === 'player-2') {
           this.closeCheckpoint();
         }
       }),
-      ctx.bus.on(Events.Damage, () => this.closeCheckpoint()),
     );
     this.installEvidence();
   }
@@ -133,12 +132,16 @@ export class CoopSessionSystem implements System {
   update(update: UpdateContext): void {
     this.manager.sample(update.dt);
     if (!this.options.fixture) this.updateHardwareJoin();
-    if (
-      this.checkpointOpen
-      && this.runtime?.player1.copyFeetPosition(this.checkpointFeet)
-      && this.checkpointFeet.distanceToSquared(this.checkpointOrigin) > 0.75 * 0.75
-    ) {
-      this.closeCheckpoint();
+    if (this.runtime?.player1.copyFeetPosition(this.checkpointFeet)) {
+      if (!this.checkpointOriginSet) {
+        this.checkpointOrigin.copy(this.checkpointFeet);
+        this.checkpointOriginSet = true;
+      } else if (
+        this.checkpointOpen
+        && this.checkpointFeet.distanceToSquared(this.checkpointOrigin) > 0.75 * 0.75
+      ) {
+        this.closeCheckpoint();
+      }
     }
     this.publishJoinPrompt();
   }
@@ -199,6 +202,7 @@ export class CoopSessionSystem implements System {
     this.manualEvents!.dispatch('gamepaddisconnected', {
       gamepad: { index: 0, id: 'coop-fixture-pad' },
     });
+    this.player2Active = false;
   }
 
   dispose(): void {
@@ -239,6 +243,8 @@ export class CoopSessionSystem implements System {
       joinPolicy: 'checkpoint-only',
       revivePolicy: 'checkpoint-respawn',
       checkpointOpen: this.checkpointOpen,
+      inputSuspended: this.manager.isSuspended,
+      lifecycleListeners: this.manualEvents?.listenerCount() ?? null,
       campaignTransitioning: this.options.campaign.isTransitioning,
       simulation: { worlds: 1, campaigns: 1, enemies: 1 },
       backingHeight: plan.renderable ? plan.backing.height : 0,
@@ -301,15 +307,14 @@ export class CoopSessionSystem implements System {
       setButton: (action: GamepadAction, held: boolean) => this.setFixtureButton(action, held),
       damagePlayer: (id: string, amount: number) => this.requireRuntime().combat.damagePlayer(id, amount),
       checkpoint: () => this.openCheckpoint(),
-      leavePlayer2: () => {
-        this.openCheckpoint();
-        this.leavePlayer2();
-      },
-      joinPlayer2: () => {
-        this.openCheckpoint();
-        this.joinPlayer2();
-      },
+      closeCheckpoint: () => this.closeCheckpoint(),
+      leavePlayer2: () => this.leavePlayer2(),
+      joinPlayer2: () => this.joinPlayer2(),
       disconnect: () => this.disconnectFixture(),
+      blur: () => this.manualEvents!.dispatch('blur'),
+      focus: () => this.manualEvents!.dispatch('focus'),
+      pagehide: () => this.manualEvents!.dispatch('pagehide', { persisted: true }),
+      pageshow: () => this.manualEvents!.dispatch('pageshow', { persisted: true }),
     };
   }
 
@@ -351,7 +356,10 @@ export class CoopSessionSystem implements System {
       : this.checkpointOpen
         ? 'P2 PRESS START'
         : 'P2 JOIN NEXT CHECKPOINT';
-    if (!force && next === this.promptState) return;
+    const rendered = document.querySelector(
+      '.coop-primary .hud-interaction-action',
+    )?.textContent ?? '';
+    if (!force && next === this.promptState && rendered === next) return;
     this.promptState = next;
     bus.emit(Events.InteractionChanged, next
       ? { action: next, binding: 'GAMEPAD' }
