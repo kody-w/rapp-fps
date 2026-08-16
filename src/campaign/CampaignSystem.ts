@@ -156,6 +156,10 @@ export class CampaignSystem implements System {
     };
   }
 
+  get isTransitioning(): boolean {
+    return this.transitioning;
+  }
+
   init(ctx: EngineContext): void {
     this.ctx = ctx;
     this.installEvidence();
@@ -167,6 +171,7 @@ export class CampaignSystem implements System {
       ctx.bus.on<DamagePayload>(Events.Damage, (damage) => {
         if (damage?.id === 'player' && damage.lethal) this.handlePlayerDeath();
       }),
+      ctx.bus.on('coop:party-wiped', () => this.handlePlayerDeath()),
     );
     if (this.runtime.snapshot().campaignComplete) this.publishCampaignComplete(ctx.bus);
     else this.publishActiveObjective(ctx.bus);

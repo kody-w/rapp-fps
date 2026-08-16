@@ -39,6 +39,7 @@ export interface DamageScreenDirection {
 }
 
 export interface WeaponHudStatus {
+  ownerId?: CharacterId;
   ammo?: number;
   reserve?: number;
   magazineSize?: number;
@@ -50,6 +51,7 @@ export interface WeaponHudStatus {
 }
 
 export interface PlayerHudStatus {
+  id?: CharacterId;
   health: number;
   maxHealth?: number;
 }
@@ -67,6 +69,7 @@ export interface DamageHudEvent {
 }
 
 export interface HitConfirmedEvent {
+  ownerId?: CharacterId;
   lethal?: boolean;
 }
 
@@ -100,6 +103,10 @@ export interface CombatHudOptions {
   profiler?: HudProfilerSource;
   /** Defaults to `location.search`; only `hudDebug=1` enables the overlay. */
   query?: string;
+  /** Unique engine registry name. Defaults to `hud`. */
+  name?: string;
+  /** Extra root class for split-screen layout. */
+  className?: string;
 }
 
 interface HudState {
@@ -247,7 +254,7 @@ function formatMs(value: number | null): string {
 }
 
 export class CombatHud implements System {
-  readonly name = 'hud';
+  readonly name: string;
 
   private readonly state: HudState = {
     ammo: 30,
@@ -285,6 +292,8 @@ export class CombatHud implements System {
   private announcementSerial = 0;
 
   constructor(private readonly options: CombatHudOptions) {
+    this.name = options.name ?? 'hud';
+    if (!this.name.trim()) throw new Error('CombatHud name must be non-empty');
     const query = options.query
       ?? (typeof location === 'undefined' ? '' : location.search);
     this.showDebug = debugEnabled(query);
@@ -398,7 +407,9 @@ export class CombatHud implements System {
 
   private mount(parent: HTMLElement): void {
     const root = document.createElement('section');
-    root.className = 'combat-hud';
+    root.className = ['combat-hud', this.options.className ?? '']
+      .filter(Boolean)
+      .join(' ');
     root.dataset.hudRoot = '';
     root.setAttribute('aria-label', 'Combat status');
     root.innerHTML = `
@@ -500,30 +511,32 @@ export class CombatHud implements System {
   private subscribe(bus: EventBus): void {
     this.subscriptions.push(
       bus.on<WeaponHudStatus>(HudEvents.WeaponStatus, (payload) => {
-        if (payload) this.setWeaponStatus(payload);
+        if (payload && this.belongsToPlayer(payload.ownerId)) this.setWeaponStatus(payload);
       }),
       bus.on<PlayerHudStatus>(HudEvents.PlayerStatus, (payload) => {
-        if (payload) this.setPlayerStatus(payload);
+        if (payload && this.belongsToPlayer(payload.id)) this.setPlayerStatus(payload);
       }),
       bus.on<DamageHudEvent>(Events.Damage, (payload) => {
         if (payload?.id === this.options.playerId) this.receiveDamage(payload);
       }),
-      bus.on(Events.ReloadStart, () => {
+      bus.on<{ ownerId?: CharacterId }>(Events.ReloadStart, (payload) => {
+        if (!this.belongsToPlayer(payload?.ownerId)) return;
         this.setWeaponStatus({ reloading: true });
         this.announce('Reloading');
       }),
-      bus.on(Events.ReloadEnd, () => {
+      bus.on<{ ownerId?: CharacterId }>(Events.ReloadEnd, (payload) => {
+        if (!this.belongsToPlayer(payload?.ownerId)) return;
         this.setWeaponStatus({ reloading: false });
         this.announce('Reload complete');
       }),
-      bus.on<{ aiming: boolean; t?: number }>(Events.AimChanged, (payload) => {
-        if (!payload) return;
+      bus.on<{ ownerId?: CharacterId; aiming: boolean; t?: number }>(Events.AimChanged, (payload) => {
+        if (!payload || !this.belongsToPlayer(payload.ownerId)) return;
         this.setWeaponStatus({
           aim: clamp(finiteOr(payload.t, payload.aiming ? 1 : 0), 0, 1),
         });
       }),
       bus.on<HitConfirmedEvent>(HudEvents.HitConfirmed, (payload) => {
-        this.confirmHit(payload ?? {});
+        if (this.belongsToPlayer(payload?.ownerId)) this.confirmHit(payload ?? {});
       }),
       bus.on<EliminationEvent>(HudEvents.Elimination, (payload) => {
         this.confirmElimination(payload ?? {});
@@ -535,6 +548,11 @@ export class CombatHud implements System {
         this.setInteraction(payload ?? null);
       }),
     );
+  }
+
+  private belongsToPlayer(ownerId: CharacterId | undefined): boolean {
+    return ownerId === this.options.playerId
+      || (ownerId === undefined && this.options.playerId === 'player');
   }
 
   private receiveDamage(payload: DamageHudEvent): void {

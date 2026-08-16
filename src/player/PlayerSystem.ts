@@ -32,18 +32,26 @@ export interface PlayerSystemOptions {
   spawn?: THREE.Vector3;
   /** Authored initial camera yaw. Omitted preserves the level shot orientation. */
   initialYaw?: number;
+  /** Slot-owned camera. Omitted preserves the engine's primary camera. */
+  camera?: THREE.PerspectiveCamera;
+  /** Unique engine registry name. Defaults to `player`. */
+  name?: string;
+  /** Slot lifecycle gate. Inactive players freeze without consuming input. */
+  activeProvider?: () => boolean;
   tuning?: Readonly<PlayerTuning>;
 }
 
 type ShotName = 'mid-air' | 'crouched' | 'landing' | 'top-of-step' | 'at-wall' | 'on-stairs';
 
 export class PlayerSystem implements System {
-  readonly name = 'player';
+  readonly name: string;
 
   private readonly tuning: Readonly<PlayerTuning>;
   private readonly worldDefinition: StaticWorld;
   private readonly requestedSpawn?: THREE.Vector3;
   private readonly requestedYaw?: number;
+  private readonly requestedCamera?: THREE.PerspectiveCamera;
+  private readonly activeProvider: () => boolean;
   private world: StaticBoxWorld | null = null;
   private motor: PlayerMotor | null = null;
 
@@ -75,12 +83,16 @@ export class PlayerSystem implements System {
     options: PlayerSystemOptions,
   ) {
     this.tuning = options.tuning ?? DEFAULT_PLAYER_TUNING;
+    this.name = options.name ?? 'player';
+    if (!this.name.trim()) throw new Error('PlayerSystem name must be non-empty');
     this.worldDefinition = options.world;
     this.requestedSpawn = options.spawn?.clone();
     if (options.initialYaw !== undefined && !Number.isFinite(options.initialYaw)) {
       throw new Error('PlayerSystem initialYaw must be finite');
     }
     this.requestedYaw = options.initialYaw;
+    this.requestedCamera = options.camera;
+    this.activeProvider = options.activeProvider ?? (() => true);
   }
 
   copyFeetPosition(out: THREE.Vector3): boolean {
@@ -108,6 +120,9 @@ export class PlayerSystem implements System {
     return true;
   }
 
+  get currentYaw(): number { return this.yaw; }
+  get currentPitch(): number { return this.pitch; }
+
   lookAt(target: THREE.Vector3): boolean {
     if (!this.copyEyePosition(this.aimEye)) return false;
     const dx = target.x - this.aimEye.x;
@@ -129,10 +144,11 @@ export class PlayerSystem implements System {
     // which cannot be expressed — world throws here rather than degrading.
     this.world = StaticBoxWorld.fromStaticWorld(this.worldDefinition);
 
+    const camera = this.requestedCamera ?? ctx.camera;
     const spawn = this.requestedSpawn?.clone() ?? new THREE.Vector3(
-      ctx.camera.position.x,
-      ctx.camera.position.y - this.tuning.standingEyeHeight,
-      ctx.camera.position.z,
+      camera.position.x,
+      camera.position.y - this.tuning.standingEyeHeight,
+      camera.position.z,
     );
 
     this.motor = new PlayerMotor(this.world, spawn, this.tuning, {
@@ -143,24 +159,29 @@ export class PlayerSystem implements System {
       },
     });
 
-    this.yaw = this.requestedYaw ?? ctx.camera.rotation.y;
+    this.yaw = this.requestedYaw ?? camera.rotation.y;
     this.pitch = this.requestedYaw === undefined
       ? THREE.MathUtils.clamp(
-        ctx.camera.rotation.x,
+        camera.rotation.x,
         -this.tuning.pitchLimitRadians,
         this.tuning.pitchLimitRadians,
       )
       : 0;
     this.eyeHeight = this.tuning.standingEyeHeight;
-    ctx.camera.rotation.order = 'YXZ';
-    this.camera = ctx.camera;
+    camera.rotation.order = 'YXZ';
+    this.camera = camera;
 
-    this.installShotHook();
+    if (this.name === 'player') this.installShotHook();
   }
 
   fixedUpdate(step: number, ctx: EngineContext): void {
     const motor = this.motor;
     if (!motor) return;
+    if (!this.activeProvider()) {
+      motor.previousPosition.copy(motor.position);
+      motor.velocity.set(0, 0, 0);
+      return;
+    }
 
     // A shot pose is a frozen frame for evidence: hold the motor still so the
     // capture is the exact state named, not one tick of drift past it.
@@ -169,7 +190,7 @@ export class PlayerSystem implements System {
       return;
     }
 
-    const input = ctx.input;
+    const input = this.input ?? ctx.input;
     const jumpPressed = this.consumeJumpPressed(input);
     const result = motor.fixedUpdate(step, {
       moveX: input.move.x,
@@ -202,7 +223,9 @@ export class PlayerSystem implements System {
     const motor = this.motor;
     if (!motor) return;
 
-    this.applyLook(ctx.input);
+    const input = this.input ?? ctx.input;
+    const camera = this.camera ?? ctx.camera;
+    if (this.activeProvider()) this.applyLook(input);
     this.renderPosition.lerpVectors(
       motor.previousPosition,
       motor.position,
@@ -255,9 +278,9 @@ export class PlayerSystem implements System {
     this.viewOffsetY = bobY + this.landingOffset + this.stepCameraOffset;
     this.viewRoll = bobRoll;
 
-    ctx.camera.position.copy(this.renderPosition);
-    ctx.camera.position.y += this.eyeHeight;
-    ctx.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
+    camera.position.copy(this.renderPosition);
+    camera.position.y += this.eyeHeight;
+    camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
 
     this.publishState();
     this.updateShotOverlay();
@@ -364,11 +387,13 @@ export class PlayerSystem implements System {
     const global = window as unknown as {
       __SHOT__?: (name: string) => void;
       __PLAYER_STATE__?: unknown;
+      __PLAYER_STATES__?: Record<string, unknown>;
     };
     if (global.__SHOT__ === this.installedShotHook) {
       global.__SHOT__ = this.previousShotHook;
     }
-    delete global.__PLAYER_STATE__;
+    if (this.name === 'player') delete global.__PLAYER_STATE__;
+    if (global.__PLAYER_STATES__) delete global.__PLAYER_STATES__[this.name];
   }
 
   private consumeJumpPressed(input: InputState): boolean {
@@ -452,14 +477,20 @@ export class PlayerSystem implements System {
 
   private publishState(): void {
     if (!this.motor) return;
-    const global = window as unknown as { __PLAYER_STATE__?: unknown };
-    global.__PLAYER_STATE__ = {
+    const global = window as unknown as {
+      __PLAYER_STATE__?: unknown;
+      __PLAYER_STATES__?: Record<string, unknown>;
+    };
+    const state = {
       ...this.motor.snapshot(),
       yaw: this.yaw,
       pitch: this.pitch,
       sensitivityRadPerPixel: this.tuning.lookSensitivityRadPerPixel,
       shot: this.shotMode,
     };
+    global.__PLAYER_STATES__ ??= {};
+    global.__PLAYER_STATES__[this.name] = state;
+    if (this.name === 'player') global.__PLAYER_STATE__ = state;
   }
 }
 

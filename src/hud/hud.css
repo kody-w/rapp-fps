@@ -26,6 +26,16 @@
   text-rendering: geometricPrecision;
 }
 
+.combat-hud.coop-hud {
+  position: absolute;
+}
+
+.combat-hud.coop-secondary .hud-objective,
+.combat-hud.coop-secondary .hud-interaction,
+.combat-hud.coop-secondary .hud-debug {
+  display: none;
+}
+
 .hud-vignette {
   position: absolute;
   inset: 0;

@@ -40,6 +40,7 @@ import {
 
 /** What the host reports about the player each fixed step. `null` = no target. */
 export interface PlayerSample {
+  id?: string;
   position: Vec3;
   alive?: boolean;
 }
@@ -242,7 +243,7 @@ export class AiSystem implements System {
 
     const player = this.samplePlayer(ctx);
     const target: TargetSample = player
-      ? { id: this.opts.targetId, position: player.position, alive: player.alive ?? true }
+      ? { id: player.id ?? this.opts.targetId, position: player.position, alive: player.alive ?? true }
       : { id: this.opts.targetId, position: this.agent.position, alive: false };
     this.hasPlayer = !!player && (player.alive ?? true);
     if (player) this.lastPlayer.set(player.position.x, 0, player.position.z);

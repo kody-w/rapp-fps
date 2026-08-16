@@ -3,6 +3,7 @@ import type { SurfaceKind } from '../core/contracts.js';
 
 /** Payload emitted with the shared `Events.WeaponFired` name. */
 export interface WeaponFiredPayload {
+  ownerId?: string | number;
   origin: THREE.Vector3;
   direction: THREE.Vector3;
   weapon: string;
@@ -12,6 +13,7 @@ export interface WeaponFiredPayload {
 
 /** Payload emitted with the shared `Events.BulletImpact` name. */
 export interface BulletImpactPayload {
+  ownerId?: string | number;
   point: THREE.Vector3;
   normal: THREE.Vector3;
   /** The existing contract calls this field `material`; its value is SurfaceKind. */
@@ -27,6 +29,7 @@ export interface BulletImpactPayload {
 
 /** Extra field is local until the coordinator decides whether to extend AimChanged. */
 export interface AimChangedPayload {
+  ownerId?: string | number;
   aiming: boolean;
   t: number;
   sensitivityScale: number;

@@ -584,6 +584,7 @@ export class EnemyAgent {
     normalize(dir, dir);
 
     const shot: FireShot = {
+      targetId: this.targetId || undefined,
       origin: v3(this._eye.x, this._eye.y, this._eye.z),
       direction: dir,
       aimError: Math.hypot(yawErr, pitchErr),

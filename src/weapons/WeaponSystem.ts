@@ -38,9 +38,25 @@ export interface WeaponCapture {
   readonly recoil: RecoilSnapshot;
 }
 
-export class WeaponSystem implements System {
-  readonly name = 'weapon';
+export interface WeaponSystemOptions {
+  readonly config?: WeaponConfig;
+  readonly name?: string;
+  readonly ownerId?: string | number;
+  readonly input?: EngineContext['input'];
+  readonly camera?: THREE.PerspectiveCamera;
+  readonly viewLayer?: number;
+  readonly activeProvider?: () => boolean;
+}
 
+export class WeaponSystem implements System {
+  readonly name: string;
+
+  private readonly config: WeaponConfig;
+  private readonly ownerId?: string | number;
+  private readonly ownedInput?: EngineContext['input'];
+  private readonly ownedCamera?: THREE.PerspectiveCamera;
+  private readonly viewLayer?: number;
+  private readonly activeProvider: () => boolean;
   private readonly recoil: RecoilModel;
   private viewmodel!: WeaponViewmodel;
   private shells!: ShellEjector;
@@ -76,7 +92,19 @@ export class WeaponSystem implements System {
   private suppressCaptureVisuals = false;
   private lastStatusKey = '';
 
-  constructor(private readonly config: WeaponConfig = DUSKLINE_A7) {
+  constructor(options: WeaponConfig | WeaponSystemOptions = DUSKLINE_A7) {
+    const legacyConfig = 'shotInterval' in options;
+    this.config = legacyConfig ? options : options.config ?? DUSKLINE_A7;
+    this.name = legacyConfig ? 'weapon' : options.name ?? 'weapon';
+    this.ownerId = legacyConfig ? undefined : options.ownerId;
+    this.ownedInput = legacyConfig ? undefined : options.input;
+    this.ownedCamera = legacyConfig ? undefined : options.camera;
+    this.viewLayer = legacyConfig ? undefined : options.viewLayer;
+    this.activeProvider = legacyConfig
+      ? (() => true)
+      : options.activeProvider ?? (() => true);
+    if (!this.name.trim()) throw new Error('WeaponSystem name must be non-empty');
+    const config = this.config;
     this.recoil = new RecoilModel(config);
     this.ammo = config.magazineSize;
     this.reserve = config.reserveAmmo;
@@ -84,12 +112,14 @@ export class WeaponSystem implements System {
 
   init(ctx: EngineContext): void {
     this.ctx = ctx;
-    this.baseFov = ctx.camera.fov;
+    const camera = this.ownedCamera ?? ctx.camera;
+    this.baseFov = camera.fov;
     this.viewmodel = new WeaponViewmodel(
       this.config.flashSeconds,
       this.config.flashLightIntensity,
     );
-    this.viewmodel.attach(ctx.camera, ctx.scene);
+    if (this.viewLayer !== undefined) this.viewmodel.setLayer(this.viewLayer);
+    this.viewmodel.attach(camera, ctx.scene);
     this.shells = new ShellEjector(12, 0);
     ctx.scene.add(this.shells.mesh);
     this.ballistics = new HitscanBallistics(
@@ -126,6 +156,11 @@ export class WeaponSystem implements System {
 
   fixedUpdate(step: number, ctx: EngineContext): void {
     if (this.captureFrozen) return;
+    if (!this.activeProvider()) {
+      this.previousFire = false;
+      this.previousReload = false;
+      return;
+    }
     this.simulationTime += step;
 
     // Movement spread is gameplay state — a fired round's cone reads this.speed,
@@ -133,10 +168,11 @@ export class WeaponSystem implements System {
     // frame. Integrating it in update() made a strafing player's accuracy depend
     // on their frame rate: a shot sampled the speed left by the previous rendered
     // frame, so the same input produced a different cone at 30 Hz than at 240 Hz.
-    const targetSpeed = Math.min(1, Math.hypot(ctx.input.move.x, ctx.input.move.y));
+    const input = this.ownedInput ?? ctx.input;
+    const targetSpeed = Math.min(1, Math.hypot(input.move.x, input.move.y));
     this.speed = damp(this.speed, targetSpeed, 0.11, step);
 
-    const aimTarget = ctx.input.aim && !this.reloading ? 1 : 0;
+    const aimTarget = input.aim && !this.reloading ? 1 : 0;
     const previousAim = this.aim;
     if (aimTarget > this.adsProgress) {
       this.adsProgress = Math.min(aimTarget, this.adsProgress + step / this.config.adsSeconds);
@@ -146,6 +182,7 @@ export class WeaponSystem implements System {
     const currentAim = this.aim;
     if (currentAim !== previousAim) {
       const payload: AimChangedPayload = {
+        ownerId: this.ownerId,
         aiming: aimTarget === 1,
         t: currentAim,
         sensitivityScale: this.lookSensitivityScale,
@@ -154,8 +191,8 @@ export class WeaponSystem implements System {
       this.maybeEmitStatus();
     }
 
-    const reloadEdge = ctx.input.reload && !this.previousReload;
-    this.previousReload = ctx.input.reload;
+    const reloadEdge = input.reload && !this.previousReload;
+    this.previousReload = input.reload;
     if (reloadEdge) this.beginReload();
 
     if (this.reloading) {
@@ -164,7 +201,7 @@ export class WeaponSystem implements System {
       if (this.reloadRemaining <= 0) this.finishReload();
     }
 
-    const triggerHeld = ctx.input.fire;
+    const triggerHeld = input.fire;
     const fireEdge = triggerHeld && !this.previousFire;
     const wantsFire = this.config.fireMode === 'auto' ? triggerHeld : fireEdge;
     this.previousFire = triggerHeld;
@@ -198,14 +235,19 @@ export class WeaponSystem implements System {
   }
 
   update(update: UpdateContext, ctx: EngineContext): void {
+    const input = this.ownedInput ?? ctx.input;
+    const camera = this.ownedCamera ?? ctx.camera;
+    const active = this.activeProvider();
+    this.viewmodel.setVisible(active);
+    if (!active) return;
     if (!this.captureFrozen) {
       const dt = Math.max(1e-4, update.dt);
-      const targetLookX = THREE.MathUtils.clamp(ctx.input.look.x / 0.025, -1, 1);
-      const targetLookY = THREE.MathUtils.clamp(ctx.input.look.y / 0.025, -1, 1);
+      const targetLookX = THREE.MathUtils.clamp(input.look.x / 0.025, -1, 1);
+      const targetLookY = THREE.MathUtils.clamp(input.look.y / 0.025, -1, 1);
       this.lookX = damp(this.lookX, targetLookX, 0.045, dt);
       this.lookY = damp(this.lookY, targetLookY, 0.045, dt);
-      this.moveX = damp(this.moveX, ctx.input.move.x, 0.075, dt);
-      this.moveY = damp(this.moveY, ctx.input.move.y, 0.075, dt);
+      this.moveX = damp(this.moveX, input.move.x, 0.075, dt);
+      this.moveY = damp(this.moveY, input.move.y, 0.075, dt);
       // this.speed is advanced on the fixed step (gameplay). walkPhase is
       // presentation-only viewmodel bob, so it may read speed at render rate.
       this.walkPhase += this.speed * 9.2 * dt;
@@ -218,7 +260,7 @@ export class WeaponSystem implements System {
     }
 
     this.applyViewmodelPose(this.captureFrozen ? 0 : update.elapsed);
-    this.applyViewProjection(ctx.camera);
+    this.applyViewProjection(camera);
   }
 
   /** Deterministic named states used by tools/shoot.mjs through the dev harness. */
@@ -260,13 +302,23 @@ export class WeaponSystem implements System {
     this.captureFrozen = false;
   }
 
+  resetForCheckpoint(): void {
+    this.resetCapture();
+    if (this.ctx) this.emitStatus();
+  }
+
+  reapplyViewProjection(): void {
+    const camera = this.ownedCamera ?? this.ctx.camera;
+    this.applyViewProjection(camera);
+  }
+
   dispose(): void {
     this.viewmodel?.dispose();
     this.shells?.dispose();
   }
 
   private fireOnce(aim: number, visuals: boolean): void {
-    const camera = this.ctx.camera;
+    const camera = this.ownedCamera ?? this.ctx.camera;
     camera.updateWorldMatrix(true, false);
     const quaternion = camera.getWorldQuaternion(new THREE.Quaternion());
     const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(quaternion).normalize();
@@ -279,6 +331,7 @@ export class WeaponSystem implements System {
     this.ammo--;
     this.shotsFired++;
     this.ballistics.fire({
+      ownerId: this.ownerId,
       cameraOrigin,
       muzzleOrigin,
       forward,
@@ -308,7 +361,10 @@ export class WeaponSystem implements System {
     this.reloading = true;
     this.reloadRemaining = this.config.reloadSeconds;
     this.nextShotAt = this.simulationTime;
-    this.ctx.bus.emit(Events.ReloadStart, { weapon: this.config.id });
+    this.ctx.bus.emit(Events.ReloadStart, {
+      ownerId: this.ownerId,
+      weapon: this.config.id,
+    });
   }
 
   private finishReload(): void {
@@ -319,7 +375,10 @@ export class WeaponSystem implements System {
     this.reloading = false;
     this.reloadRemaining = 0;
     this.nextShotAt = this.simulationTime;
-    this.ctx.bus.emit(Events.ReloadEnd, { weapon: this.config.id });
+    this.ctx.bus.emit(Events.ReloadEnd, {
+      ownerId: this.ownerId,
+      weapon: this.config.id,
+    });
   }
 
   /** Radian cone half-angle the ballistics solver samples for this shot. */
@@ -364,6 +423,7 @@ export class WeaponSystem implements System {
     const spread = this.normalizedSpread();
     this.lastStatusKey = this.statusKey(spread);
     const status: WeaponStatusPayload = {
+      ownerId: this.ownerId,
       ammo: this.ammo,
       reserve: this.reserve,
       magazineSize: this.config.magazineSize,
@@ -417,7 +477,7 @@ export class WeaponSystem implements System {
 
   /** Capture recoil through the same scheduler path used by live fixedUpdate. */
   private simulateBurst(shots: number, aim: number): void {
-    const input = this.ctx.input;
+    const input = this.ownedInput ?? this.ctx.input;
     const previous = { fire: input.fire, aim: input.aim, reload: input.reload };
     this.adsProgress = aim;
     this.applyViewmodelPose(0);

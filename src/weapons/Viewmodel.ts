@@ -93,6 +93,14 @@ export class WeaponViewmodel {
     camera.add(this.root);
   }
 
+  setLayer(layer: number): void {
+    this.root.traverse((object) => object.layers.set(layer));
+  }
+
+  setVisible(visible: boolean): void {
+    this.root.visible = visible;
+  }
+
   applyPose(pose: ViewmodelPose): void {
     const ads = smoothstep(pose.ads);
     const steady = 1 - ads * 0.86;
