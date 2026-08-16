@@ -107,6 +107,8 @@ export interface CombatHudOptions {
   name?: string;
   /** Extra root class for split-screen layout. */
   className?: string;
+  /** Optional local-player ownership label. */
+  playerLabel?: string;
 }
 
 interface HudState {
@@ -458,6 +460,12 @@ export class CombatHud implements System {
       </section>
       <p class="hud-live" role="status" aria-live="polite" aria-atomic="true"></p>
     `;
+    if (this.options.playerLabel) {
+      const label = document.createElement('div');
+      label.className = 'hud-player-label';
+      label.textContent = this.options.playerLabel;
+      root.append(label);
+    }
 
     if (this.showDebug) {
       const debug = document.createElement('aside');

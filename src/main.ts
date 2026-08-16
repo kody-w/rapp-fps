@@ -257,6 +257,7 @@ const hud = new CombatHud({
       name: 'hud-1',
       parent: hudParents!.top,
       className: 'coop-hud coop-primary',
+      playerLabel: 'P1 · KEYBOARD / MOUSE',
     }
     : {}),
   profiler: {
@@ -275,6 +276,7 @@ const hud2 = coopEnabled && hudParents
     name: 'hud-2',
     parent: hudParents.bottom,
     className: 'coop-hud coop-secondary',
+    playerLabel: 'P2 · GAMEPAD',
   })
   : null;
 const avatars = coopEnabled && player2 && coopCombat && coopSession
@@ -536,6 +538,7 @@ interface CoopHudParents {
   readonly root: HTMLDivElement;
   readonly top: HTMLDivElement;
   readonly bottom: HTMLDivElement;
+  readonly divider: HTMLDivElement;
 }
 
 function createCoopHudParents(): CoopHudParents {
@@ -549,6 +552,18 @@ function createCoopHudParents(): CoopHudParents {
   });
   const top = document.createElement('div');
   const bottom = document.createElement('div');
+  const divider = document.createElement('div');
+  divider.dataset.coopDivider = '';
+  Object.assign(divider.style, {
+    position: 'absolute',
+    left: '0',
+    right: '0',
+    top: 'calc(50% - 1px)',
+    height: '2px',
+    zIndex: '30',
+    background: 'linear-gradient(90deg, #05090a, #7d8d89 50%, #05090a)',
+    boxShadow: '0 -1px 5px rgb(0 0 0 / 0.85), 0 1px 5px rgb(0 0 0 / 0.85)',
+  });
   for (const element of [top, bottom]) {
     Object.assign(element.style, {
       position: 'absolute',
@@ -558,9 +573,10 @@ function createCoopHudParents(): CoopHudParents {
     });
     root.append(element);
   }
+  root.append(divider);
   document.body.append(root);
-  updateCoopHudLayout({ root, top, bottom }, true);
-  return { root, top, bottom };
+  updateCoopHudLayout({ root, top, bottom, divider }, true);
+  return { root, top, bottom, divider };
 }
 
 function updateCoopHudLayout(
@@ -575,8 +591,10 @@ function updateCoopHudLayout(
       top: '50%',
       bottom: '0',
     });
+    parents.divider.style.display = 'block';
   } else {
     Object.assign(parents.top.style, { top: '0', bottom: '0' });
     parents.bottom.style.display = 'none';
+    parents.divider.style.display = 'none';
   }
 }
