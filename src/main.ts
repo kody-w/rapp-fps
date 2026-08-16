@@ -28,17 +28,12 @@ import { DEFAULT_ENEMY_CONFIG } from './ai/config.js';
 import { lineOfSightClear } from './ai/world.js';
 import { createPlayerWithInput } from './player/index.js';
 import type { CoopCombatSystem } from './coop/CoopCombatSystem.js';
+import {
+  campaignMenuRequired,
+  waitForCampaignSelection,
+} from './campaign/CampaignMenu.js';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
-const engine = new Engine(canvas);
-const query = new URLSearchParams(location.search);
-const coopFixture = query.get('coopFixture') === '1';
-const coopEnabled = coopFixture || query.get('coop') === '1';
-const coopRuntime = coopEnabled
-  ? await import('./coop/index.js')
-  : null;
-
-const render = new RenderSystem();
 const campaign = CampaignSystem.create({
   store: window.localStorage,
   location: {
@@ -49,6 +44,20 @@ const campaign = CampaignSystem.create({
     reload: () => location.reload(),
   },
 });
+if (campaignMenuRequired(location.search)) {
+  canvas.style.visibility = 'hidden';
+  await waitForCampaignSelection(campaign);
+}
+canvas.style.visibility = 'visible';
+
+const query = new URLSearchParams(location.search);
+const coopFixture = query.get('coopFixture') === '1';
+const coopEnabled = coopFixture || query.get('coop') === '1';
+const coopRuntime = coopEnabled
+  ? await import('./coop/index.js')
+  : null;
+const engine = new Engine(canvas);
+const render = new RenderSystem();
 const arenaDefinition = campaign.definition;
 const staticWorld = buildStaticWorld(arenaDefinition);
 const level = new ArenaLevel(arenaDefinition, staticWorld);
@@ -393,8 +402,8 @@ const armAudio = (): void => {
   void audio.arm().then((armed) => {
     document.documentElement.dataset.audio = audio.status.state;
     if (armed) {
-      coopSession?.closeCheckpoint();
       if (enabled('hud')) hud.setInteraction(null);
+      coopSession?.refreshJoinPrompt();
       removeAudioArmListeners();
     }
   });
@@ -409,6 +418,7 @@ if (enabled('audio')) {
     if (status.state === 'armed') {
       removeAudioArmListeners();
       if (enabled('hud')) hud.setInteraction(null);
+      coopSession?.refreshJoinPrompt();
       return;
     }
     if (

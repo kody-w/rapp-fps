@@ -32,7 +32,11 @@ async function open(query = '') {
     if (message.type() === 'error') errors.push(message.text());
   });
   page.on('pageerror', (error) => errors.push(String(error)));
-  await page.goto(`${TARGET}${query}`, {
+  const target = new URL(TARGET);
+  const requested = new URLSearchParams(query.startsWith('?') ? query.slice(1) : query);
+  for (const [key, value] of requested) target.searchParams.set(key, value);
+  target.searchParams.set('play', '1');
+  await page.goto(target.href, {
     waitUntil: 'domcontentloaded',
     timeout: 60_000,
   });

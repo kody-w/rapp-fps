@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 import type { CampaignSystem } from '../campaign/CampaignSystem.js';
-import type { System, UpdateContext } from '../core/contracts.js';
+import {
+  Events,
+  type EngineContext,
+  type System,
+  type UpdateContext,
+} from '../core/contracts.js';
 import type { PlayerSystem } from '../player/PlayerSystem.js';
 import type { WeaponSystem } from '../weapons/WeaponSystem.js';
 import {
@@ -60,11 +65,17 @@ export class CoopSessionSystem implements System {
   private runtime: BoundRuntime | null = null;
   private player2Active: boolean;
   private checkpointOpen = true;
+  private previousStart = false;
+  private promptState = '';
+  private ctx: EngineContext | null = null;
+  private readonly unsubscribers: Array<() => void> = [];
+  private readonly checkpointOrigin = new THREE.Vector3();
+  private readonly checkpointFeet = new THREE.Vector3();
   private disposed = false;
   private evidenceHandle: { readonly state: unknown } | null = null;
 
   constructor(private readonly options: CoopSessionOptions) {
-    this.player2Active = options.enabled;
+    this.player2Active = options.fixture;
     if (options.fixture) {
       this.scriptedSource = new ScriptedGamepadSource();
       this.manualEvents = new ManualEventTarget();
@@ -104,13 +115,32 @@ export class CoopSessionSystem implements System {
     });
   }
 
-  init(): void {
+  init(ctx: EngineContext): void {
     if (!this.runtime) throw new Error('CoopSessionSystem.bindRuntime() is required before init');
+    this.ctx = ctx;
+    this.runtime.player1.copyFeetPosition(this.checkpointOrigin);
+    this.unsubscribers.push(
+      ctx.bus.on<{ ownerId?: string | number }>(Events.WeaponFired, (event) => {
+        if (event?.ownerId === 'player-1' || event?.ownerId === 'player-2') {
+          this.closeCheckpoint();
+        }
+      }),
+      ctx.bus.on(Events.Damage, () => this.closeCheckpoint()),
+    );
     this.installEvidence();
   }
 
   update(update: UpdateContext): void {
     this.manager.sample(update.dt);
+    if (!this.options.fixture) this.updateHardwareJoin();
+    if (
+      this.checkpointOpen
+      && this.runtime?.player1.copyFeetPosition(this.checkpointFeet)
+      && this.checkpointFeet.distanceToSquared(this.checkpointOrigin) > 0.75 * 0.75
+    ) {
+      this.closeCheckpoint();
+    }
+    this.publishJoinPrompt();
   }
 
   closeCheckpoint(): void {
@@ -119,6 +149,10 @@ export class CoopSessionSystem implements System {
 
   openCheckpoint(): void {
     this.checkpointOpen = true;
+  }
+
+  refreshJoinPrompt(): void {
+    this.publishJoinPrompt(true);
   }
 
   joinPlayer2(): void {
@@ -130,12 +164,14 @@ export class CoopSessionSystem implements System {
     runtime.combat.resetPlayer('player-2');
     runtime.weapon2.resetForCheckpoint();
     runtime.player2.getMotor()?.teleport(this.options.player2Spawn);
+    this.publishJoinPrompt(true);
   }
 
   leavePlayer2(): void {
     this.requireCheckpoint('leave');
     this.player2Active = false;
     this.player2Input.release();
+    this.publishJoinPrompt(true);
   }
 
   setFixtureAxes(axes: readonly number[]): void {
@@ -169,6 +205,8 @@ export class CoopSessionSystem implements System {
     if (this.disposed) return;
     this.disposed = true;
     this.manager.dispose();
+    for (const unsubscribe of this.unsubscribers.splice(0)) unsubscribe();
+    this.ctx = null;
     const global = window as unknown as Record<string, unknown>;
     if (global.__COOP__ === this.evidenceHandle) delete global.__COOP__;
     if (this.options.fixture) delete global.__COOP_TEST__;
@@ -284,6 +322,40 @@ export class CoopSessionSystem implements System {
       buttons: Object.fromEntries(this.buttons),
       timestamp: performance.now(),
     });
+  }
+
+  private updateHardwareJoin(): void {
+    const pads = navigator.getGamepads?.() ?? [];
+    const pad = pads[0];
+    const start = Boolean(
+      pad?.connected
+      && pad.mapping === 'standard'
+      && pad.buttons[9]?.pressed,
+    );
+    if (start && !this.previousStart && this.checkpointOpen) {
+      if (this.player2Active) this.leavePlayer2();
+      else this.joinPlayer2();
+    }
+    this.previousStart = start;
+    if (this.player2Active && !this.player2Input.isConnected) {
+      this.player2Active = false;
+      this.publishJoinPrompt(true);
+    }
+  }
+
+  private publishJoinPrompt(force = false): void {
+    const bus = this.ctx?.bus;
+    if (!bus || this.options.fixture) return;
+    const next = this.player2Active
+      ? ''
+      : this.checkpointOpen
+        ? 'P2 PRESS START'
+        : 'P2 JOIN NEXT CHECKPOINT';
+    if (!force && next === this.promptState) return;
+    this.promptState = next;
+    bus.emit(Events.InteractionChanged, next
+      ? { action: next, binding: 'GAMEPAD' }
+      : null);
   }
 
   private requireRuntime(): BoundRuntime {
