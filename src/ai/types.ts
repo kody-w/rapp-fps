@@ -101,6 +101,8 @@ export interface StepInput {
 
 /** One discharged shot the host may turn into ballistics; AI resolves no hits. */
 export interface FireShot {
+  /** Player slot this shot was aimed at when the burst resolved. */
+  targetId?: string;
   origin: Vec3;
   direction: Vec3;
   /** Angular scatter applied to this shot, radians, for evidence. */

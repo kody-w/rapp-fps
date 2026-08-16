@@ -8,9 +8,10 @@ import {
 } from '../vite.config.mjs';
 
 const ASSETS = new URL('../dist/assets/', import.meta.url);
-// PR-parent monolith, recompressed with the same gzip level 9 used below.
-const BASELINE_GZIP_BYTES = 390_081;
-const MAX_GZIP_GROWTH = 1.05;
+// Deployed campaign-menu parent, recompressed with the same gzip level 9.
+const INITIAL_BASELINE_GZIP_BYTES = 409_212;
+const MAX_INITIAL_GZIP_GROWTH = 1.02;
+const MAX_COOP_GZIP_BYTES = 12_000;
 
 const chunks = readdirSync(ASSETS)
   .filter((name) => name.endsWith('.js'))
@@ -25,8 +26,8 @@ const chunks = readdirSync(ASSETS)
     };
   });
 
-assert.equal(chunks.length, 3, `expected app/post/three chunks, got ${chunks.length}`);
-for (const prefix of ['index-', 'post-', 'three-']) {
+assert.equal(chunks.length, 5, `expected app/post/three/shared/coop chunks, got ${chunks.length}`);
+for (const prefix of ['index-', 'post-', 'three-', 'StaticWorldCollider-', 'coop-']) {
   assert(
     chunks.some((chunk) => chunk.name.startsWith(prefix)),
     `missing ${prefix} chunk`,
@@ -40,11 +41,18 @@ for (const chunk of chunks) {
   );
 }
 
-const totalGzipBytes = chunks.reduce((sum, chunk) => sum + chunk.gzipBytes, 0);
-const gzipGrowth = totalGzipBytes / BASELINE_GZIP_BYTES;
+const coopChunk = chunks.find((chunk) => chunk.name.startsWith('coop-'));
+assert(coopChunk, 'missing lazy co-op chunk');
 assert(
-  gzipGrowth <= MAX_GZIP_GROWTH,
-  `gzip growth ${((gzipGrowth - 1) * 100).toFixed(2)}% exceeds 5%`,
+  coopChunk.gzipBytes <= MAX_COOP_GZIP_BYTES,
+  `co-op gzip ${coopChunk.gzipBytes} > ${MAX_COOP_GZIP_BYTES}`,
+);
+const initialChunks = chunks.filter((chunk) => !chunk.name.startsWith('coop-'));
+const initialGzipBytes = initialChunks.reduce((sum, chunk) => sum + chunk.gzipBytes, 0);
+const gzipGrowth = initialGzipBytes / INITIAL_BASELINE_GZIP_BYTES;
+assert(
+  gzipGrowth <= MAX_INITIAL_GZIP_GROWTH,
+  `initial gzip growth ${((gzipGrowth - 1) * 100).toFixed(2)}% exceeds 2%`,
 );
 
 let negativeControl = '';
@@ -71,8 +79,10 @@ assert(
 console.log(JSON.stringify({
   passed: true,
   chunks,
-  totalGzipBytes,
-  baselineGzipBytes: BASELINE_GZIP_BYTES,
-  gzipGrowthPercent: (gzipGrowth - 1) * 100,
+  initialGzipBytes,
+  initialBaselineGzipBytes: INITIAL_BASELINE_GZIP_BYTES,
+  initialGzipGrowthPercent: (gzipGrowth - 1) * 100,
+  coopGzipBytes: coopChunk.gzipBytes,
+  coopGzipBudgetBytes: MAX_COOP_GZIP_BYTES,
   negativeControl,
 }, null, 2));

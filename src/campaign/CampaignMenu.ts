@@ -11,6 +11,7 @@ interface MenuCardState {
 
 export interface CampaignMenuState {
   readonly visible: true;
+  readonly coopSelected: boolean;
   readonly completedCount: number;
   readonly missionCount: number;
   readonly cards: readonly MenuCardState[];
@@ -62,6 +63,10 @@ export function waitForCampaignSelection(campaign: CampaignSystem): Promise<neve
         <span>${continueLabel}</span>
         <strong>${continueMission?.title ?? 'CAMPAIGN'}</strong>
       </button>
+      <label class="campaign-menu-coop">
+        <input type="checkbox" data-menu-action="coop">
+        <span><strong>COUCH CO-OP</strong><small>KEYBOARD + GAMEPAD</small></span>
+      </label>
       <span class="campaign-menu-hint">SELECT AN UNLOCKED OPERATION · PROGRESS SAVES AUTOMATICALLY</span>
     </footer>
   `;
@@ -112,12 +117,16 @@ export function waitForCampaignSelection(campaign: CampaignSystem): Promise<neve
 
   const continueButton = root.querySelector<HTMLButtonElement>('[data-menu-action="continue"]');
   if (!continueButton) throw new Error('CampaignMenu template is missing Continue');
+  const coopToggle = root.querySelector<HTMLInputElement>('[data-menu-action="coop"]');
+  if (!coopToggle) throw new Error('CampaignMenu template is missing Couch Co-op');
+  coopToggle.checked = new URLSearchParams(location.search).get('coop') === '1';
   continueButton.addEventListener('click', () => launch(continueMissionId), { once: true });
 
   const evidence = {
     get state(): CampaignMenuState {
       return {
         visible: true,
+        coopSelected: coopToggle.checked,
         completedCount: snapshot.completedCount,
         missionCount: snapshot.missionCount,
         cards: cardStates,
@@ -135,6 +144,9 @@ function launch(missionId: MissionId): void {
   const params = new URLSearchParams(location.search);
   params.set('mission', missionId);
   params.set('play', '1');
+  const coop = document.querySelector<HTMLInputElement>('[data-menu-action="coop"]');
+  if (coop?.checked) params.set('coop', '1');
+  else params.delete('coop');
   params.delete('campaignFixture');
   history.replaceState(null, '', `${location.pathname}?${params.toString()}${location.hash}`);
   location.reload();

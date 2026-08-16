@@ -132,6 +132,7 @@ export interface DamagePayload {
 }
 
 export interface WeaponStatusPayload {
+  ownerId?: string | number;
   ammo?: number;
   reserve?: number;
   magazineSize?: number;
@@ -141,11 +142,15 @@ export interface WeaponStatusPayload {
 }
 
 export interface PlayerStatusPayload {
+  id?: string | number;
   health: number;
   maxHealth?: number;
 }
 
-export interface HitConfirmedPayload { lethal?: boolean }
+export interface HitConfirmedPayload {
+  ownerId?: string | number;
+  lethal?: boolean;
+}
 export interface EliminationPayload { label?: string }
 export interface ObjectivePayload { title: string; detail?: string }
 export interface InteractionPayload { action: string; binding?: string }

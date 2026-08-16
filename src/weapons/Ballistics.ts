@@ -23,6 +23,7 @@ interface ResolvedHit {
 }
 
 export interface BallisticShot {
+  ownerId?: string | number;
   cameraOrigin: THREE.Vector3;
   muzzleOrigin: THREE.Vector3;
   forward: THREE.Vector3;
@@ -114,6 +115,7 @@ export class HitscanBallistics {
     const distanceToAim = shot.muzzleOrigin.distanceTo(this.aimPoint);
 
     const fired: WeaponFiredPayload = {
+      ownerId: shot.ownerId,
       origin: shot.muzzleOrigin.clone(),
       direction: this.muzzleDirection.clone(),
       weapon: this.config.id,
@@ -130,6 +132,7 @@ export class HitscanBallistics {
     if (!hit) return { direction: this.muzzleDirection.clone(), impact: null };
 
     const impact: BulletImpactPayload = {
+      ownerId: shot.ownerId,
       point: hit.point.clone(),
       normal: hit.normal.clone(),
       material: hit.material,

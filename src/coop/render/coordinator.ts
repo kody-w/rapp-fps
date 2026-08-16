@@ -60,6 +60,11 @@ export interface CoopRenderOptions {
   readonly slotClearAlpha?: number;
   /** Whether to clear the depth buffer per slot. Defaults to true. */
   readonly clearDepth?: boolean;
+  /** Per-slot presentation hook after aspect projection and before draw. */
+  readonly prepareSlot?: (
+    index: number,
+    camera: THREE.PerspectiveCamera,
+  ) => void;
 }
 
 export type CoopRenderResult =
@@ -159,6 +164,7 @@ export class CoopRenderCoordinator {
         // stretched by the half-height band.
         camera.aspect = slot.aspect;
         camera.updateProjectionMatrix();
+        options?.prepareSlot?.(i, camera);
 
         const { x, y, width, height } = slot.css;
         renderer.setViewport(x, y, width, height);

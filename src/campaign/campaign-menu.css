@@ -281,6 +281,41 @@
   font-size: 16px;
 }
 
+.campaign-menu-coop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 190px;
+  padding: 10px 14px;
+  color: var(--ink);
+  border: 1px solid rgb(194 214 211 / 0.24);
+  background: rgb(10 21 24 / 0.84);
+  cursor: pointer;
+}
+
+.campaign-menu-coop input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--gold);
+}
+
+.campaign-menu-coop span {
+  display: grid;
+  gap: 3px;
+}
+
+.campaign-menu-coop strong,
+.campaign-menu-coop small {
+  font: 800 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.11em;
+}
+
+.campaign-menu-coop small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
 @media (max-width: 900px) {
   .campaign-menu {
     display: flex;
@@ -320,6 +355,15 @@
 
   .campaign-menu-hint {
     display: none;
+  }
+
+  .campaign-menu-coop {
+    position: absolute;
+    right: 10px;
+    bottom: -44px;
+    min-width: 0;
+    padding: 7px 9px;
+    background: rgb(7 16 20 / 0.98);
   }
 }
 

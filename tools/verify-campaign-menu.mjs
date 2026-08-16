@@ -74,6 +74,13 @@ try {
     ],
   );
   assert.equal(fresh.activeElement, 'continue', 'Continue did not receive initial focus');
+  assert.equal(fresh.menu.coopSelected, false);
+  await page.locator('[data-menu-action="coop"]').check();
+  assert.equal(
+    await page.evaluate(() => window.__CAMPAIGN_MENU__.state.coopSelected),
+    true,
+  );
+  await page.locator('[data-menu-action="coop"]').uncheck();
   evidence.checks.push({ name: 'fresh-menu', pass: true, fresh });
   await page.screenshot({ path: join(OUT, 'fresh-menu.png') });
 
